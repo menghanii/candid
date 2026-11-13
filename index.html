@@ -46,6 +46,18 @@
   .ring { display:inline-block; padding:3px; border-radius:50%; border:1.5px solid var(--accent); }
   .av { width:88px; height:88px; border-radius:50%; object-fit:cover; display:flex; align-items:center; justify-content:center; background:var(--soft); font-family:var(--display); font-weight:700; font-size:34px; color:var(--sub); }
   .av.sm { width:34px; height:34px; font-size:16px; flex:none; }
+  .av-def { overflow:hidden; padding:0; }
+  .av-def svg { display:block; }
+  .setup { padding:12px 20px 40px; }
+  .setup h1 { font-family:var(--display); font-weight:800; font-size:40px; line-height:1; letter-spacing:-.05em; margin:12px 0 10px; }
+  .setup h1 em { color:var(--accent); font-style:normal; }
+  .setup .hint { color:var(--sub); margin:0 0 8px; line-height:1.55; }
+  .avopts { display:flex; gap:18px; margin:0 0 24px; }
+  .avopt { display:flex; flex-direction:column; align-items:center; gap:8px; background:none; border:0; padding:0; font-size:12px; color:var(--sub); cursor:pointer; }
+  .avopt .sel { display:block; padding:3px; border-radius:50%; border:2px solid transparent; transition:border-color .15s; }
+  .avopt .av { width:64px; height:64px; overflow:hidden; color:var(--sub); }
+  .avopt.on { color:var(--fg); font-weight:600; }
+  .avopt.on .sel { border-color:var(--accent); }
   .name { font-family:var(--display); font-weight:700; font-size:30px; line-height:1.1; letter-spacing:-.03em; margin:14px 0 4px; }
   .desc { color:var(--sub); font-size:13px; }
   .stats { display:flex; margin:22px 0 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
@@ -188,9 +200,12 @@ function ago(iso) {
   if (s < 86400) return `${s / 3600 | 0}시간 전`; if (s < 604800) return `${s / 86400 | 0}일 전`;
   return new Date(iso).toLocaleDateString('ko-KR', { month:'long', day:'numeric' });
 }
+// 기본 프로필 아이콘 (테마 색을 따라감)
+const DEFAULT_AV = '<svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true"><rect width="100" height="100" fill="var(--soft)"/><circle cx="50" cy="40" r="17" fill="var(--sub)" opacity=".5"/><path d="M16 96c2-20 17-31 34-31s32 11 34 31" fill="var(--sub)" opacity=".5"/></svg>';
 const avatar = (p, cls = '') => p?.avatar_url
   ? `<img class="av ${cls}" src="${esc(p.avatar_url)}" alt="" referrerpolicy="no-referrer">`
-  : `<div class="av ${cls}">${esc((p?.name || '?').slice(0, 1))}</div>`;
+  : `<div class="av av-def ${cls}">${DEFAULT_AV}</div>`;
+const https = u => u ? String(u).replace(/^http:\/\//, 'https://') : u;
 
 // ---------- 설정 확인 ----------
 const cfg = window.FG_CONFIG || {};
@@ -198,14 +213,87 @@ const DEMO = !cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY;
 const sb = DEMO ? demoClient() : supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
 const photoUrl = path => sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
 const feedUrl = id => `${location.origin}${location.pathname}?u=${id}`;
-let me = null;
+let me = null, myProf = null;
 
 (async function boot() {
   me = (await sb.auth.getSession()).data.session?.user || null;
+  if (me) {
+    myProf = (await sb.from('profiles').select('*').eq('id', me.id).maybeSingle()).data;
+    if (myProf && !myProf.onboarded) return renderSetup(true); // 첫 로그인: 프로필 설정
+  }
+  route();
+})();
+
+function route() {
   const u = new URLSearchParams(location.search).get('u');
   if (u) return renderProfile(u);
   me ? location.replace(feedUrl(me.id)) : renderLanding();
-})();
+}
+
+// ---------- 프로필 설정 (첫 로그인 / 편집) ----------
+function renderSetup(first) {
+  const social = https(myProf.social_avatar_url || me.user_metadata?.avatar_url || me.user_metadata?.picture);
+  const prov = me.app_metadata?.provider;
+  const socialLabel = prov === 'kakao' ? '카카오 프로필' : prov === 'google' ? 'Google 프로필' : '소셜 프로필';
+  let choice = 'default', customUrl = null, customBlob = null;
+  if (!first && myProf.avatar_url) { if (myProf.avatar_url === social) choice = 'social'; else { choice = 'custom'; customUrl = myProf.avatar_url; } }
+
+  $app.innerHTML = `
+    <header class="top"><span class="logo">${LOGO}</span><div class="sp"></div>
+      <button id="skip" style="background:none;border:0;padding:8px 0;color:var(--sub);font-weight:600;font-size:14px">${first ? '건너뛰기' : '취소'}</button></header>
+    <div class="setup">
+      <h1>${first ? 'Set up your<br><em>profile.</em>' : 'Edit <em>profile.</em>'}</h1>
+      <p class="hint">친구들에게 보일 이름과 사진이에요.${first ? '<br>나중에 언제든 바꿀 수 있어요.' : ''}</p>
+      <div style="text-align:center;margin:8px 0 24px"><div class="ring" id="preview"></div></div>
+      <div class="label">PROFILE PHOTO</div>
+      <div class="avopts">
+        <button class="avopt" data-c="default"><span class="sel"><span class="av">${DEFAULT_AV}</span></span>기본</button>
+        ${social ? `<button class="avopt" data-c="social"><span class="sel"><img class="av" src="${esc(social)}" alt="" referrerpolicy="no-referrer"></span>${socialLabel}</button>` : ''}
+        <label class="avopt" data-c="custom"><span class="sel" id="customThumb"></span>앨범에서 선택<input type="file" accept="image/*" id="avfile" hidden></label>
+      </div>
+      <div class="label">NAME</div>
+      <input class="field" id="nm" maxlength="20" value="${esc(myProf.name)}" placeholder="${esc(myProf.name)}">
+      <div style="height:10px"></div>
+      <button class="btn primary block" id="done">${first ? '시작하기' : '저장'}</button>
+    </div>`;
+
+  const $ = s => $app.querySelector(s);
+  const currentUrl = () => choice === 'social' ? social : choice === 'custom' ? customUrl : null;
+  const paint = () => {
+    $('#preview').innerHTML = avatar({ avatar_url: currentUrl() });
+    $('#customThumb').innerHTML = customUrl ? `<img class="av" src="${esc(customUrl)}" alt="">` : `<span class="av">${I.camera}</span>`;
+    $app.querySelectorAll('.avopt').forEach(o => o.classList.toggle('on', o.dataset.c === choice));
+  };
+  paint();
+  $app.querySelectorAll('button.avopt').forEach(o => o.onclick = () => { choice = o.dataset.c; paint(); });
+  $('#avfile').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    customBlob = await resizeSquare(f, 400);
+    customUrl = URL.createObjectURL(customBlob); choice = 'custom'; paint();
+  };
+  $('#skip').onclick = async () => {
+    if (first) { await sb.from('profiles').update({ onboarded: true }).eq('id', me.id); myProf.onboarded = true; }
+    route();
+  };
+  $('#done').onclick = async e => {
+    e.target.disabled = true; e.target.textContent = '저장 중…';
+    try {
+      let url = currentUrl();
+      if (choice === 'custom' && customBlob) {
+        const path = `${me.id}/${crypto.randomUUID()}.jpg`;
+        const up = await sb.storage.from('avatars').upload(path, customBlob, { contentType: 'image/jpeg' });
+        if (up.error) throw up.error;
+        url = sb.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+      }
+      const patch = { name: $('#nm').value.trim() || myProf.name, avatar_url: url, onboarded: true };
+      const { error } = await sb.from('profiles').update(patch).eq('id', me.id);
+      if (error) throw error;
+      Object.assign(myProf, patch);
+      toast(first ? '환영해요!' : '프로필을 저장했어요');
+      route();
+    } catch (err) { e.target.disabled = false; e.target.textContent = first ? '시작하기' : '저장'; toast('실패: ' + err.message); }
+  };
+}
 
 // ---------- 로그인 ----------
 function login(provider) {
@@ -265,7 +353,7 @@ async function renderProfile(uid) {
         : `<button class="icon-btn" title="사진 보내기" onclick="openCompose()">${I.plus}</button>`}
     </header>
     <section class="head">
-      <div class="ring">${avatar(prof)}</div>
+      <div class="ring" ${isOwner ? 'onclick="renderSetup(false)" style="cursor:pointer" title="프로필 편집"' : ''}>${avatar(prof)}</div>
       <div class="name">${esc(prof.name)}</div>
       <div class="desc">${isOwner ? '친구들이 만들어주는 내 피드' : `친구들이 만들어주는 ${esc(prof.name)}의 피드`}</div>
       <div class="stats">
@@ -368,7 +456,8 @@ const closeSheet = () => document.querySelector('.sheet-wrap')?.remove();
 const menu = items => sheet(`<div class="menu">${items}</div><div class="menu"><button class="menu-item" onclick="closeSheet()">취소</button></div>`);
 
 function openMenu() {
-  menu(`<button class="menu-item" onclick="closeSheet();shareFeed()">내 피드 링크 공유</button>
+  menu(`<button class="menu-item" onclick="closeSheet();renderSetup(false)">프로필 편집</button>
+        <button class="menu-item" onclick="closeSheet();shareFeed()">내 피드 링크 공유</button>
         ${DEMO ? '' : '<button class="menu-item" onclick="openPush()">알림 설정</button>'}
         <button class="menu-item danger" onclick="logout()">로그아웃</button>`);
 }
@@ -382,7 +471,7 @@ function postMenu(id) {
 
 function openCompose() {
   let mission = MISSIONS[0], image = null;
-  const nick = me ? (me.user_metadata?.name || me.user_metadata?.full_name || '').slice(0, 12) : '';
+  const nick = (myProf?.name || '').slice(0, 12);
   const w = sheet(`
     <h3>For ${esc(S.prof.name)}</h3>
     <p class="hint">로그인 없이 10초면 끝. ${esc(S.prof.name)}님이 승인하면 피드에 올라가요.</p>
@@ -551,7 +640,7 @@ function demoClient() {
     .map(([author_name, mission, text], i) => ({ id: 'p' + i, owner_id: 'demo', author_name, mission, text, image_path: art(9 + i),
       status: 'pending', created_at: t(i * 2 + .3), approved_at: null }));
   let db; try { db = JSON.parse(ss.get('demo_db')); } catch {}
-  db = db || { profiles: [{ id: 'demo', name: '민수', avatar_url: null }], posts: [...seed, ...pend] };
+  db = db || { profiles: [{ id: 'demo', name: '민수', avatar_url: null, onboarded: true }], posts: [...seed, ...pend] };
   const persist = () => ss.set('demo_db', JSON.stringify(db));
   const loggedIn = () => ss.get('demo_login') === '1';
   const files = {};
@@ -608,6 +697,14 @@ function demoClient() {
     }) },
     _files: files,
   };
+}
+
+// 정사각형으로 가운데 잘라서 축소 (프로필 사진용)
+async function resizeSquare(file, size) {
+  const img = await loadImg(URL.createObjectURL(file)), side = Math.min(img.width, img.height);
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  c.getContext('2d').drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, size, size);
+  return new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
 }
 
 // 인스타 스토리용 1080x1920 이미지

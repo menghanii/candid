@@ -68,3 +68,6 @@ python3 -m http.server 3000   # → http://localhost:3000
    - Table `posts`, Events `Insert`, Type `Supabase Edge Functions` → `notify-owner`
    - HTTP Headers 에 `x-webhook-secret: <WEBHOOK_SECRET 값>` 추가
 5. 앱에서 🔔 → 알림 켜기 (iPhone 은 Safari 공유 → 홈 화면에 추가 후 홈 화면 아이콘으로 열어야 함)
+
+## 6. 프로필 설정 (이름/사진 직접 선택)
+SQL Editor 에서 `profile.sql` 실행. 첫 로그인 시 프로필 설정 화면이 뜨고, 이후 메뉴 → 프로필 편집 또는 내 프로필 사진을 눌러 변경.
