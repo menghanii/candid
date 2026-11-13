@@ -3,12 +3,27 @@
 import webpush from 'npm:web-push@3.6.7';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
-const env = (k: string) => Deno.env.get(k) ?? '';
-const sb = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'));
-webpush.setVapidDetails('mailto:noreply@candid.app', env('VAPID_PUBLIC_KEY'), env('VAPID_PRIVATE_KEY'));
+const env = (k: string) => (Deno.env.get(k) ?? '').trim();
 const SITE = env('SITE_URL') || 'https://menghanii.github.io/candid/';
+let sb: ReturnType<typeof createClient> | null = null;
+
+// 시작 시 바로 죽지 않도록, 요청이 올 때 설정을 점검하고 빠진 항목 이름만 알려줌 (값은 노출하지 않음)
+function setup(): string | null {
+  const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'WEBHOOK_SECRET'];
+  const missing = required.filter((k) => !env(k));
+  if (missing.length) return `missing secrets: ${missing.join(', ')}`;
+  try {
+    webpush.setVapidDetails('mailto:noreply@candid.app', env('VAPID_PUBLIC_KEY'), env('VAPID_PRIVATE_KEY'));
+  } catch (e) {
+    return `invalid VAPID keys: ${(e as Error).message}`;
+  }
+  sb ??= createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'));
+  return null;
+}
 
 Deno.serve(async (req) => {
+  const problem = setup();
+  if (problem) { console.error(problem); return new Response(problem, { status: 500 }); }
   // 웹훅에서 온 요청인지 확인 (공유 비밀값 헤더)
   if (!env('WEBHOOK_SECRET') || req.headers.get('x-webhook-secret') !== env('WEBHOOK_SECRET')) {
     return new Response('unauthorized', { status: 401 });
@@ -18,13 +33,13 @@ Deno.serve(async (req) => {
   if (body?.type !== 'INSERT' || body?.table !== 'posts' || !id) return new Response('ignored');
 
   // 페이로드를 믿지 않고 DB에서 다시 확인: 존재하고, 대기 중이고, 방금 들어온 것만
-  const { data: post } = await sb.from('posts')
+  const { data: post } = await sb!.from('posts')
     .select('id, owner_id, author_name, mission, status, created_at').eq('id', id).maybeSingle();
   if (!post || post.status !== 'pending' || Date.now() - new Date(post.created_at).getTime() > 5 * 60_000) {
     return new Response('skip');
   }
 
-  const { data: subs, error } = await sb.from('push_subscriptions').select('*').eq('user_id', post.owner_id);
+  const { data: subs, error } = await sb!.from('push_subscriptions').select('*').eq('user_id', post.owner_id);
   if (error) { console.error(error); return new Response('db error', { status: 500 }); }
 
   const payload = JSON.stringify({
@@ -40,7 +55,7 @@ Deno.serve(async (req) => {
       sent++;
     } catch (e) {
       const code = (e as { statusCode?: number }).statusCode;
-      if (code === 404 || code === 410) await sb.from('push_subscriptions').delete().eq('endpoint', s.endpoint); // 만료된 구독 정리
+      if (code === 404 || code === 410) await sb!.from('push_subscriptions').delete().eq('endpoint', s.endpoint); // 만료된 구독 정리
       else console.error('push failed', code, e);
     }
   }));
