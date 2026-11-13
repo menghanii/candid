@@ -354,6 +354,8 @@
   .rside { bottom:calc(94px + env(safe-area-inset-bottom)); }
   .rtc { padding-bottom:260px; }
   .reel::after { height:50%; }
+  .flist { padding:4px 20px 8px; }
+  .flist .frow:last-child { border-bottom:0; }
 </style>
 </head>
 <body>
@@ -496,7 +498,7 @@ function go(url, replace) {
   history[replace ? 'replaceState' : 'pushState']({}, '', u.pathname + u.search);
   closeSheet(); document.querySelector('.overlay')?.remove();
   S.autoOpened = false;
-  S.tab = u.searchParams.get('tab') === 'inbox' ? 'inbox' : 'grid';
+  S.tab = tabOf(u.searchParams.get('tab'));
   scrollTo(0, 0);
   CUR = pageKey(); route();
 }
@@ -505,7 +507,7 @@ addEventListener('popstate', () => {
   if (pageKey() === CUR) return;
   closeSheet(); document.querySelector('.overlay')?.remove();
   S.autoOpened = true; // 뒤로 와서 시트가 다시 열리지 않게
-  S.tab = new URLSearchParams(location.search).get('tab') === 'inbox' ? 'inbox' : 'grid';
+  S.tab = tabOf(new URLSearchParams(location.search).get('tab'));
   CUR = pageKey(); route();
 });
 // 앱 안의 링크(<a href="?u=...">)도 새로고침 없이 이동
@@ -613,7 +615,8 @@ function renderLanding() {
 }
 
 // ---------- 프로필 ----------
-const S = { tab: new URLSearchParams(location.search).get('tab') === 'inbox' ? 'inbox' : 'grid' };
+function tabOf(t) { return t === 'inbox' || t === 'friends' ? t : 'grid'; }
+const S = { tab: tabOf(new URLSearchParams(location.search).get('tab')) };
 
 async function renderProfile(uid, fresh) {
   CUR = pageKey();
@@ -688,13 +691,17 @@ function paintProfile() {
     <div class="actions">
       ${isOwner
         ? `<button class="btn primary" onclick="shareFeed()">친구에게 피드 부탁하기</button>`
-        : `<button class="btn primary" onclick="openCompose()">📷 ${esc(prof.name)}에게 사진 보내기</button>
-           ${me ? `<button class="btn ${myFollows.has(uid) ? '' : 'add'}" style="flex:0 0 auto" onclick="toggleFollow('${uid}', this)">${myFollows.has(uid) ? '친구 ✓' : '친구 추가'}</button>` : ''}`}
+        : me
+          // 로그인한 친구: 친구 추가만. 보내기는 하단 바 ⊕ 로
+          ? `<button class="btn ${myFollows.has(uid) ? '' : 'add'}" onclick="toggleFollow('${uid}', this)">${myFollows.has(uid) ? '친구 ✓' : '친구 추가'}</button>`
+          // 로그인 안 한 친구(공유 링크로 들어옴): 하단 바가 없으니 보내기 버튼 유지
+          : `<button class="btn primary" onclick="openCompose()">📷 ${esc(prof.name)}에게 사진 보내기</button>`}
     </div>
-    ${!isOwner ? `<p style="text-align:center;margin:-6px 0 16px;font-size:13px;color:var(--sub)">${me ? `<a href="${feedUrl(me.id)}" style="color:inherit">내 피드로 가기</a>` : `나도 친구들한테 받아보고 싶다면? <a href="${location.pathname}" style="color:var(--fg);font-weight:600">내 피드 만들기</a>`}</p>` : ''}
+    ${!isOwner && !me ? `<p style="text-align:center;margin:-6px 0 16px;font-size:13px;color:var(--sub)">나도 친구들한테 받아보고 싶다면? <a href="${location.pathname}" style="color:var(--fg);font-weight:600">내 피드 만들기</a></p>` : ''}
     <nav class="tabs">
       <button class="${S.tab === 'grid' ? 'on' : ''}" onclick="setTab('grid')">피드</button>
-      ${isOwner ? `<button class="${S.tab === 'inbox' ? 'on' : ''}" onclick="setTab('inbox')">승인함${pending.length ? `<span class="n">${pending.length}</span>` : ''}</button>` : ''}
+      ${isOwner ? `<button class="${S.tab === 'inbox' ? 'on' : ''}" onclick="setTab('inbox')">승인함${pending.length ? `<span class="n">${pending.length}</span>` : ''}</button>
+        <button class="${S.tab === 'friends' ? 'on' : ''}" onclick="setTab('friends')">친구<span class="n" style="color:var(--sub)">${myFollows.size || ''}</span></button>` : ''}
     </nav>
     <main id="body"></main>
     ${navBar(isOwner ? 'feed' : '')}`;
@@ -716,6 +723,7 @@ document.addEventListener('visibilitychange', () => {
 function renderBody() {
   const $b = document.getElementById('body');
   const { isOwner, approved, pending, prof, uid } = S;
+  if (S.tab === 'friends' && isOwner) return renderFriendsTab($b);
   if (S.tab === 'inbox') {
     $b.innerHTML = pending.length
       ? `<div class="note">승인한 사진만 피드에 올라가요. 거절해도 친구에게 알림이 가지 않아요.</div>
@@ -780,15 +788,34 @@ function navBar(active) {
     `<button class="${active === key ? 'on' : ''}" onclick="${onclick}" aria-label="${label}"${active === key ? ' aria-current="page"' : ''}>${icon}</button>`;
   return `<nav class="bnav ${active === 'reels' ? 'dark' : ''}">
     ${item('reels', '릴스', I.reelsNav, "go(location.pathname+'?home=1')")}
-    ${item('friends', '친구', I.usersNav, 'openSearch()')}
     ${item('create', '만들기', I.create, 'openCreate()')}
     ${item('feed', '내 피드', `<span class="bav">${avatar(myProf, 'xs')}</span>`, `go('${feedUrl(me.id)}')`)}
   </nav>`;
 }
-// ＋ 만들기: 내 피드 부탁하기 / 친구 피드에 보내기
+// ⊕ 만들기: 친구 피드에서는 그 친구에게 보내기, 그 외(내 피드·릴스)에서는 내 피드 부탁하기
 function openCreate() {
-  menu(`<button class="menu-item" onclick="closeSheet();go('${feedUrl(me.id)}');setTimeout(shareFeed,50)">📣 내 피드 채워달라고 부탁하기</button>
-        <button class="menu-item" onclick="openSearch()">📷 친구 피드에 사진·투표·질문 보내기</button>`);
+  const onFriendFeed = !document.querySelector('.reels') && S.uid && S.prof && !S.isOwner;
+  if (onFriendFeed) return openCompose();
+  if (S.isOwner && !document.querySelector('.reels')) return shareFeed();
+  go(feedUrl(me.id)); setTimeout(shareFeed, 80);
+}
+
+// 내 피드 > 친구 탭: 친구 목록 화면
+async function renderFriendsTab($b) {
+  const ids = [...myFollows];
+  if (!ids.length) {
+    $b.innerHTML = `<div class="empty"><h2>No friends, <em>yet.</em></h2><p>오른쪽 위 🔍에서 이름으로 친구를 찾아 추가해 보세요.<br>추가한 친구의 새 사진이 릴스에 떠요.</p>
+      <button class="btn primary block" onclick="openSearch()">친구 찾기</button></div>`;
+    return;
+  }
+  $b.innerHTML = `<div class="flist"><p class="hint" style="padding:16px 20px">불러오는 중…</p></div>`;
+  const { data, error } = await sb.from('profiles').select('id, name, avatar_url, bio').in('id', ids);
+  if (S.tab !== 'friends' || !document.body.contains($b)) return;
+  if (error) return $b.innerHTML = `<div class="empty"><p>${esc(kerr(error))}</p></div>`;
+  data.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  $b.innerHTML = `<div class="flist">${data.map(p => `
+    <div class="frow"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b>${p.bio ? `<small>${esc(p.bio)}</small>` : ''}</span></a>
+      <button class="btn" onclick="toggleFollow('${p.id}', this)">친구 ✓</button></div>`).join('')}</div>`;
 }
 
 // ---------- 친구 검색 (검색어가 없으면 내 친구 목록) ----------
