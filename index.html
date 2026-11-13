@@ -60,6 +60,8 @@
   .avopt.on .sel { border-color:var(--accent); }
   .name { font-family:var(--display); font-weight:700; font-size:30px; line-height:1.1; letter-spacing:-.03em; margin:14px 0 4px; }
   .desc { color:var(--sub); font-size:13px; }
+  .desc.bio { color:var(--fg); font-size:14px; line-height:1.45; max-width:300px; margin:0 auto; word-break:keep-all; white-space:pre-line; }
+  .bio-empty { background:none; border:1px dashed var(--line); border-radius:999px; padding:6px 14px; margin-top:2px; }
   .stats { display:flex; margin:22px 0 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
   .stats > div { flex:1; padding:14px 0; }
   .stats > div + div { border-left:1px solid var(--line); }
@@ -253,6 +255,8 @@ function renderSetup(first) {
       </div>
       <div class="label">NAME</div>
       <input class="field" id="nm" maxlength="20" value="${esc(myProf.name)}" placeholder="${esc(myProf.name)}">
+      <div class="label">MESSAGE</div>
+      <input class="field" id="bio" maxlength="60" value="${esc(myProf.bio || '')}" placeholder="예: 굴욕샷 환영, 단 너무 심한 건 거절함 📸">
       <div style="height:10px"></div>
       <button class="btn primary block" id="done">${first ? '시작하기' : '저장'}</button>
     </div>`;
@@ -285,7 +289,7 @@ function renderSetup(first) {
         if (up.error) throw up.error;
         url = sb.storage.from('avatars').getPublicUrl(path).data.publicUrl;
       }
-      const patch = { name: $('#nm').value.trim() || myProf.name, avatar_url: url, onboarded: true };
+      const patch = { name: $('#nm').value.trim() || myProf.name, bio: $('#bio').value.trim() || null, avatar_url: url, onboarded: true };
       const { error } = await sb.from('profiles').update(patch).eq('id', me.id);
       if (error) throw error;
       Object.assign(myProf, patch);
@@ -355,7 +359,11 @@ async function renderProfile(uid) {
     <section class="head">
       <div class="ring" ${isOwner ? 'onclick="renderSetup(false)" style="cursor:pointer" title="프로필 편집"' : ''}>${avatar(prof)}</div>
       <div class="name">${esc(prof.name)}</div>
-      <div class="desc">${isOwner ? '친구들이 만들어주는 내 피드' : `친구들이 만들어주는 ${esc(prof.name)}의 피드`}</div>
+      ${prof.bio
+        ? `<div class="desc bio">${esc(prof.bio)}</div>`
+        : isOwner
+          ? `<button class="desc bio-empty" onclick="renderSetup(false)">+ 프로필 메시지 추가</button>`
+          : `<div class="desc">친구들이 만들어주는 ${esc(prof.name)}의 피드</div>`}
       <div class="stats">
         <div><b>${approved.length}</b><span>게시물</span></div>
         <div><b>${friends}</b><span>참여한 친구</span></div>
@@ -606,9 +614,14 @@ function shareFeed() {
 }
 
 // ---------- 이미지 ----------
+// 사진 회전 정보(EXIF)를 반영해서 디코딩 — iPhone 사진이 옆으로 눕는 문제 방지
+async function decodeFile(file) {
+  if (window.createImageBitmap) { try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch {} }
+  return loadImg(URL.createObjectURL(file));
+}
 function loadImg(src) { return new Promise((ok, no) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => ok(i); i.onerror = no; i.src = src; }); }
 async function resize(file, max) {
-  const img = await loadImg(URL.createObjectURL(file));
+  const img = await decodeFile(file);
   const s = Math.min(1, max / Math.max(img.width, img.height));
   const c = document.createElement('canvas'); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
   c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
@@ -701,7 +714,7 @@ function demoClient() {
 
 // 정사각형으로 가운데 잘라서 축소 (프로필 사진용)
 async function resizeSquare(file, size) {
-  const img = await loadImg(URL.createObjectURL(file)), side = Math.min(img.width, img.height);
+  const img = await decodeFile(file), side = Math.min(img.width, img.height);
   const c = document.createElement('canvas'); c.width = c.height = size;
   c.getContext('2d').drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, size, size);
   return new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
