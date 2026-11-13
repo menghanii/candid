@@ -285,6 +285,57 @@
   .sbox { position:relative; margin-bottom:8px; }
   .sbox svg { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--sub); pointer-events:none; }
   .sbox .field { padding-left:44px; margin:0; }
+  /* 보내기 모드 탭 */
+  .seg { display:flex; gap:4px; padding:4px; margin:0 0 18px; border-radius:14px; background:var(--soft); }
+  .seg button { flex:1; padding:10px 0; border:0; border-radius:10px; background:none; color:var(--sub); font-size:13px; font-weight:700; }
+  .seg button.on { background:var(--card); color:var(--fg); box-shadow:0 1px 4px rgba(0,0,0,.08); }
+  [data-sec][hidden] { display:none; }
+  .optrow { display:flex; align-items:center; gap:8px; }
+  .optrow span { flex:none; width:22px; text-align:center; font-weight:800; color:var(--accent); }
+  .optrow .field { flex:1; }
+  .optrow button { flex:none; width:36px; height:36px; margin-bottom:10px; border:0; border-radius:50%; background:var(--soft); color:var(--sub); }
+  #addopt { margin-bottom:12px; color:var(--sub); }
+  /* 그리드·승인함 텍스트 타일 */
+  .ttile { width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; gap:6px; padding:12px; text-align:left; color:#fff; background:var(--accent); overflow:hidden; }
+  .ttile.question { background:#0a0a0a; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ttile.question { background:#1f1f24; } }
+  .ttile .tk { font-family:var(--display); font-size:10px; font-weight:800; letter-spacing:.08em; opacity:.7; }
+  .ttile p { margin:0; font-size:13px; font-weight:800; line-height:1.3; letter-spacing:-.02em; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; word-break:keep-all; }
+  .ttile small { font-size:11px; opacity:.75; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .row .thumb .ttile { width:72px; height:90px; padding:8px; border-radius:10px; }
+  .row .thumb .ttile p { font-size:10px; -webkit-line-clamp:3; }
+  /* 상세·릴스 큰 카드 */
+  .tcard { padding:28px 22px 22px; color:#fff; background:var(--accent); }
+  .tcard.question { background:#0a0a0a; }
+  .tcard .tk { font-family:var(--display); font-size:12px; font-weight:800; letter-spacing:.1em; opacity:.65; }
+  .tcard h4 { margin:10px 0 18px; font-size:24px; font-weight:800; line-height:1.3; letter-spacing:-.03em; word-break:keep-all; }
+  .poll { display:flex; flex-direction:column; gap:8px; }
+  .popt { position:relative; display:flex; align-items:center; gap:10px; min-height:50px; padding:0 16px; border:0; border-radius:14px; background:rgba(255,255,255,.16); color:#fff; font-size:15px; font-weight:700; text-align:left; overflow:hidden; }
+  button.popt:active { transform:scale(.98); background:rgba(255,255,255,.26); }
+  .popt.res i { position:absolute; inset:0 auto 0 0; background:rgba(255,255,255,.28); transition:width .5s cubic-bezier(.2,.8,.2,1); }
+  .popt.res.mine i { background:rgba(255,255,255,.45); }
+  .popt b, .popt em { position:relative; }
+  .popt b { flex:1; } .popt em { font-style:normal; font-weight:800; }
+  .poll small { margin-top:4px; font-size:12px; opacity:.75; }
+  .qa .q, .qa .a { display:flex; gap:10px; line-height:1.45; word-break:keep-all; }
+  .qa .q { font-size:22px; font-weight:800; letter-spacing:-.03em; margin:10px 0 16px; }
+  .qa .a { font-size:16px; opacity:.88; padding-top:14px; border-top:1px solid rgba(255,255,255,.18); }
+  .qa .q span, .qa .a span { flex:none; font-family:var(--display); font-weight:800; color:var(--accent); }
+  .tcard.question .qa .q span, .tcard.question .qa .a span { color:#8fa3ff; }
+  .qa .a.wait { opacity:.55; font-style:italic; }
+  .sheet .qa .q { color:var(--fg); } .sheet .qa .q span { color:var(--accent); }
+  /* 릴스 텍스트 카드 */
+  .rbg-poll { inset:0; background:radial-gradient(120% 80% at 20% 10%, #5c7cff, #1a2a9e 60%, #0b1240); filter:none; }
+  .rbg-question { inset:0; background:radial-gradient(120% 80% at 80% 10%, #3a3a46, #111116 60%, #000); filter:none; }
+  .rtc { display:flex; align-items:center; padding:90px 18px 210px; }
+  .rtc .tcard { width:100%; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:24px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
+  .rtc .tcard h4, .rtc .qa .q { font-size:26px; }
+  /* 당겨서 새로고침 */
+  .ptr { position:fixed; left:50%; top:calc(8px + env(safe-area-inset-top)); z-index:40; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:var(--card); color:var(--fg); box-shadow:0 4px 14px rgba(0,0,0,.18); opacity:0; transform:translate(-50%, -50px); pointer-events:none; font-weight:800; transition:opacity .15s; }
+  .ptr.ready { color:var(--accent); }
+  .ptr.spin span { display:none; }
+  .ptr.spin::after { content:""; width:16px; height:16px; border:2.5px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:rot .7s linear infinite; }
+  @keyframes rot { to { transform:rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -528,6 +579,7 @@ async function renderProfile(uid) {
   S.uid = uid; S.prof = prof; S.isOwner = me?.id === uid; S.fetchedAt = Date.now();
   S.approved = posts.filter(p => p.status === 'approved');
   S.pending = posts.filter(p => p.status === 'pending');
+  await loadPolls(S.approved).catch(() => {});
   if (!S.isOwner) S.tab = 'grid';
   paintProfile();
   // 공유 링크(?m=미션번호)로 들어온 친구: 사진 보내기 시트를 바로 열어줌 (한 번만)
@@ -604,14 +656,14 @@ function renderBody() {
       ? `<div class="note">승인한 사진만 피드에 올라가요. 거절해도 친구에게 알림이 가지 않아요.</div>
          ${pending.map(p => `
           <div class="row">
-            <button class="thumb" onclick="openPost('${p.id}')" aria-label="크게 보기"><img src="${thumbUrl(p)}" alt="${esc(p.author_name)}가 보낸 ${esc(p.mission)}"></button>
+            <button class="thumb" onclick="openPost('${p.id}')" aria-label="크게 보기">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="${esc(p.author_name)}가 보낸 ${esc(p.mission)}">`}</button>
             <div class="meta">
               <span class="mtag">${esc(p.mission)}</span>
               <div class="t">${esc(p.text) || '<span style="color:var(--sub)">코멘트 없음</span>'}</div>
               <small>${esc(p.author_name)} · ${ago(p.created_at)}</small>
             </div>
             <div class="ab">
-              <button class="btn primary" onclick="approve('${p.id}')">승인</button>
+              ${p.media_type === 'question' ? `<button class="btn primary" onclick="openAnswer('${p.id}')">답하기</button>` : `<button class="btn primary" onclick="approve('${p.id}')">승인</button>`}
               <button class="btn" onclick="removePost('${p.id}')">거절</button>
             </div>
           </div>`).join('')}`
@@ -619,7 +671,7 @@ function renderBody() {
     return;
   }
   if (approved.length) {
-    $b.innerHTML = `<div class="grid">${approved.map(p => `<button onclick="openPost('${p.id}')" class="${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${esc(p.author_name)}가 보낸 ${esc(p.mission)}${p.text ? ': ' + esc(p.text) : ''}"><img src="${thumbUrl(p)}" alt="" loading="lazy">${isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}<span class="from">from ${esc(p.author_name)}</span></button>`).join('')}</div>`;
+    $b.innerHTML = `<div class="grid">${approved.map(p => `<button onclick="openPost('${p.id}')" class="${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${esc(p.author_name)}가 보낸 ${esc(p.mission)}${p.text ? ': ' + esc(p.text) : ''}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">`}${isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}<span class="from">from ${esc(p.author_name)}</span></button>`).join('')}</div>`;
     S.justApproved = null;
     return;
   }
@@ -774,6 +826,8 @@ async function renderHome() {
     const o = await sb.from('profiles').select('id, name, avatar_url').in('id', ids);
     owners = new Map((o.data || []).map(p => [p.id, p]));
     await loadSocial(posts.map(p => p.id));
+    await loadPolls(posts).catch(() => {});
+    HOME.posts = posts;
   } catch { return renderError(renderHome); }
 
   const top = `<header class="rtop"><button class="logo" onclick="location.href=location.pathname">${LOGO}</button><div class="sp"></div>
@@ -788,8 +842,8 @@ async function renderHome() {
   $app.innerHTML = `<div class="reels" id="reels">${top}${posts.map(p => {
     const o = owners.get(p.owner_id) || { name: '친구' }, s = SOC.get(p.id);
     return `<section class="reel" data-id="${p.id}">
-      <div class="rbg" style="background-image:url('${thumbUrl(p)}')"></div>
-      ${isVideo(p)
+      ${isText(p) ? `<div class="rbg rbg-${p.media_type}"></div><div class="rmedia rtc">${textCard(p)}</div>` : `<div class="rbg" style="background-image:url('${thumbUrl(p)}')"></div>`}
+      ${isText(p) ? '' : isVideo(p)
         ? `<video class="rmedia" src="${photoUrl(p.image_path)}" poster="${thumbUrl(p)}" muted playsinline loop preload="none"></video>
            <button class="rmute" aria-label="소리 켜기/끄기">${muted ? I.mute : I.sound}</button>`
         : `<img class="rmedia" src="${photoUrl(p.image_path)}" alt="${esc(p.author_name)}가 보낸 사진" loading="lazy">`}
@@ -797,7 +851,7 @@ async function renderHome() {
       <div class="rinfo">
         <a class="rowner" href="${feedUrl(p.owner_id)}">${avatar(o, 'xs')}<b>${esc(o.name)}</b><span>의 피드</span></a>
         <div class="rfrom">from <b>${esc(p.author_name)}</b> <span class="mchip">${esc(p.mission)}</span></div>
-        ${p.text ? `<div class="rtext">“${esc(p.text)}”</div>` : ''}
+        ${p.text && !isText(p) ? `<div class="rtext">“${esc(p.text)}”</div>` : ''}
         <small>${ago(p.approved_at)}</small>
       </div>
       <div class="rside">
@@ -842,6 +896,115 @@ function shareOther(uid) {
   navigator.clipboard.writeText(url).then(() => toast('피드 링크를 복사했어요')).catch(() => prompt('이 링크를 복사해 주세요', url));
 }
 
+// ---------- 투표·질문 ----------
+const isText = p => p.media_type === 'poll' || p.media_type === 'question';
+// 그리드·승인함 썸네일용 카드
+const textTile = p => `<div class="ttile ${p.media_type}"><span class="tk">${p.media_type === 'poll' ? 'POLL' : 'Q&amp;A'}</span><p>${esc(p.text)}</p>${p.media_type === 'question' && p.answer ? `<small>A. ${esc(p.answer)}</small>` : ''}</div>`;
+
+// 투표자 키: 로그인 'u:<id>' / 비로그인은 기기마다 랜덤 'g:<uuid>' (기기당 1표)
+function voterKey() {
+  if (me) return 'u:' + me.id;
+  let k = ''; try { k = localStorage.getItem('candid_voter') || ''; } catch {}
+  if (!k) { k = 'g:' + crypto.randomUUID(); try { localStorage.setItem('candid_voter', k); } catch {} }
+  return k;
+}
+const POLL = new Map(); // postId → { counts[], total, mine }
+async function loadPolls(posts) {
+  const polls = posts.filter(p => p.media_type === 'poll' && p.status === 'approved');
+  if (!polls.length) return;
+  polls.forEach(p => POLL.set(p.id, { counts: p.poll_options.map(() => 0), total: 0, mine: null }));
+  const { data } = await sb.from('poll_votes').select('post_id, voter_key, option').in('post_id', polls.map(p => p.id));
+  const key = voterKey();
+  (data || []).forEach(v => { const s = POLL.get(v.post_id); if (!s || s.counts[v.option] == null) return; s.counts[v.option]++; s.total++; if (v.voter_key === key) s.mine = v.option; });
+}
+function pollHTML(p) {
+  const s = POLL.get(p.id) || { counts: (p.poll_options || []).map(() => 0), total: 0, mine: null };
+  const owner = me && me.id === p.owner_id;
+  const canVote = p.status === 'approved' && !owner && s.mine == null;
+  const opts = (p.poll_options || []).map((o, i) => {
+    if (canVote) return `<button class="popt" onclick="vote('${p.id}', ${i})">${esc(o)}</button>`;
+    const pct = s.total ? Math.round(s.counts[i] / s.total * 100) : 0;
+    return `<div class="popt res ${s.mine === i ? 'mine' : ''}"><i style="width:${pct}%"></i><b>${esc(o)}${s.mine === i ? ' ✓' : ''}</b><em>${pct}%</em></div>`;
+  }).join('');
+  const foot = p.status !== 'approved' ? '승인하면 친구들이 투표할 수 있어요'
+    : owner ? `${s.total}명 참여 · 내 피드의 투표엔 참여할 수 없어요`
+    : canVote ? '눌러서 투표하기' : `${s.total}명 참여`;
+  return `<div class="poll" data-poll="${p.id}">${opts}<small>${foot}</small></div>`;
+}
+async function vote(id, i) {
+  const s = POLL.get(id); if (!s || s.mine != null) return;
+  s.mine = i; s.counts[i]++; s.total++;
+  const repaint = () => document.querySelectorAll(`[data-poll="${id}"]`).forEach(el => {
+    const p = findAny(id); if (p) el.outerHTML = pollHTML(p);
+  });
+  repaint(); navigator.vibrate?.(8);
+  const { error } = await sb.from('poll_votes').insert({ post_id: id, voter_key: voterKey(), user_id: me?.id ?? null, option: i });
+  if (error) {
+    s.mine = null; s.counts[i]--; s.total--; repaint();
+    toast(/duplicate|23505/i.test(error.message + error.code) ? '이미 투표했어요' : kerr(error));
+  }
+}
+const qaHTML = p => `<div class="qa"><div class="q"><span>Q.</span>${esc(p.text)}</div>${p.answer
+  ? `<div class="a"><span>A.</span>${esc(p.answer)}</div>`
+  : `<div class="a wait">아직 답하지 않았어요</div>`}</div>`;
+// 상세·릴스에서 쓰는 큰 카드
+const textCard = p => `<div class="tcard ${p.media_type}"><span class="tk">${p.media_type === 'poll' ? 'POLL' : 'Q&amp;A'}</span>
+  ${p.media_type === 'poll' ? `<h4>${esc(p.text)}</h4>${pollHTML(p)}` : qaHTML(p)}</div>`;
+
+// 질문 답하기 (피드 주인만) → 답과 함께 피드에 올림
+function openAnswer(id) {
+  const p = findPost(id); if (!p) return;
+  const w = sheet(`<h3>Answer.</h3><p class="hint">${esc(p.author_name)}님의 질문이에요. 답하면 질문과 함께 피드에 올라가요.</p>
+    <div class="qa" style="margin-bottom:12px"><div class="q"><span>Q.</span>${esc(p.text)}</div></div>
+    <textarea class="field msg-box" id="ans" maxlength="300" placeholder="솔직하게 답해 주세요">${esc(p.answer || '')}</textarea>
+    <div class="sheet-foot"><button class="btn primary block" id="ansgo">답하고 피드에 올리기</button></div>`,
+    () => !w.querySelector('#ans').value.trim() || confirm('작성 중인 답이 사라져요. 닫을까요?'));
+  const $a = w.querySelector('#ans'), $go = w.querySelector('#ansgo');
+  setTimeout(() => $a.focus(), 350);
+  $go.onclick = async () => {
+    const answer = $a.value.trim(); if (!answer) return toast('답을 적어 주세요');
+    $go.disabled = true; $go.textContent = '올리는 중…';
+    const at = new Date().toISOString();
+    const { error } = await sb.from('posts').update({ answer, answered_at: at, status: 'approved', approved_at: p.approved_at || at }).eq('id', id);
+    if (error) { $go.disabled = false; $go.textContent = '답하고 피드에 올리기'; return toast(kerr(error)); }
+    $a.value = ''; closeLayers();
+    const wasPending = p.status === 'pending';
+    Object.assign(p, { answer, answered_at: at, status: 'approved', approved_at: p.approved_at || at });
+    if (wasPending) { S.pending = S.pending.filter(x => x.id !== id); S.approved.push(p); S.justApproved = id; }
+    paintProfile(); toast('답을 올렸어요');
+  };
+}
+const HOME = { posts: [] };
+const findAny = id => (S.approved && findPost(id)) || HOME.posts.find(x => x.id === id);
+
+// ---------- 당겨서 새로고침 ----------
+(function pullToRefresh() {
+  let y0 = null, dy = 0, busy = false;
+  const ind = document.createElement('div'); ind.className = 'ptr'; ind.innerHTML = '<span>↓</span>';
+  document.body.appendChild(ind);
+  const scroller = () => document.querySelector('.reels') || document.scrollingElement;
+  const blocked = () => busy || document.querySelector('.sheet-wrap, .overlay');
+  addEventListener('touchstart', e => { y0 = !blocked() && scroller().scrollTop <= 0 ? e.touches[0].clientY : null; dy = 0; }, { passive: true });
+  addEventListener('touchmove', e => {
+    if (y0 == null) return;
+    dy = Math.max(0, e.touches[0].clientY - y0);
+    if (scroller().scrollTop > 0) { y0 = null; dy = 0; }
+    const d = Math.min(dy * 0.5, 90);
+    ind.style.transform = `translate(-50%, ${d - 50}px) rotate(${dy * 2}deg)`; ind.style.opacity = Math.min(1, dy / 80);
+    ind.classList.toggle('ready', dy > 120);
+  }, { passive: true });
+  addEventListener('touchend', async () => {
+    if (y0 == null) return; y0 = null;
+    if (dy > 120 && !busy) {
+      busy = true; ind.classList.add('spin'); ind.style.transform = 'translate(-50%, 24px)';
+      try { document.querySelector('.reels') ? await renderHome() : S.uid ? await renderProfile(S.uid) : location.reload(); } finally {
+        busy = false; ind.classList.remove('spin', 'ready');
+      }
+    }
+    ind.style.transform = 'translate(-50%, -50px)'; ind.style.opacity = 0; dy = 0;
+  });
+})();
+
 // ---------- 게시물 상세 ----------
 const findPost = id => [...S.approved, ...S.pending].find(x => x.id === id);
 
@@ -856,10 +1019,10 @@ function openPost(id) {
         <div class="who"><b>${esc(p.author_name)}<span style="font-weight:400;color:var(--sub)">님이 보냄</span></b><span class="mchip">${esc(p.mission)}</span></div>
         <button class="icon-btn" data-close aria-label="닫기">${I.close}</button>
       </div>
-      ${isVideo(p)
+      ${isText(p) ? textCard(p) : isVideo(p)
         ? `<video class="post-img" src="${photoUrl(p.image_path)}" poster="${thumbUrl(p)}" controls playsinline autoplay muted loop></video>`
         : `<img class="post-img" src="${photoUrl(p.image_path)}" alt="${esc(p.author_name)}가 보낸 사진">`}
-      ${p.text ? `<div class="post-c"><div class="quote">${esc(p.text)}</div></div>` : ''}
+      ${p.text && !isText(p) ? `<div class="post-c"><div class="quote">${esc(p.text)}</div></div>` : ''}
       ${p.status === 'approved' ? `<div class="psoc">
         <button class="pbtn" data-like="${p.id}" aria-label="좋아요" onclick="toggleLike('${p.id}')"><span>${I.heart}</span><b></b></button>
         <button class="pbtn" data-cmt="${p.id}" aria-label="댓글" onclick="openComments('${p.id}','${p.owner_id}')"><span>${I.comment}</span><b></b></button></div>` : ''}
@@ -871,7 +1034,7 @@ function openPost(id) {
       </div>
       ${S.isOwner && p.status === 'pending' ? `<div class="pending-acts">
         <button class="btn" onclick="removePost('${p.id}')">거절</button>
-        <button class="btn primary" onclick="approve('${p.id}')">피드에 올리기</button></div>` : ''}
+        ${p.media_type === 'question' ? `<button class="btn primary" onclick="openAnswer('${p.id}')">답하기</button>` : `<button class="btn primary" onclick="approve('${p.id}')">피드에 올리기</button>`}</div>` : ''}
     </article>`;
   ov.onclick = e => { if (e.target === ov || e.target.closest('[data-close]')) ov.remove(); };
   document.body.appendChild(ov);
@@ -907,14 +1070,15 @@ function openMenu() {
 }
 function postMenu(id) {
   const p = findPost(id);
-  menu(`${p.status === 'pending'
-          ? `<button class="menu-item" onclick="approve('${id}')">승인하기</button>`
+  menu(`${p.media_type === 'question' ? `<button class="menu-item" onclick="openAnswer('${id}')">${p.answer ? '답 수정하기' : '답하기'}</button>` : ''}
+        ${p.status === 'pending'
+          ? (p.media_type === 'question' ? '' : `<button class="menu-item" onclick="approve('${id}')">승인하기</button>`)
           : `<button class="menu-item" onclick="makeStory('${id}')">스토리 이미지 저장</button>`}
         <button class="menu-item danger" onclick="removePost('${id}')">${p.status === 'pending' ? '거절하기' : '피드에서 내리기'}</button>`);
 }
 
-// mi: 미리 선택할 미션 번호, asked: 주인장이 공유 링크로 부탁한 미션인지
-function openCompose(mi = 0, asked = false) {
+// mi: 미리 선택할 미션 번호, asked: 주인장이 공유 링크로 부탁한 미션인지, mode: media | poll | question
+function openCompose(mi = 0, asked = false, mode = 'media') {
   let mission = MISSIONS[mi] || MISSIONS[0], image = null;
   let saved = ''; try { saved = localStorage.getItem('candid_author') || ''; } catch {}
   const nick = (myProf?.name || saved).slice(0, 12);
@@ -922,15 +1086,30 @@ function openCompose(mi = 0, asked = false) {
   const w = sheet(`
     <h3>For ${name}</h3>
     <p class="hint">로그인 없이 10초면 끝. ${name}님이 승인하면 피드에 올라가요.</p>
-    ${asked ? `<div class="asked">${name}님이 <b>'${esc(mission)}'</b>을(를) 부탁했어요</div>` : ''}
-    <div class="label">MISSION</div>
-    <div class="chips" role="radiogroup">${MISSIONS.map(m => `<button class="chip ${m === mission ? 'on' : ''}" role="radio" aria-checked="${m === mission}" data-m="${m}">${m}</button>`).join('')}</div>
-    <label class="pick" id="pick">${I.camera}<span>사진·영상 선택</span><small style="font-size:11px">영상은 10초까지</small><input type="file" accept="image/*,video/*" id="file" hidden></label>
-    <input class="field" id="text" placeholder="한 줄 코멘트 (예: 이 표정 레전드)" maxlength="80">
+    <div class="seg" role="tablist">
+      <button data-mode="media" role="tab">📷 사진·영상</button><button data-mode="poll" role="tab">📊 투표</button><button data-mode="question" role="tab">💬 질문</button>
+    </div>
+    <div data-sec="media">
+      ${asked ? `<div class="asked">${name}님이 <b>'${esc(mission)}'</b>을(를) 부탁했어요</div>` : ''}
+      <div class="label">MISSION</div>
+      <div class="chips" role="radiogroup">${MISSIONS.map(m => `<button class="chip ${m === mission ? 'on' : ''}" role="radio" aria-checked="${m === mission}" data-m="${m}">${m}</button>`).join('')}</div>
+      <label class="pick" id="pick">${I.camera}<span>사진·영상 선택</span><small style="font-size:11px">영상은 10초까지</small><input type="file" accept="image/*,video/*" id="file" hidden></label>
+      <input class="field" id="text" placeholder="한 줄 코멘트 (예: 이 표정 레전드)" maxlength="80">
+    </div>
+    <div data-sec="poll">
+      <p class="hint" style="margin-top:4px">${name}님 피드에 투표를 올려요. ${name}님은 투표할 수 없고, 다른 친구들이 투표해요.</p>
+      <input class="field" id="pq" maxlength="80" placeholder="예: ${name} 다음 머리 스타일은?">
+      <div id="opts"></div>
+      <button class="btn block" id="addopt" style="border-style:dashed">+ 선택지 추가</button>
+    </div>
+    <div data-sec="question">
+      <p class="hint" style="margin-top:4px">${name}님에게 궁금한 걸 물어보세요. 답은 ${name}님만 할 수 있고, 답하면 질문과 함께 피드에 올라가요.</p>
+      <textarea class="field msg-box" id="qq" maxlength="120" placeholder="예: 우리 처음 만난 날 기억나?"></textarea>
+    </div>
     <input class="field" id="author" placeholder="보내는 사람 (비우면 익명의 친구)" maxlength="12" value="${esc(nick)}">
     <div class="sheet-foot"><button class="btn primary block" id="send" disabled>사진을 먼저 골라주세요</button></div>`,
     // 작성 중에 배경을 눌러 닫으려 하면 확인
-    () => !(image || w.querySelector('#text').value.trim()) || confirm('작성 중인 사진이 사라져요. 닫을까요?'));
+    () => !(image || [...w.querySelectorAll('#text, #pq, #qq, #opts input')].some(i => i.value.trim())) || confirm('작성 중인 내용이 사라져요. 닫을까요?'));
   // 안드로이드 뒤로가기: 페이지를 떠나지 않고 시트만 닫기
   history.pushState({ compose: 1 }, '');
   const onPop = () => {
@@ -940,65 +1119,108 @@ function openCompose(mi = 0, asked = false) {
   addEventListener('popstate', onPop);
   w._onClose = () => { removeEventListener('popstate', onPop); if (history.state?.compose) history.back(); };
 
+  const $send = w.querySelector('#send'), $file = w.querySelector('#file');
+  // 모드별 보내기 버튼 상태
+  const refresh = () => {
+    const opts = [...w.querySelectorAll('#opts input')].map(i => i.value.trim()).filter(Boolean);
+    const [ok, label] = mode === 'media' ? [!!image, image ? '보내기' : '사진을 먼저 골라주세요']
+      : mode === 'poll' ? [w.querySelector('#pq').value.trim().length >= 2 && opts.length >= 2, '투표 보내기']
+      : [w.querySelector('#qq').value.trim().length >= 2, '질문 보내기'];
+    $send.disabled = !ok; $send.textContent = ok || mode === 'media' ? label : mode === 'poll' ? '질문과 선택지 2개 이상 적어주세요' : '질문을 적어주세요';
+  };
+  const setMode = m => {
+    mode = m;
+    w.querySelectorAll('.seg button').forEach(b => { b.classList.toggle('on', b.dataset.mode === m); b.setAttribute('aria-selected', b.dataset.mode === m); });
+    w.querySelectorAll('[data-sec]').forEach(s => s.hidden = s.dataset.sec !== m);
+    refresh();
+  };
+  w.querySelectorAll('.seg button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+
+  // 투표 선택지 (2~5개)
+  const addOpt = () => {
+    const box = w.querySelector('#opts'), n = box.children.length;
+    if (n >= 5) return;
+    const d = document.createElement('div'); d.className = 'optrow';
+    d.innerHTML = `<span>${n + 1}</span><input class="field" maxlength="30" placeholder="선택지 ${n + 1}">${n >= 2 ? '<button aria-label="선택지 삭제">✕</button>' : ''}`;
+    d.querySelector('input').oninput = refresh;
+    const x = d.querySelector('button'); if (x) x.onclick = () => { d.remove(); [...box.children].forEach((r, i) => r.querySelector('span').textContent = i + 1); w.querySelector('#addopt').hidden = false; refresh(); };
+    box.appendChild(d);
+    w.querySelector('#addopt').hidden = box.children.length >= 5;
+  };
+  addOpt(); addOpt();
+  w.querySelector('#addopt').onclick = () => { addOpt(); w.querySelector('#opts input:last-of-type'); refresh(); };
+  w.querySelector('#pq').oninput = refresh; w.querySelector('#qq').oninput = refresh;
+
   w.querySelector('.chips').scrollLeft = w.querySelector('.chip.on').offsetLeft - 20;
   w.querySelectorAll('.chip').forEach(c => c.onclick = () => {
     w.querySelectorAll('.chip').forEach(x => { x.classList.remove('on'); x.setAttribute('aria-checked', 'false'); });
     c.classList.add('on'); c.setAttribute('aria-checked', 'true'); mission = c.dataset.m;
   });
-  const $file = w.querySelector('#file'), $send = w.querySelector('#send');
   $file.onchange = async () => {
     const f = $file.files[0]; if (!f) return;
     const pick = w.querySelector('#pick');
     $send.disabled = true; $send.textContent = '준비 중…';
     try {
       image = f.type.startsWith('video/') ? await prepareVideoMeta(f) : await prepareImage(f);
-    } catch { image = null; $send.textContent = '사진을 먼저 골라주세요'; return toast('이 파일은 열 수 없어요. 다른 사진이나 영상을 골라 주세요'); }
+    } catch { image = null; refresh(); return toast('이 파일은 열 수 없어요. 다른 사진이나 영상을 골라 주세요'); }
     pick.innerHTML = image.kind === 'video'
       ? `<video src="${image.previewUrl}" muted playsinline autoplay loop></video><span class="repick">다시 고르기</span>
          <span class="vbadge">${image.duration > MAX_VIDEO_SEC + 0.5 ? `앞 ${MAX_VIDEO_SEC}초만 올라가요` : `${Math.round(image.duration)}초`}</span>`
       : `<img src="${image.previewUrl}" alt="고른 사진"><span class="repick">다시 고르기</span>`;
     pick.appendChild($file);
-    $send.disabled = false; $send.textContent = '보내기';
+    refresh();
   };
+  setMode(mode);
+
   $send.onclick = async () => {
-    if (!image) return;
-    const author = w.querySelector('#author').value.trim();
+    const author = w.querySelector('#author').value.trim() || '익명의 친구';
     $send.disabled = true;
     let ins;
     try {
-      let main = image.main;
-      if (image.kind === 'video') {
-        $send.textContent = '영상 줄이는 중… 0%';
-        main = await compressVideo(image, p => { $send.textContent = `영상 줄이는 중… ${Math.round(p * 100)}%`; });
+      if (mode === 'poll') {
+        $send.textContent = '보내는 중…';
+        const opts = [...w.querySelectorAll('#opts input')].map(i => i.value.trim()).filter(Boolean);
+        ins = await sb.from('posts').insert({ owner_id: S.uid, media_type: 'poll', mission: '투표', text: w.querySelector('#pq').value.trim(), poll_options: opts, author_name: author });
+      } else if (mode === 'question') {
+        $send.textContent = '보내는 중…';
+        ins = await sb.from('posts').insert({ owner_id: S.uid, media_type: 'question', mission: '질문', text: w.querySelector('#qq').value.trim(), author_name: author });
+      } else {
+        if (!image) return;
+        let main = image.main;
+        if (image.kind === 'video') {
+          $send.textContent = '영상 줄이는 중… 0%';
+          main = await compressVideo(image, p => { $send.textContent = `영상 줄이는 중… ${Math.round(p * 100)}%`; });
+        }
+        $send.textContent = image.kind === 'video' ? '영상 올리는 중…' : '사진 올리는 중…';
+        const id = crypto.randomUUID();
+        const path = `${S.uid}/${id}.${extOf(main)}`, tpath = `${S.uid}/${id}_t.${extOf(image.thumb)}`;
+        await Promise.all([uploadBlob(path, main), uploadBlob(tpath, image.thumb)]);
+        $send.textContent = '거의 다 됐어요…';
+        ins = await sb.from('posts').insert({
+          owner_id: S.uid, image_path: path, thumb_path: tpath, media_type: image.kind, mission,
+          text: w.querySelector('#text').value.trim(), author_name: author,
+        });
       }
-      $send.textContent = image.kind === 'video' ? '영상 올리는 중…' : '사진 올리는 중…';
-      const id = crypto.randomUUID();
-      const path = `${S.uid}/${id}.${extOf(main)}`, tpath = `${S.uid}/${id}_t.${extOf(image.thumb)}`;
-      await Promise.all([uploadBlob(path, main), uploadBlob(tpath, image.thumb)]);
-      $send.textContent = '거의 다 됐어요…';
-      ins = await sb.from('posts').insert({
-        owner_id: S.uid, image_path: path, thumb_path: tpath, media_type: image.kind, mission,
-        text: w.querySelector('#text').value.trim(),
-        author_name: author || '익명의 친구',
-      });
     } catch (err) { ins = { error: err }; }
     if (ins.error) { $send.disabled = false; $send.textContent = '다시 보내기'; return toast(/줄일 수 없어요/.test(ins.error.message) ? ins.error.message : kerr(ins.error)); }
-    try { if (author && !me) localStorage.setItem('candid_author', author); } catch {}
-    image = null; // 이제 닫아도 확인 안 물음
+    try { if (author !== '익명의 친구' && !me) localStorage.setItem('candid_author', author); } catch {}
+    image = null; w.querySelectorAll('#text, #pq, #qq, #opts input').forEach(i => i.value = ''); // 이제 닫아도 확인 안 물음
     const next = MISSIONS[(MISSIONS.indexOf(mission) + 1) % MISSIONS.length];
+    const what = mode === 'poll' ? '투표' : mode === 'question' ? '질문' : '사진';
     w.querySelector('.sheet').innerHTML = `
       <div class="grab"></div>
       <div class="empty" style="padding:24px 0 8px"><h2>Sent.</h2>
-      <p>${name}님이 승인하면 피드에 올라가요.<br>누가 보냈는지는 이름으로만 보여요.</p>
-      <button class="btn primary block" id="more">한 장 더 보내기 · ${esc(next)}</button><div style="height:8px"></div>
-      ${me && !S.isOwner && !myFollows.has(S.uid) ? `<button class="btn add block" id="fol">${name} 친구 추가 · 새 사진을 홈에서 보기</button><div style="height:8px"></div>` : ''}
+      <p>${mode === 'question' ? `${name}님이 답하면 질문과 함께 피드에 올라가요.` : `${name}님이 승인하면 피드에 올라가요.`}<br>누가 보냈는지는 이름으로만 보여요.</p>
+      <button class="btn primary block" id="more">${mode === 'media' ? `한 장 더 보내기 · ${esc(next)}` : `${what} 하나 더 보내기`}</button><div style="height:8px"></div>
+      ${me && !S.isOwner && !myFollows.has(S.uid) ? `<button class="btn add block" id="fol">${name} 친구 추가 · 새 소식을 홈에서 보기</button><div style="height:8px"></div>` : ''}
       ${S.isOwner ? '' : me
         ? `<a class="btn block" href="${feedUrl(me.id)}" style="display:block;text-decoration:none;text-align:center">내 피드로 가기</a><div style="height:8px"></div>`
         : `<button class="btn block" id="mine">나도 받아볼래 — 내 피드 만들기</button><div style="height:8px"></div>`}
       <button class="btn block" style="border:0;background:none;color:var(--sub)" onclick="closeSheet()">닫기</button></div>`;
+    const sentMode = mode;
     w.querySelector('#more').onclick = () => {
       removeEventListener('popstate', onPop); w._onClose = null; w.remove(); // 히스토리는 그대로 두고 시트만 교체
-      openCompose(MISSIONS.indexOf(next));
+      openCompose(sentMode === 'media' ? MISSIONS.indexOf(next) : 0, false, sentMode);
     };
     const fol = w.querySelector('#fol'); if (fol) fol.onclick = () => { toggleFollow(S.uid); fol.remove(); };
     const mine = w.querySelector('#mine');
@@ -1081,6 +1303,7 @@ const leaveRow = id => new Promise(r => {
 // 승인: 바로 반영하고 5초간 되돌리기 제공 (되돌리면 다시 대기 상태로)
 async function approve(id) {
   const p = findPost(id); if (!p) return;
+  if (p.media_type === 'question' && !p.answer) return openAnswer(id); // 질문은 답하면서 올림
   closeLayers(); await leaveRow(id);
   const at = new Date().toISOString();
   const { error } = await sb.from('posts').update({ status: 'approved', approved_at: at }).eq('id', id);
@@ -1201,7 +1424,15 @@ function demoClient() {
     follows: [{ follower_id: 'demo', followee_id: 'f1' }, { follower_id: 'demo', followee_id: 'f2' }],
     likes: [{ post_id: 'f0', user_id: 'f2' }, { post_id: 'f0', user_id: 'f1' }, { post_id: 'f1', user_id: 'f1' }],
     comments: [{ id: 'c1', post_id: 'f0', user_id: 'f2', body: '이거 진짜 레전드다 ㅋㅋㅋ', created_at: t(0.3) }],
+    poll_votes: [{ post_id: 'q1', voter_key: 'u:f2', option: 0 }, { post_id: 'q1', voter_key: 'g:x1', option: 1 }, { post_id: 'q1', voter_key: 'g:x2', option: 0 }],
   };
+  // 투표·질문 데모: 지수 피드의 투표, 태윤 피드의 답한 질문, 내(민수) 승인함의 질문
+  db.posts.push(
+    { id: 'q1', owner_id: 'f1', author_name: '태윤', mission: '투표', media_type: 'poll', text: '지수 다음 머리 스타일은?', poll_options: ['단발 가자', '지금이 최고', '탈색 도전'], status: 'approved', created_at: t(0.9), approved_at: t(0.8) },
+    { id: 'q2', owner_id: 'f2', author_name: '하린', mission: '질문', media_type: 'question', text: '우리 처음 만난 날 기억나?', answer: '당연하지 ㅋㅋ 신입생 OT에서 네가 길 잃어서 내가 데려다줌', status: 'approved', created_at: t(1.6), approved_at: t(1.5) },
+    { id: 'q3', owner_id: 'demo', author_name: '지수', mission: '질문', media_type: 'question', text: '요즘 제일 빠져 있는 거 뭐야?', status: 'pending', created_at: t(0.2), approved_at: null },
+  );
+  db.posts = db.posts.filter((p, i, a) => a.findIndex(x => x.id === p.id) === i);
   const persist = () => ss.set('demo_db2', JSON.stringify(db));
   const loggedIn = () => ss.get('demo_login') === '1';
   const files = {};
@@ -1385,22 +1616,49 @@ function wrapLines(g, text, maxW, maxLines) {
   return lines;
 }
 
+// 투표·질문 스토리: 사진 자리에 블루 카드로 내용 그리기
+function drawTextCard(g, p, x, y, w, h) {
+  g.fillStyle = p.media_type === 'poll' ? '#2b50ff' : '#0a0a0a'; g.fillRect(x, y, w, h);
+  g.fillStyle = 'rgba(255,255,255,.6)'; g.font = '800 28px Pretendard, sans-serif'; g.fillText(p.media_type === 'poll' ? 'POLL' : 'Q&A', x + 48, y + 80);
+  g.fillStyle = '#fff'; g.font = '800 54px Pretendard, sans-serif';
+  const ql = wrapLines(g, (p.media_type === 'question' ? 'Q. ' : '') + p.text, w - 96, 4);
+  ql.forEach((ln, i) => g.fillText(ln, x + 48, y + 170 + i * 68));
+  let yy = y + 190 + ql.length * 68;
+  if (p.media_type === 'poll') {
+    const s = POLL.get(p.id) || { counts: p.poll_options.map(() => 0), total: 0 };
+    p.poll_options.forEach((o, i) => {
+      const pct = s.total ? Math.round(s.counts[i] / s.total * 100) : 0;
+      g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(x + 48, yy, w - 96, 72);
+      g.fillStyle = 'rgba(255,255,255,.45)'; g.fillRect(x + 48, yy, (w - 96) * pct / 100, 72);
+      g.fillStyle = '#fff'; g.font = '700 30px Pretendard, sans-serif'; g.fillText(wrapLines(g, o, w - 260, 1)[0], x + 72, yy + 47);
+      g.textAlign = 'right'; g.fillText(pct + '%', x + w - 72, yy + 47); g.textAlign = 'left';
+      yy += 86;
+    });
+  } else if (p.answer) {
+    g.fillStyle = 'rgba(255,255,255,.75)'; g.font = '600 40px Pretendard, sans-serif';
+    wrapLines(g, 'A. ' + p.answer, w - 96, 5).forEach((ln, i) => g.fillText(ln, x + 48, yy + 20 + i * 54));
+  }
+}
+
 // 인스타 스토리용 1080x1920 이미지 — 위 250px/아래 300px은 인스타 UI가 덮으므로 비워 둠
 async function makeStory(id) {
   closeSheet();
   const p = S.approved.find(x => x.id === id); if (!p) return;
   toast('스토리 이미지를 만드는 중…');
   await Promise.all([document.fonts.load('800 80px "Bricolage Grotesque"'), document.fonts.load('800 40px Pretendard')]).catch(() => {});
-  let img; try { img = await loadImg(isVideo(p) ? thumbUrl(p) : photoUrl(p.image_path)); } catch { return toast('사진을 불러오지 못했어요. 다시 시도해 주세요'); }
+  let img = null;
+  if (!isText(p)) { try { img = await loadImg(isVideo(p) ? thumbUrl(p) : photoUrl(p.image_path)); } catch { return toast('사진을 불러오지 못했어요. 다시 시도해 주세요'); } }
   const c = document.createElement('canvas'); c.width = 1080; c.height = 1920;
   const g = c.getContext('2d');
   const cover = (W, H) => { const r = Math.max(W / img.width, H / img.height), sw = W / r, sh = H / r; return [(img.width - sw) / 2, (img.height - sh) / 2, sw, sh]; };
 
   // 배경: 사진을 아주 작게 그렸다 키워서 블러 효과 → 사진마다 다른 톤 (모든 브라우저에서 동작)
-  const t = document.createElement('canvas'); t.width = 27; t.height = 48;
-  t.getContext('2d').drawImage(img, ...cover(27, 48), 0, 0, 27, 48);
-  g.imageSmoothingQuality = 'high'; g.drawImage(t, 0, 0, 1080, 1920);
-  g.fillStyle = 'rgba(255,255,255,.72)'; g.fillRect(0, 0, 1080, 1920);
+  if (img) {
+    const t = document.createElement('canvas'); t.width = 27; t.height = 48;
+    t.getContext('2d').drawImage(img, ...cover(27, 48), 0, 0, 27, 48);
+    g.imageSmoothingQuality = 'high'; g.drawImage(t, 0, 0, 1080, 1920);
+    g.fillStyle = 'rgba(255,255,255,.72)'; g.fillRect(0, 0, 1080, 1920);
+  } else { const bg = g.createLinearGradient(0, 0, 1080, 1920); bg.addColorStop(0, '#eef1ff'); bg.addColorStop(1, '#ffffff'); g.fillStyle = bg; g.fillRect(0, 0, 1080, 1920); }
 
   // 로고 + 부제
   g.textAlign = 'left'; g.font = '800 80px "Bricolage Grotesque", sans-serif';
@@ -1413,11 +1671,12 @@ async function makeStory(id) {
   g.save(); g.translate(540, 960); g.rotate(-0.02);
   g.shadowColor = 'rgba(0,0,0,.18)'; g.shadowBlur = 70; g.shadowOffsetY = 24;
   g.fillStyle = '#fff'; g.fillRect(-360, -510, 720, 1040); g.shadowColor = 'transparent';
-  g.drawImage(img, ...cover(640, 800), -320, -470, 640, 800);
+  if (img) g.drawImage(img, ...cover(640, 800), -320, -470, 640, 800);
+  else drawTextCard(g, p, -320, -470, 640, 800);
   g.textAlign = 'left'; g.fillStyle = '#2b50ff'; g.font = '800 26px Pretendard, sans-serif';
   g.fillText(p.mission || '', -320, 382);
   g.fillStyle = '#0a0a0a'; g.font = '800 44px Pretendard, sans-serif';
-  const lines = p.text ? wrapLines(g, p.text, 640, 2) : [];
+  const lines = p.text && !isText(p) ? wrapLines(g, p.text, 640, 2) : [];
   lines.forEach((ln, i) => g.fillText(ln, -320, 438 + i * 54));
   g.fillStyle = '#8e8e93'; g.font = '600 26px Pretendard, sans-serif';
   g.fillText(`— ${p.author_name}`, -320, lines.length > 1 ? 512 : lines.length ? 488 : 430);
