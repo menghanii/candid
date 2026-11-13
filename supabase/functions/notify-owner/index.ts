@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
 
   const payload = JSON.stringify({
     title: '누군가 너에게 사진을 보냈어 👀',
-    body: `${post.author_name}님이 '${post.mission ?? '사진'}'을(를) 보냈어요. 승인함에서 확인해 보세요.`,
+    body: `${post.author_name}님이 '${post.mission ?? '사진'}'을(를) 보냈어요. 대기 피드에서 확인해 보세요.`,
     url: `${SITE}?u=${post.owner_id}&tab=inbox`,
   });
 
