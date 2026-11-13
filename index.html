@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>candid.</title>
+<meta name="description" content="candid. — 친구들이 만들어주는 나의 피드">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" type="image/png" sizes="32x32" href="brand/icon-32.png">
+<link rel="apple-touch-icon" href="brand/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<style>
+  :root {
+    --bg:#fff; --card:#fff; --fg:#0a0a0a; --sub:#8e8e93; --line:#ececec; --soft:#f5f5f5; --accent:#2b50ff;
+    --display:"Bricolage Grotesque", "Pretendard", sans-serif;
+    --sans:"Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg:#000; --card:#111; --fg:#fafafa; --sub:#8e8e93; --line:#222; --soft:#161616; --accent:#5c7cff;
+  } }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; background:var(--bg); color:var(--fg); }
+  body { font-family:var(--sans); font-size:14px; letter-spacing:-.01em; -webkit-font-smoothing:antialiased; }
+  button { font:inherit; color:inherit; cursor:pointer; }
+  svg { display:block; }
+  .app { max-width:480px; margin:0 auto; min-height:100vh; }
+  .display { font-family:var(--display); font-weight:700; letter-spacing:-.03em; }
+  .logo { font-family:var(--display); font-weight:800; font-size:26px; background:none; border:0; padding:0; letter-spacing:-.05em; }
+  .logo i { color:var(--accent); font-style:normal; }
+
+  /* 상단바 */
+  .top { position:sticky; top:0; z-index:5; display:flex; align-items:center; height:56px; padding:0 20px; background:color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
+  .top .sp { flex:1; }
+  .icon-btn { position:relative; background:none; border:0; padding:8px; margin-left:4px; border-radius:50%; }
+  .icon-btn:hover { background:var(--soft); }
+  .dot { position:absolute; top:4px; right:4px; width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 2px var(--bg); }
+
+  /* 프로필 */
+  .head { text-align:center; padding:20px 20px 0; }
+  .ring { display:inline-block; padding:3px; border-radius:50%; border:1.5px solid var(--accent); }
+  .av { width:88px; height:88px; border-radius:50%; object-fit:cover; display:flex; align-items:center; justify-content:center; background:var(--soft); font-family:var(--display); font-weight:700; font-size:34px; color:var(--sub); }
+  .av.sm { width:34px; height:34px; font-size:16px; flex:none; }
+  .name { font-family:var(--display); font-weight:700; font-size:30px; line-height:1.1; letter-spacing:-.03em; margin:14px 0 4px; }
+  .desc { color:var(--sub); font-size:13px; }
+  .stats { display:flex; margin:22px 0 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+  .stats > div { flex:1; padding:14px 0; }
+  .stats > div + div { border-left:1px solid var(--line); }
+  .stats b { display:block; font-family:var(--display); font-weight:700; font-size:22px; letter-spacing:-.02em; margin-bottom:4px; line-height:1; }
+  .stats span { font-size:11px; color:var(--sub); letter-spacing:.04em; }
+  .actions { display:flex; gap:8px; padding:18px 20px; }
+  .btn { flex:1; border:1px solid var(--line); border-radius:999px; padding:12px 16px; font-weight:600; font-size:14px; background:var(--card); transition:transform .1s; }
+  .btn:active { transform:scale(.98); }
+  .btn.primary { background:var(--fg); color:var(--bg); border-color:var(--fg); }
+  .btn.block { display:block; width:100%; }
+  .btn:disabled { opacity:.5; }
+
+  /* 탭 */
+  .tabs { display:flex; gap:24px; padding:0 20px; border-bottom:1px solid var(--line); }
+  .tabs button { background:none; border:0; border-bottom:1.5px solid transparent; margin-bottom:-1px; padding:12px 0; color:var(--sub); font-size:13px; font-weight:600; }
+  .tabs button.on { color:var(--fg); border-bottom-color:var(--fg); }
+  .tabs .n { color:var(--accent); margin-left:3px; }
+
+  /* 그리드 */
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; padding-top:2px; }
+  .grid button { padding:0; border:0; aspect-ratio:4/5; background:var(--soft); overflow:hidden; }
+  .grid img { width:100%; height:100%; object-fit:cover; display:block; transition:transform .3s, opacity .3s; }
+  .grid button:hover img { transform:scale(1.03); opacity:.92; }
+
+  /* 빈 상태 */
+  .empty { padding:48px 28px 56px; text-align:center; }
+  .empty h2 { font-family:var(--display); font-weight:700; font-size:28px; letter-spacing:-.04em; margin:0 0 8px; line-height:1.15; }
+  .empty p { color:var(--sub); margin:0 0 24px; line-height:1.6; }
+  .ideas { display:flex; flex-direction:column; gap:8px; margin:0 0 24px; text-align:left; }
+  .idea { display:flex; align-items:center; gap:12px; padding:14px 16px; background:var(--card); border:1px solid var(--line); border-radius:14px; }
+  .idea .k { font-family:var(--display); font-weight:800; color:var(--accent); font-size:18px; width:18px; }
+
+  /* 승인함 */
+  .note { padding:14px 20px; color:var(--sub); font-size:12px; }
+  .row { display:flex; gap:14px; margin:0 20px 10px; padding:12px; align-items:center; background:var(--card); border:1px solid var(--line); border-radius:16px; }
+  .row img { width:60px; height:75px; object-fit:cover; border-radius:8px; flex:none; cursor:pointer; }
+  .row .meta { flex:1; min-width:0; line-height:1.45; }
+  .row .meta .t { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .row .meta small { color:var(--sub); }
+  .row .ab { display:flex; flex-direction:column; gap:6px; }
+  .row .ab .btn { padding:7px 14px; flex:none; font-size:13px; }
+  .mtag { display:inline-block; font-size:11px; font-weight:600; color:var(--accent); letter-spacing:.02em; }
+
+  /* 게시물 상세 */
+  .overlay { position:fixed; inset:0; z-index:20; background:rgba(10,10,10,.55); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; animation:fade .2s; }
+  @keyframes fade { from { opacity:0; } }
+  .post { width:100%; max-width:440px; max-height:100vh; overflow:auto; background:var(--card); }
+  @media (min-width:481px) { .post { border-radius:20px; max-height:92vh; } }
+  .post-h { display:flex; align-items:center; gap:10px; padding:12px 12px 12px 16px; }
+  .post-h .who { flex:1; line-height:1.3; }
+  .post-h .who b { display:block; font-size:14px; }
+  .post-img { width:100%; aspect-ratio:4/5; object-fit:cover; display:block; background:var(--soft); }
+  .post-c { padding:20px 20px 8px; }
+  .quote { font-family:var(--display); font-weight:600; font-size:24px; line-height:1.3; letter-spacing:-.03em; margin:6px 0 10px; word-break:keep-all; }
+  .quote::before { content:"“"; color:var(--accent); }
+  .quote::after { content:"”"; color:var(--accent); }
+  .by { color:var(--sub); font-size:13px; }
+  .post-f { display:flex; align-items:center; padding:8px 12px 14px 20px; color:var(--sub); font-size:12px; }
+  .post-f .sp { flex:1; }
+
+  /* 바텀시트 */
+  .sheet-wrap { position:fixed; inset:0; z-index:30; background:rgba(10,10,10,.45); display:flex; align-items:flex-end; justify-content:center; animation:fade .2s; }
+  .sheet { width:100%; max-width:480px; max-height:94vh; overflow:auto; background:var(--bg); border-radius:24px 24px 0 0; padding:10px 20px calc(24px + env(safe-area-inset-bottom)); animation:up .25s cubic-bezier(.2,.8,.2,1); }
+  @keyframes up { from { transform:translateY(60px); opacity:0; } }
+  .grab { width:36px; height:4px; border-radius:2px; background:var(--line); margin:0 auto 18px; }
+  .sheet h3 { font-family:var(--display); font-weight:700; font-size:28px; letter-spacing:-.04em; margin:0 0 4px; line-height:1.1; }
+  .sheet .hint { color:var(--sub); margin:0 0 20px; font-size:13px; }
+  .label { font-size:11px; font-weight:700; color:var(--sub); letter-spacing:.08em; margin:0 0 8px; }
+  .chips { display:flex; gap:6px; overflow-x:auto; margin:0 -20px 20px; padding:0 20px; scrollbar-width:none; }
+  .chips::-webkit-scrollbar { display:none; }
+  .chip { flex:none; padding:8px 14px; border-radius:999px; border:1px solid var(--line); background:var(--card); font-size:13px; white-space:nowrap; }
+  .chip.on { background:var(--fg); color:var(--bg); border-color:var(--fg); }
+  .pick { display:flex; flex-direction:column; gap:8px; align-items:center; justify-content:center; aspect-ratio:4/5; max-height:46vh; margin:0 auto 16px; border-radius:16px; border:1.5px dashed var(--line); background:var(--card); color:var(--sub); cursor:pointer; overflow:hidden; font-size:13px; }
+  .pick img { width:100%; height:100%; object-fit:cover; }
+  .field { width:100%; padding:14px 16px; font:inherit; font-size:16px; border:1px solid var(--line); border-radius:14px; background:var(--card); color:var(--fg); margin-bottom:10px; outline:none; }
+  .field:focus { border-color:var(--fg); }
+  .menu { background:var(--card); border:1px solid var(--line); border-radius:16px; overflow:hidden; margin-bottom:10px; }
+  .menu-item { display:block; width:100%; text-align:center; padding:16px; border:0; border-top:1px solid var(--line); background:none; font-size:15px; }
+  .menu-item:first-child { border-top:0; }
+  .menu-item.danger { color:var(--accent); font-weight:600; }
+
+  /* 랜딩 */
+  .landing { min-height:100vh; display:flex; flex-direction:column; padding:28px 24px calc(28px + env(safe-area-inset-bottom)); }
+  .landing .hero { flex:1; display:flex; flex-direction:column; justify-content:center; }
+  .collage { position:relative; height:250px; margin:12px 0 36px; }
+  .snap { position:absolute; width:138px; padding:8px 8px 12px; background:var(--card); border-radius:4px; box-shadow:0 10px 30px rgba(0,0,0,.08), 0 1px 3px rgba(0,0,0,.06); }
+  .snap .ph { aspect-ratio:4/5; border-radius:2px; }
+  .snap p { margin:8px 2px 0; font-size:12px; font-weight:600; }
+  .snap small { display:block; margin:2px 2px 0; color:var(--sub); font-size:10px; }
+  .snap:nth-child(1) { left:2%; top:26px; transform:rotate(-7deg); }
+  .snap:nth-child(2) { left:50%; top:0; transform:translateX(-50%) rotate(2deg); z-index:2; }
+  .snap:nth-child(3) { right:2%; top:38px; transform:rotate(8deg); }
+  .snap:nth-child(1) .ph { background:linear-gradient(160deg,#f6d5c4,#e9967a); }
+  .snap:nth-child(2) .ph { background:linear-gradient(160deg,#d9dfe8,#8fa3bf); }
+  .snap:nth-child(3) .ph { background:linear-gradient(160deg,#e8e2c8,#b8a970); }
+  .landing h1 { font-family:var(--display); font-weight:800; font-size:50px; line-height:.95; margin:0 0 14px; letter-spacing:-.055em; }
+  .landing h1 em, .empty h2 em { color:var(--accent); font-style:normal; }
+  .landing .tagline { color:var(--sub); line-height:1.6; margin:0 0 32px; font-size:15px; }
+  .social { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; border-radius:999px; padding:15px; font-weight:600; font-size:15px; margin-bottom:10px; border:0; }
+  .social.kakao { background:#FEE500; color:rgba(0,0,0,.85); }
+  .social.google { background:var(--card); border:1px solid var(--line); }
+  .fine { color:var(--sub); font-size:12px; margin:14px 0 0; text-align:center; line-height:1.6; }
+
+  .toast { position:fixed; left:50%; bottom:32px; transform:translate(-50%, 10px); z-index:50; background:var(--fg); color:var(--bg); padding:12px 18px; border-radius:999px; font-size:13px; font-weight:600; opacity:0; transition:.25s; pointer-events:none; white-space:nowrap; }
+  .toast.show { opacity:1; transform:translate(-50%, 0); }
+  .spin { display:flex; justify-content:center; padding:120px 0; }
+</style>
+</head>
+<body>
+<div class="app" id="app"><div class="spin"><span class="logo">candid<i>.</i></span></div></div>
+<div class="toast" id="toast"></div>
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+<script>
+const MISSIONS = ['제일 웃긴 사진', '제일 잘 나온 사진', '몰래 찍은 사진', '우리만 아는 흑역사', '나를 한 단어로', '자유'];
+const LOGO = 'candid<i>.</i>';
+const sv = (d, s = 22, w = 1.6) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const I = {
+  inbox: s => sv('<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>', s),
+  menu: sv('<path d="M4 8h16M4 16h16"/>'),
+  plus: sv('<path d="M12 5v14M5 12h14"/>'),
+  camera: sv('<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>', 30, 1.3),
+  share: sv('<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/>', 20),
+  more: sv('<circle cx="5" cy="12" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="19" cy="12" r=".6"/>', 22, 2.4),
+  close: sv('<path d="M18 6 6 18M6 6l12 12"/>'),
+  google: '<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>',
+  kakao: '<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#000" d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.7l-1 3.7c-.1.3.3.6.6.4l4.4-2.9c.5.1 1 .1 1.5.1 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>',
+};
+
+const $app = document.getElementById('app');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2000); }
+function ago(iso) {
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if (s < 60) return '방금 전'; if (s < 3600) return `${s / 60 | 0}분 전`;
+  if (s < 86400) return `${s / 3600 | 0}시간 전`; if (s < 604800) return `${s / 86400 | 0}일 전`;
+  return new Date(iso).toLocaleDateString('ko-KR', { month:'long', day:'numeric' });
+}
+const avatar = (p, cls = '') => p?.avatar_url
+  ? `<img class="av ${cls}" src="${esc(p.avatar_url)}" alt="" referrerpolicy="no-referrer">`
+  : `<div class="av ${cls}">${esc((p?.name || '?').slice(0, 1))}</div>`;
+
+// ---------- 설정 확인 ----------
+const cfg = window.FG_CONFIG || {};
+const DEMO = !cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY;
+const sb = DEMO ? demoClient() : supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+const photoUrl = path => sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
+const feedUrl = id => `${location.origin}${location.pathname}?u=${id}`;
+let me = null;
+
+(async function boot() {
+  me = (await sb.auth.getSession()).data.session?.user || null;
+  const u = new URLSearchParams(location.search).get('u');
+  if (u) return renderProfile(u);
+  me ? location.replace(feedUrl(me.id)) : renderLanding();
+})();
+
+// ---------- 로그인 ----------
+function login(provider) {
+  sb.auth.signInWithOAuth({ provider, options: { redirectTo: location.origin + location.pathname } });
+}
+async function logout() { await sb.auth.signOut(); location.href = location.pathname; }
+
+function renderLanding() {
+  const p = cfg.PROVIDERS || ['kakao', 'google'];
+  $app.innerHTML = `
+    <div class="landing">
+      <span class="logo">${LOGO}</span>
+      <div class="hero">
+        <div class="collage">
+          <div class="snap"><div class="ph"></div><p>이 표정 레전드</p><small>— 지수</small></div>
+          <div class="snap"><div class="ph"></div><p>인생샷 인정</p><small>— 민호</small></div>
+          <div class="snap"><div class="ph"></div><p>몰래 찍음 ㅋㅋ</p><small>— 익명의 친구</small></div>
+        </div>
+        <h1>Your feed,<br><em>by your friends.</em></h1>
+        <p class="tagline">내가 고른 사진 말고, 친구들이 본 진짜 나.<br>친구가 올리고, 내가 고르는 피드.</p>
+      </div>
+      ${p.includes('kakao') ? `<button class="social kakao" onclick="login('kakao')">${I.kakao} 카카오로 계속하기</button>` : ''}
+      ${p.includes('google') ? `<button class="social google" onclick="login('google')">${I.google} Google로 계속하기</button>` : ''}
+      <p class="fine">친구는 로그인 없이 사진을 보낼 수 있어요.<br>내가 승인한 사진만 피드에 올라갑니다.</p>
+    </div>`;
+}
+
+// ---------- 프로필 ----------
+const S = { tab: 'grid' };
+
+async function renderProfile(uid) {
+  const [{ data: prof }, { data: posts, error }] = await Promise.all([
+    sb.from('profiles').select('*').eq('id', uid).maybeSingle(),
+    sb.from('posts').select('*').eq('owner_id', uid).order('created_at', { ascending: false }),
+  ]);
+  if (!prof) {
+    $app.innerHTML = `<div class="landing"><span class="logo">${LOGO}</span><div class="hero"><h1>Not found.</h1>
+      <p class="tagline">존재하지 않는 피드예요.</p><button class="btn primary block" onclick="location.href=location.pathname">내 피드 만들기</button></div></div>`;
+    return;
+  }
+  if (error) return toast(error.message);
+  const isOwner = me?.id === uid;
+  const approved = posts.filter(p => p.status === 'approved').sort((a, b) => new Date(b.approved_at) - new Date(a.approved_at));
+  const pending = posts.filter(p => p.status === 'pending');
+  const friends = new Set(approved.map(p => p.author_name)).size;
+  Object.assign(S, { uid, prof, isOwner, approved, pending });
+  if (!isOwner) S.tab = 'grid';
+
+  $app.innerHTML = `
+    <header class="top">
+      <button class="logo" onclick="location.href=location.pathname">${LOGO}</button>
+      <div class="sp"></div>
+      ${isOwner
+        ? `<button class="icon-btn" title="승인함" onclick="setTab('inbox')">${I.inbox(22)}${pending.length ? '<span class="dot"></span>' : ''}</button>
+           <button class="icon-btn" title="메뉴" onclick="openMenu()">${I.menu}</button>`
+        : `<button class="icon-btn" title="사진 보내기" onclick="openCompose()">${I.plus}</button>`}
+    </header>
+    <section class="head">
+      <div class="ring">${avatar(prof)}</div>
+      <div class="name">${esc(prof.name)}</div>
+      <div class="desc">${isOwner ? '친구들이 만들어주는 내 피드' : `친구들이 만들어주는 ${esc(prof.name)}의 피드`}</div>
+      <div class="stats">
+        <div><b>${approved.length}</b><span>게시물</span></div>
+        <div><b>${friends}</b><span>참여한 친구</span></div>
+        ${isOwner ? `<div><b>${pending.length}</b><span>승인 대기</span></div>` : ''}
+      </div>
+    </section>
+    <div class="actions">
+      ${isOwner
+        ? `<button class="btn primary" onclick="shareFeed()">친구에게 피드 부탁하기</button>`
+        : `<button class="btn primary" onclick="openCompose()">사진 보내기</button>
+           <button class="btn" onclick="location.href=location.pathname">${me ? '내 피드' : '나도 만들기'}</button>`}
+    </div>
+    <nav class="tabs">
+      <button class="${S.tab === 'grid' ? 'on' : ''}" onclick="setTab('grid')">피드</button>
+      ${isOwner ? `<button class="${S.tab === 'inbox' ? 'on' : ''}" onclick="setTab('inbox')">승인함${pending.length ? `<span class="n">${pending.length}</span>` : ''}</button>` : ''}
+    </nav>
+    <main id="body"></main>`;
+  renderBody();
+}
+
+function setTab(t) { S.tab = t; renderProfile(S.uid); }
+
+function renderBody() {
+  const $b = document.getElementById('body');
+  const { isOwner, approved, pending, prof } = S;
+  if (S.tab === 'inbox') {
+    $b.innerHTML = pending.length
+      ? `<div class="note">승인한 사진만 피드에 올라가요. 거절해도 친구에게 알림이 가지 않아요.</div>
+         ${pending.map(p => `
+          <div class="row">
+            <img src="${photoUrl(p.image_path)}" alt="" onclick="openPost('${p.id}')">
+            <div class="meta">
+              <span class="mtag">${esc(p.mission)}</span>
+              <div class="t">${esc(p.text) || '<span style="color:var(--sub)">코멘트 없음</span>'}</div>
+              <small>${esc(p.author_name)} · ${ago(p.created_at)}</small>
+            </div>
+            <div class="ab">
+              <button class="btn primary" onclick="approve('${p.id}')">승인</button>
+              <button class="btn" onclick="removePost('${p.id}', true)">거절</button>
+            </div>
+          </div>`).join('')}`
+      : `<div class="empty"><h2>All clear.</h2><p>대기 중인 사진이 없어요.<br>친구가 사진을 보내면 여기에 모여요.</p></div>`;
+    return;
+  }
+  if (approved.length) {
+    $b.innerHTML = `<div class="grid">${approved.map(p => `<button onclick="openPost('${p.id}')"><img src="${photoUrl(p.image_path)}" alt="" loading="lazy"></button>`).join('')}</div>`;
+    return;
+  }
+  $b.innerHTML = isOwner
+    ? `<div class="empty"><h2>Nothing here, <em>yet.</em></h2>
+        <p>이 피드는 친구들만 채울 수 있어요.<br>이렇게 부탁해 보세요.</p>
+        <div class="ideas">${MISSIONS.slice(0, 3).map((m, i) => `<div class="idea"><span class="k">${i + 1}</span>내 ${m} 하나만 보내줘</div>`).join('')}</div>
+        <button class="btn primary block" onclick="shareFeed()">친구에게 첫 사진 부탁하기</button></div>`
+    : `<div class="empty"><h2>Be the <em>first.</em></h2>
+        <p>${esc(prof.name)}의 피드가 아직 비어 있어요.<br>첫 사진을 보내주세요.</p>
+        <button class="btn primary block" onclick="openCompose()">사진 보내기</button></div>`;
+}
+
+// ---------- 게시물 상세 ----------
+const findPost = id => [...S.approved, ...S.pending].find(x => x.id === id);
+
+function openPost(id) {
+  const p = findPost(id);
+  const ov = document.createElement('div');
+  ov.className = 'overlay';
+  ov.innerHTML = `
+    <article class="post">
+      <div class="post-h">
+        <div class="av sm">${esc(p.author_name.slice(0, 1))}</div>
+        <div class="who"><b>${esc(p.author_name)}</b><span class="mtag">${esc(p.mission)}</span></div>
+        <button class="icon-btn" data-close>${I.close}</button>
+      </div>
+      <img class="post-img" src="${photoUrl(p.image_path)}" alt="">
+      ${p.text ? `<div class="post-c"><div class="quote">${esc(p.text)}</div><div class="by">— ${esc(p.author_name)}</div></div>` : ''}
+      <div class="post-f">
+        ${ago(p.approved_at || p.created_at)}${p.status === 'pending' ? ' · 승인 대기 중' : ''}
+        <div class="sp"></div>
+        ${S.isOwner && p.status === 'approved' ? `<button class="icon-btn" title="스토리 이미지 저장" onclick="makeStory('${p.id}')">${I.share}</button>` : ''}
+        ${S.isOwner ? `<button class="icon-btn" title="더보기" onclick="postMenu('${p.id}')">${I.more}</button>` : ''}
+      </div>
+    </article>`;
+  ov.onclick = e => { if (e.target === ov || e.target.closest('[data-close]')) ov.remove(); };
+  document.body.appendChild(ov);
+}
+
+// ---------- 바텀시트 ----------
+function sheet(html) {
+  document.querySelector('.sheet-wrap')?.remove();
+  const w = document.createElement('div');
+  w.className = 'sheet-wrap';
+  w.innerHTML = `<div class="sheet"><div class="grab"></div>${html}</div>`;
+  w.onclick = e => { if (e.target === w) w.remove(); };
+  document.body.appendChild(w);
+  return w;
+}
+const closeSheet = () => document.querySelector('.sheet-wrap')?.remove();
+const menu = items => sheet(`<div class="menu">${items}</div><div class="menu"><button class="menu-item" onclick="closeSheet()">취소</button></div>`);
+
+function openMenu() {
+  menu(`<button class="menu-item" onclick="closeSheet();shareFeed()">내 피드 링크 공유</button>
+        <button class="menu-item danger" onclick="logout()">로그아웃</button>`);
+}
+function postMenu(id) {
+  const p = findPost(id);
+  menu(`${p.status === 'pending'
+          ? `<button class="menu-item" onclick="approve('${id}')">승인하기</button>`
+          : `<button class="menu-item" onclick="makeStory('${id}')">스토리 이미지 저장</button>`}
+        <button class="menu-item danger" onclick="removePost('${id}')">${p.status === 'pending' ? '거절하기' : '피드에서 내리기'}</button>`);
+}
+
+function openCompose() {
+  let mission = MISSIONS[0], image = null;
+  const nick = me ? (me.user_metadata?.name || me.user_metadata?.full_name || '').slice(0, 12) : '';
+  const w = sheet(`
+    <h3>For ${esc(S.prof.name)}</h3>
+    <p class="hint">로그인 없이 10초면 끝. ${esc(S.prof.name)}님이 승인하면 피드에 올라가요.</p>
+    <div class="label">MISSION</div>
+    <div class="chips">${MISSIONS.map((m, i) => `<button class="chip ${i ? '' : 'on'}" data-m="${m}">${m}</button>`).join('')}</div>
+    <label class="pick" id="pick">${I.camera}<span>사진 선택</span><input type="file" accept="image/*" id="file" hidden></label>
+    <input class="field" id="text" placeholder="한 줄 코멘트 (예: 이 표정 레전드)" maxlength="80">
+    <input class="field" id="author" placeholder="보내는 사람 (비우면 익명의 친구)" maxlength="12" value="${esc(nick)}">
+    <div style="height:6px"></div>
+    <button class="btn primary block" id="send">보내기</button>`);
+  w.querySelectorAll('.chip').forEach(c => c.onclick = () => {
+    w.querySelectorAll('.chip').forEach(x => x.classList.remove('on')); c.classList.add('on'); mission = c.dataset.m;
+  });
+  const $file = w.querySelector('#file');
+  $file.onchange = async () => {
+    const f = $file.files[0]; if (!f) return;
+    image = await resize(f, 1080);
+    const pick = w.querySelector('#pick');
+    pick.innerHTML = `<img src="${URL.createObjectURL(image)}" alt="">`;
+    pick.appendChild($file);
+  };
+  w.querySelector('#send').onclick = async e => {
+    if (!image) return toast('사진을 선택해 주세요');
+    e.target.disabled = true; e.target.textContent = '보내는 중…';
+    const path = `${S.uid}/${crypto.randomUUID()}.jpg`;
+    const up = await sb.storage.from('photos').upload(path, image, { contentType: 'image/jpeg' });
+    const ins = up.error ? up : await sb.from('posts').insert({
+      owner_id: S.uid, image_path: path, mission,
+      text: w.querySelector('#text').value.trim(),
+      author_name: w.querySelector('#author').value.trim() || '익명의 친구',
+    });
+    if (ins.error) { e.target.disabled = false; e.target.textContent = '보내기'; return toast('실패: ' + ins.error.message); }
+    w.querySelector('.sheet').innerHTML = `
+      <div class="grab"></div>
+      <div class="empty" style="padding:24px 0 8px"><h2>Sent.</h2>
+      <p>${esc(S.prof.name)}님이 승인하면 피드에 올라가요.</p>
+      ${S.isOwner ? '' : `<button class="btn primary block" onclick="location.href=location.pathname">${me ? '내 피드로 가기' : '내 피드도 만들어 볼래요'}</button><div style="height:8px"></div>`}
+      <button class="btn block" onclick="closeSheet()">닫기</button></div>`;
+  };
+}
+
+// ---------- 주인장 액션 ----------
+async function approve(id) {
+  const { error } = await sb.from('posts').update({ status: 'approved', approved_at: new Date().toISOString() }).eq('id', id);
+  if (error) return toast(error.message);
+  closeSheet(); document.querySelector('.overlay')?.remove();
+  toast('피드에 올렸어요'); renderProfile(S.uid);
+}
+async function removePost(id, quiet) {
+  const p = findPost(id);
+  if (!quiet && !confirm(p.status === 'pending' ? '거절할까요?' : '피드에서 내릴까요? 사진도 삭제돼요.')) return;
+  const { error } = await sb.from('posts').delete().eq('id', id);
+  if (error) return toast(error.message);
+  await sb.storage.from('photos').remove([p.image_path]);
+  closeSheet(); document.querySelector('.overlay')?.remove();
+  toast(p.status === 'pending' ? '조용히 정리했어요' : '피드에서 내렸어요'); renderProfile(S.uid);
+}
+function shareFeed() {
+  const url = feedUrl(S.uid);
+  const text = '내 피드 좀 채워줘. 네가 가진 내 사진 중에 제일 웃긴 거 하나만!';
+  const w = sheet(`
+    <h3>Ask your friends.</h3>
+    <p class="hint">이 링크를 받은 친구는 로그인 없이 사진을 보낼 수 있어요.</p>
+    <div class="field" style="font-size:14px;word-break:break-all;user-select:all;margin-bottom:12px">${esc(url)}</div>
+    <button class="btn primary block" id="copy">링크 복사</button>
+    ${navigator.share ? '<div style="height:8px"></div><button class="btn block" id="native">다른 앱으로 보내기</button>' : ''}`);
+  w.querySelector('#copy').onclick = async () => {
+    try { await navigator.clipboard.writeText(`${text}\n${url}`); toast('링크를 복사했어요'); closeSheet(); }
+    catch { toast('링크를 길게 눌러 직접 복사해 주세요'); }
+  };
+  const n = w.querySelector('#native');
+  if (n) n.onclick = () => navigator.share({ title: 'candid.', text, url }).then(closeSheet).catch(() => {});
+}
+
+// ---------- 이미지 ----------
+function loadImg(src) { return new Promise((ok, no) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => ok(i); i.onerror = no; i.src = src; }); }
+async function resize(file, max) {
+  const img = await loadImg(URL.createObjectURL(file));
+  const s = Math.min(1, max / Math.max(img.width, img.height));
+  const c = document.createElement('canvas'); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
+}
+
+// ---------- 데모 모드 (Supabase 설정 전, 샘플 데이터로 화면 확인용) ----------
+function demoClient() {
+  const ss = { get: k => { try { return sessionStorage.getItem(k); } catch { return null; } },
+               set: (k, v) => { try { sessionStorage.setItem(k, v); } catch {} } };
+  const ME = { id: 'demo', user_metadata: { name: '민수' } };
+  const tones = [['#f6d5c4','#e9967a'],['#d9dfe8','#8fa3bf'],['#e8e2c8','#b8a970'],['#d8e5d3','#7fa27a'],['#ecd3df','#b9789a'],
+                 ['#d4e4ea','#5f97ad'],['#efe0c9','#d08a4e'],['#e1dbef','#8a7cc0'],['#f1d9d2','#c0665a'],['#dde3d6','#95a07f'],['#e7dccd','#a88864'],['#d5dde9','#6c7fa8']];
+  const art = (i) => {
+    const [a, b] = tones[i % tones.length], cx = 30 + (i * 37) % 60, cy = 25 + (i * 23) % 40;
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000"><defs><linearGradient id="g" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs>`
+      + `<rect width="800" height="1000" fill="url(#g)"/><circle cx="${cx * 8}" cy="${cy * 10}" r="${120 + i * 9 % 90}" fill="#fff" opacity=".35"/>`
+      + `<rect y="720" width="800" height="280" fill="${b}" opacity=".45"/></svg>`);
+  };
+  const H = 3600e3, now = Date.now(), t = h => new Date(now - h * H).toISOString();
+  const seed = [
+    ['지수', MISSIONS[0], '이 표정 레전드 ㅋㅋㅋ'], ['민호', MISSIONS[1], '인생샷 인정합니다'], ['익명의 친구', MISSIONS[2], '자는 척하더니 결국 잠'],
+    ['서연', MISSIONS[3], '고1 수학여행.. 기억나지?'], ['태윤', MISSIONS[4], '걸어다니는 텐션'], ['지수', MISSIONS[5], '제주도 그날'],
+    ['하린', MISSIONS[1], '이건 프사 해야 됨'], ['민호', MISSIONS[0], ''], ['익명의 친구', MISSIONS[2], '집중력 1000%'],
+  ].map(([author_name, mission, text], i) => ({ id: 'a' + i, owner_id: 'demo', author_name, mission, text, image_path: art(i),
+      status: 'approved', created_at: t(i * 20 + 30), approved_at: t(i * 20 + 5) }));
+  const pend = [['서연', MISSIONS[0], '이거 올려도 되지? ㅎㅎ'], ['익명의 친구', MISSIONS[3], '중2 때 사진 발견함'], ['하린', MISSIONS[1], '우리 학교 축제 때']]
+    .map(([author_name, mission, text], i) => ({ id: 'p' + i, owner_id: 'demo', author_name, mission, text, image_path: art(9 + i),
+      status: 'pending', created_at: t(i * 2 + .3), approved_at: null }));
+  let db; try { db = JSON.parse(ss.get('demo_db')); } catch {}
+  db = db || { profiles: [{ id: 'demo', name: '민수', avatar_url: null }], posts: [...seed, ...pend] };
+  const persist = () => ss.set('demo_db', JSON.stringify(db));
+  const loggedIn = () => ss.get('demo_login') === '1';
+  const files = {};
+
+  function from(table) {
+    let op = 'select', payload, single = false, order = null; const filters = [];
+    const run = () => {
+      let rows = db[table].filter(r => filters.every(([k, v]) => r[k] === v));
+      if (op === 'insert') {
+        const row = { id: 'x' + Math.random().toString(36).slice(2), status: 'pending', approved_at: null, created_at: new Date().toISOString(), ...payload };
+        if (files[row.image_path]) row.image_path = files[row.image_path]; // 새로고침해도 사진 유지
+        db[table].push(row); persist(); return { data: null, error: null };
+      }
+      if (op === 'update') { rows.forEach(r => Object.assign(r, payload)); persist(); return { data: null, error: null }; }
+      if (op === 'delete') { db[table] = db[table].filter(r => !rows.includes(r)); persist(); return { data: null, error: null }; }
+      if (table === 'posts') rows = rows.filter(r => r.status === 'approved' || (loggedIn() && r.owner_id === ME.id)); // RLS 흉내
+      if (order) rows = [...rows].sort((a, b) => (a[order[0]] < b[order[0]] ? -1 : 1) * (order[1] ? 1 : -1));
+      return { data: single ? rows[0] || null : rows, error: null };
+    };
+    const b = {
+      select: () => b, eq: (k, v) => (filters.push([k, v]), b), maybeSingle: () => (single = true, b),
+      order: (k, o = {}) => (order = [k, o.ascending !== false], b),
+      insert: p => (op = 'insert', payload = p, b), update: p => (op = 'update', payload = p, b), delete: () => (op = 'delete', b),
+      then: (res, rej) => new Promise(r => setTimeout(r, 120)).then(run).then(res, rej),
+    };
+    return b;
+  }
+  const toDataUrl = blob => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+  // 데모 전용 하단 바: 시점 전환
+  setTimeout(() => {
+    const bar = document.createElement('div');
+    bar.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:40;display:flex;gap:4px;align-items:center;padding:5px 5px 5px 14px;border-radius:999px;background:var(--fg);color:var(--bg);font-size:12px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.18)';
+    const on = loggedIn();
+    const pill = (label, active, fn) => `<button onclick="${fn}" style="border:0;border-radius:999px;padding:7px 12px;font-size:12px;font-weight:600;white-space:nowrap;background:${active ? 'var(--bg)' : 'transparent'};color:${active ? 'var(--fg)' : 'var(--bg)'}">${label}</button>`;
+    bar.innerHTML = `<span style="opacity:.6;margin-right:6px">DEMO</span>${pill('주인장 시점', on, "demoView(1)")}${pill('친구 시점', !on, "demoView(0)")}${pill('↺', false, "demoReset()")}`;
+    document.body.appendChild(bar);
+    document.getElementById('toast').style.bottom = '76px';
+    document.body.style.paddingBottom = '72px';
+  });
+  window.demoView = v => { ss.set('demo_login', v ? '1' : '0'); location.href = location.pathname + '?u=demo'; };
+  window.demoReset = () => { try { sessionStorage.clear(); } catch {} location.href = location.pathname; };
+
+  return {
+    auth: {
+      getSession: async () => ({ data: { session: loggedIn() ? { user: ME } : null } }),
+      signInWithOAuth: async () => { ss.set('demo_login', '1'); location.href = location.pathname; },
+      signOut: async () => ss.set('demo_login', '0'),
+    },
+    from,
+    storage: { from: () => ({
+      getPublicUrl: p => ({ data: { publicUrl: files[p] || p } }),
+      upload: async (p, blob) => { files[p] = await toDataUrl(blob); return { error: null }; },
+      remove: async () => ({ error: null }),
+    }) },
+    _files: files,
+  };
+}
+
+// 인스타 스토리용 1080x1920 이미지
+async function makeStory(id) {
+  closeSheet();
+  const p = S.approved.find(x => x.id === id);
+  await Promise.all([document.fonts.load('800 80px "Bricolage Grotesque"'), document.fonts.load('600 40px Pretendard')]).catch(() => {});
+  const c = document.createElement('canvas'); c.width = 1080; c.height = 1920;
+  const g = c.getContext('2d');
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, 1080, 1920);
+  g.textAlign = 'center';
+  g.fillStyle = '#0a0a0a'; g.font = '800 76px "Bricolage Grotesque", sans-serif'; g.fillText('candid', 528, 190);
+  g.fillStyle = '#2b50ff'; g.fillText('.', 528 + g.measureText('candid').width / 2 + 4, 190);
+  g.fillStyle = '#8e8e93'; g.font = '600 34px Pretendard, sans-serif'; g.fillText(`친구가 본 ${S.prof.name}`, 540, 260);
+  // 사진 카드
+  g.save(); g.translate(540, 920); g.rotate(-0.025);
+  g.shadowColor = 'rgba(0,0,0,.12)'; g.shadowBlur = 60; g.shadowOffsetY = 20;
+  g.fillStyle = '#fff'; g.fillRect(-390, -500, 780, 1060); g.shadowColor = 'transparent';
+  const img = await loadImg(photoUrl(p.image_path));
+  const tw = 720, th = 900, r = Math.max(tw / img.width, th / img.height);
+  const sw = tw / r, sh = th / r;
+  g.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, -360, -470, tw, th);
+  g.textAlign = 'left'; g.fillStyle = '#2b50ff'; g.font = '600 28px Pretendard, sans-serif'; g.fillText(p.mission || '', -360, 495);
+  g.textAlign = 'right'; g.fillStyle = '#8e8e93'; g.fillText('— ' + p.author_name, 360, 495);
+  g.restore();
+  if (p.text) {
+    g.textAlign = 'center'; g.fillStyle = '#0a0a0a'; g.font = '700 64px "Bricolage Grotesque", Pretendard, sans-serif';
+    g.fillText(`“${p.text}”`, 540, 1600, 940);
+  }
+  g.fillStyle = '#8e8e93'; g.font = '500 30px Pretendard, sans-serif';
+  g.fillText('너도 친구들한테 피드를 맡겨봐', 540, 1790);
+  const blob = await new Promise(res => c.toBlob(res, 'image/png'));
+  const file = new File([blob], 'candid-story.png', { type: 'image/png' });
+  if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file] }); return; } catch {} }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; a.click();
+  toast('이미지를 저장했어요');
+}
+</script>
+</body>
+</html>

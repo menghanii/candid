@@ -1,0 +1,7 @@
+// Supabase 접속 정보 (publishable 키는 공개돼도 되는 키. 권한은 RLS 정책이 지킴)
+// 비워두면 샘플 데이터로 도는 데모 모드가 됩니다.
+window.FG_CONFIG = {
+  SUPABASE_URL: 'https://erlrviaqnnlfeehizlxc.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_LfUJRHztENtaEmt7YV_bzQ_iboVhvn3',
+  PROVIDERS: ['kakao', 'google'], // Supabase에서 켠 로그인만 남기기
+};

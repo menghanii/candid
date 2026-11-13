@@ -1,0 +1,58 @@
+# candid. — 친구들이 만들어주는 나의 피드
+
+서버 없는 정적 웹앱 + Supabase(무료: DB · 소셜 로그인 · 사진 저장소).
+
+```
+index.html   앱 전체 (인스타 스타일 UI)
+config.js    Supabase 접속 정보
+schema.sql   DB 테이블 + 권한(RLS) + 사진 버킷
+```
+
+## 1. Supabase 프로젝트 만들기 (5분)
+1. https://supabase.com 가입 → **New project** (Region: Northeast Asia (Seoul))
+2. **SQL Editor** → `schema.sql` 전체 붙여넣고 **Run**
+3. **Project Settings → API** 에서 `Project URL`, `anon public` 키를 `config.js` 에 입력
+
+## 2. 로그인 켜기 (Authentication → Sign In / Providers)
+콜백 URL은 공통으로 `https://<프로젝트ID>.supabase.co/auth/v1/callback`
+
+**Google**
+1. https://console.cloud.google.com → API 및 서비스 → OAuth 동의 화면 설정 → 사용자 인증 정보 → OAuth 클라이언트 ID(웹 애플리케이션)
+2. 승인된 리디렉션 URI 에 위 콜백 URL 추가
+3. Client ID / Secret 을 Supabase Google provider 에 입력 후 Enable
+
+**Kakao**
+1. https://developers.kakao.com → 내 애플리케이션 → 앱 추가
+2. 카카오 로그인 활성화, Redirect URI 에 위 콜백 URL 등록
+3. 동의항목: 닉네임 · 프로필 사진 설정. 이메일(account_email)은 비즈 앱 전환이 필요할 수 있음
+   → 이메일 동의를 못 켜면 Supabase Kakao 설정의 "Allow users without an email" 옵션을 켜기
+4. REST API 키 → Client ID, 보안 → Client Secret 코드 생성 후 Supabase Kakao provider 에 입력
+
+하나만 쓸 거면 `config.js` 의 `PROVIDERS` 에서 다른 하나를 지우기.
+
+**Authentication → URL Configuration**
+- Site URL: 배포 주소 (예: `https://내아이디.github.io/friendgram/`)
+- Redirect URLs: 배포 주소와 `http://localhost:3000/**` 추가
+
+## 3. 로컬 실행
+```bash
+python3 -m http.server 3000   # → http://localhost:3000
+```
+
+## 4. 무료 배포 (빌드 없음, 파일 3개만 올리면 끝)
+- **Netlify Drop**: https://app.netlify.com/drop 에 폴더 드래그 → 바로 URL 발급
+- **GitHub Pages**: 저장소에 push → Settings → Pages → Branch: main
+- **Vercel / Cloudflare Pages**: 저장소 연결, 빌드 명령 없음
+
+배포 후 그 주소를 Supabase의 Site URL / Redirect URLs 에 꼭 추가.
+
+## 권한 구조 (schema.sql 의 RLS)
+| 누가 | 할 수 있는 것 |
+|---|---|
+| 누구나(비로그인 친구 포함) | 승인된 게시물 보기, `pending` 상태로만 게시물 던지기 |
+| 주인장(로그인) | 내 대기함 보기, 승인 / 거절 / 내리기 |
+
+## 알려진 한계 (MVP)
+- 비로그인 업로드라 스팸 방지 없음 → 필요 시 Supabase Edge Function + 캡차/레이트리밋
+- 대기 중 사진도 URL을 알면 접근 가능 (경로가 랜덤 UUID라 추측은 어려움)
+- 새 게시물 알림(카톡/푸시) 없음
