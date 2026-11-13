@@ -4,4 +4,5 @@ window.FG_CONFIG = {
   SUPABASE_URL: 'https://erlrviaqnnlfeehizlxc.supabase.co',
   SUPABASE_ANON_KEY: 'sb_publishable_LfUJRHztENtaEmt7YV_bzQ_iboVhvn3',
   PROVIDERS: ['kakao', 'google'], // Supabase에서 켠 로그인만 남기기
+  VAPID_PUBLIC_KEY: 'BA1pPJ0-hFg1kIB5JskH0DDhxUzAx5fpZjR-ANhxXMnxuoeUFQdwtj9GQOWdLmidhcZtE-Iyj6u7Jok1DMOI2P0', // 푸시 알림 공개키 (공개돼도 됨)
 };

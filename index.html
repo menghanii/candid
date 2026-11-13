@@ -8,6 +8,10 @@
 <meta name="theme-color" content="#ffffff">
 <link rel="icon" type="image/png" sizes="32x32" href="brand/icon-32.png">
 <link rel="apple-touch-icon" href="brand/icon-180.png">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="candid.">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
@@ -169,6 +173,8 @@ const I = {
   share: sv('<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/>', 20),
   more: sv('<circle cx="5" cy="12" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="19" cy="12" r=".6"/>', 22, 2.4),
   close: sv('<path d="M18 6 6 18M6 6l12 12"/>'),
+  bell: sv('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>'),
+  bellOn: '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" fill="none"/></svg>',
   google: '<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>',
   kakao: '<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#000" d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.7l-1 3.7c-.1.3.3.6.6.4l4.4-2.9c.5.1 1 .1 1.5.1 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>',
 };
@@ -228,7 +234,7 @@ function renderLanding() {
 }
 
 // ---------- 프로필 ----------
-const S = { tab: 'grid' };
+const S = { tab: new URLSearchParams(location.search).get('tab') === 'inbox' ? 'inbox' : 'grid' };
 
 async function renderProfile(uid) {
   const [{ data: prof }, { data: posts, error }] = await Promise.all([
@@ -253,7 +259,8 @@ async function renderProfile(uid) {
       <button class="logo" onclick="location.href=location.pathname">${LOGO}</button>
       <div class="sp"></div>
       ${isOwner
-        ? `<button class="icon-btn" title="승인함" onclick="setTab('inbox')">${I.inbox(22)}${pending.length ? '<span class="dot"></span>' : ''}</button>
+        ? `${DEMO ? '' : `<button class="icon-btn" id="bell" title="알림" onclick="openPush()">${I.bell}</button>`}
+           <button class="icon-btn" title="승인함" onclick="setTab('inbox')">${I.inbox(22)}${pending.length ? '<span class="dot"></span>' : ''}</button>
            <button class="icon-btn" title="메뉴" onclick="openMenu()">${I.menu}</button>`
         : `<button class="icon-btn" title="사진 보내기" onclick="openCompose()">${I.plus}</button>`}
     </header>
@@ -279,6 +286,7 @@ async function renderProfile(uid) {
     </nav>
     <main id="body"></main>`;
   renderBody();
+  if (isOwner) updateBell();
 }
 
 function setTab(t) { S.tab = t; renderProfile(S.uid); }
@@ -361,6 +369,7 @@ const menu = items => sheet(`<div class="menu">${items}</div><div class="menu"><
 
 function openMenu() {
   menu(`<button class="menu-item" onclick="closeSheet();shareFeed()">내 피드 링크 공유</button>
+        ${DEMO ? '' : '<button class="menu-item" onclick="openPush()">알림 설정</button>'}
         <button class="menu-item danger" onclick="logout()">로그아웃</button>`);
 }
 function postMenu(id) {
@@ -412,6 +421,65 @@ function openCompose() {
       <p>${esc(S.prof.name)}님이 승인하면 피드에 올라가요.</p>
       ${S.isOwner ? '' : `<button class="btn primary block" onclick="location.href=location.pathname">${me ? '내 피드로 가기' : '내 피드도 만들어 볼래요'}</button><div style="height:8px"></div>`}
       <button class="btn block" onclick="closeSheet()">닫기</button></div>`;
+  };
+}
+
+// ---------- 푸시 알림 ----------
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const pushSupported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+
+async function pushState() {
+  if (isIOS && !isStandalone) return 'ios-install';
+  if (!pushSupported || !cfg.VAPID_PUBLIC_KEY) return 'unsupported';
+  if (Notification.permission === 'denied') return 'denied';
+  const reg = await navigator.serviceWorker.getRegistration();
+  const sub = reg && await reg.pushManager.getSubscription();
+  return sub ? 'on' : 'off';
+}
+async function updateBell() {
+  const b = document.getElementById('bell'); if (!b) return;
+  const st = await pushState().catch(() => 'off');
+  b.innerHTML = st === 'on' ? I.bellOn : I.bell + (st === 'unsupported' ? '' : '<span class="dot"></span>');
+}
+const b64u = s => Uint8Array.from(atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+
+async function openPush() {
+  const st = await pushState().catch(() => 'unsupported');
+  const msg = {
+    'ios-install': `<p class="hint">iPhone은 candid.을 홈 화면에 추가해야 알림을 받을 수 있어요.</p>
+      <div class="ideas">
+        <div class="idea"><span class="k">1</span>Safari 아래쪽 공유 버튼(□↑)을 눌러요</div>
+        <div class="idea"><span class="k">2</span>'홈 화면에 추가'를 눌러요</div>
+        <div class="idea"><span class="k">3</span>홈 화면의 candid. 아이콘으로 열고 🔔을 눌러요</div>
+      </div>`,
+    unsupported: '<p class="hint">이 브라우저는 알림을 지원하지 않아요. 크롬이나 사파리 최신 버전에서 열어 주세요.</p>',
+    denied: '<p class="hint">알림이 차단돼 있어요. 브라우저의 사이트 설정에서 candid. 알림을 허용한 뒤 다시 눌러 주세요.</p>',
+    off: '<p class="hint">친구가 사진을 보내면 바로 알려드릴게요.</p><button class="btn primary block" id="pushOn">알림 켜기</button>',
+    on: '<p class="hint">알림이 켜져 있어요. 친구가 사진을 보내면 이 기기로 알려드려요.</p><button class="btn block" id="pushOff">이 기기 알림 끄기</button>',
+  }[st];
+  const w = sheet(`<h3>Get notified.</h3>${msg}<div style="height:8px"></div><button class="btn block" onclick="closeSheet()">닫기</button>`);
+  const on = w.querySelector('#pushOn'), off = w.querySelector('#pushOff');
+  if (on) on.onclick = async () => {
+    on.disabled = true; on.textContent = '설정 중…';
+    try {
+      if (await Notification.requestPermission() !== 'granted') throw new Error('알림 권한이 허용되지 않았어요');
+      const reg = await navigator.serviceWorker.register('sw.js');
+      await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(cfg.VAPID_PUBLIC_KEY) });
+      const j = sub.toJSON();
+      const { error } = await sb.from('push_subscriptions').upsert({ endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, user_id: me.id });
+      if (error) throw error;
+      closeSheet(); toast('알림을 켰어요 🔔');
+    } catch (e) { on.disabled = false; on.textContent = '알림 켜기'; toast(e.message || '알림 설정 실패'); }
+    updateBell();
+  };
+  if (off) off.onclick = async () => {
+    const reg = await navigator.serviceWorker.getRegistration();
+    const sub = reg && await reg.pushManager.getSubscription();
+    if (sub) { await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint); await sub.unsubscribe(); }
+    closeSheet(); toast('이 기기 알림을 껐어요'); updateBell();
   };
 }
 

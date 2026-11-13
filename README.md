@@ -56,3 +56,15 @@ python3 -m http.server 3000   # → http://localhost:3000
 - 비로그인 업로드라 스팸 방지 없음 → 필요 시 Supabase Edge Function + 캡차/레이트리밋
 - 대기 중 사진도 URL을 알면 접근 가능 (경로가 랜덤 UUID라 추측은 어려움)
 - 새 게시물 알림(카톡/푸시) 없음
+
+## 5. 푸시 알림 (친구가 사진을 보내면 주인장에게 알림)
+구성: `sw.js`(알림 수신) · `manifest.json`(홈 화면 앱) · `push.sql`(구독 테이블) · `supabase/functions/notify-owner`(발송)
+
+1. **SQL Editor** 에서 `push.sql` 실행
+2. **Edge Functions → Deploy a new function → Via Editor**, 이름 `notify-owner`, `supabase/functions/notify-owner/index.ts` 붙여넣고 Deploy
+   - 함수 설정에서 **Verify JWT** 끄기 (대신 `x-webhook-secret` 헤더로 검증)
+3. **Edge Functions → Secrets** 에 `secrets.local.env` 의 4개 값 등록 (이 파일은 git 에 올리지 않음)
+4. **Database → Webhooks → Create**
+   - Table `posts`, Events `Insert`, Type `Supabase Edge Functions` → `notify-owner`
+   - HTTP Headers 에 `x-webhook-secret: <WEBHOOK_SECRET 값>` 추가
+5. 앱에서 🔔 → 알림 켜기 (iPhone 은 Safari 공유 → 홈 화면에 추가 후 홈 화면 아이콘으로 열어야 함)
