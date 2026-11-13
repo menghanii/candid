@@ -336,6 +336,24 @@
   .ptr.spin span { display:none; }
   .ptr.spin::after { content:""; width:16px; height:16px; border:2.5px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:rot .7s linear infinite; }
   @keyframes rot { to { transform:rotate(360deg); } }
+  /* 하단 바 — 유튜브 스타일 플로팅 캡슐 (앞의 .bnav 규칙을 덮어씀) */
+  .bnav { left:50%; bottom:calc(10px + env(safe-area-inset-bottom)); width:calc(100% - 24px); max-width:440px; height:62px; padding:0 8px; gap:4px; align-items:center;
+    border-radius:31px; border:1px solid var(--line); background:color-mix(in srgb, var(--card) 88%, transparent); box-shadow:0 8px 30px rgba(0,0,0,.14); }
+  .bnav button { height:46px; border-radius:23px; gap:0; color:var(--fg); transition:background .2s; }
+  .bnav button.on { background:var(--soft); }
+  .bnav button:active { transform:scale(.94); }
+  .bnav .bav .av.xs { width:30px; height:30px; }
+  .bnav button.on .bav { box-shadow:0 0 0 2px var(--fg); }
+  .bnav.dark { background:rgba(22,22,24,.82); border-color:rgba(255,255,255,.08); box-shadow:0 8px 30px rgba(0,0,0,.5); }
+  .bnav.dark button { color:#fff; } .bnav.dark button.on { background:rgba(255,255,255,.14); color:#fff; } .bnav.dark button.on .bav { box-shadow:0 0 0 2px #fff; }
+  .app.has-nav { padding-bottom:calc(92px + env(safe-area-inset-bottom)); }
+  body:has(.bnav) .toast { bottom:calc(86px + env(safe-area-inset-bottom)); }
+  /* 릴스는 화면 끝까지 꽉 채우고, 글·버튼만 바 위로 올림 */
+  .reels { bottom:0; }
+  .rinfo { bottom:calc(90px + env(safe-area-inset-bottom)); }
+  .rside { bottom:calc(94px + env(safe-area-inset-bottom)); }
+  .rtc { padding-bottom:260px; }
+  .reel::after { height:50%; }
 </style>
 </head>
 <body>
@@ -356,6 +374,9 @@ const I = {
   more: sv('<circle cx="5" cy="12" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="19" cy="12" r=".6"/>', 22, 2.4),
   close: sv('<path d="M18 6 6 18M6 6l12 12"/>'),
   search: sv('<circle cx="11" cy="11" r="7"/><path d="m20.5 20.5-4.2-4.2"/>'),
+  reelsNav: sv('<rect x="4" y="2.5" width="16" height="19" rx="4"/><path d="M10 9v6l5-3z" fill="currentColor"/>', 26, 1.9),
+  usersNav: sv('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18.5 14.8c1.7.8 2.8 2.5 3 5.2"/>', 26, 1.9),
+  create: sv('<circle cx="12" cy="12" r="9.5"/><path d="M12 7.5v9M7.5 12h9"/>', 28, 1.9),
   play: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>',
   heart: sv('<path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.4 4.5 7 4.5c2.1 0 3.6 1.2 5 3 1.4-1.8 2.9-3 5-3 3.6 0 5.6 3.5 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/>', 30, 1.8),
   heartOn: '<svg width="30" height="30" viewBox="0 0 24 24" fill="#ff3040" stroke="#ff3040" stroke-width="1.8" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.4 4.5 7 4.5c2.1 0 3.6 1.2 5 3 1.4-1.8 2.9-3 5-3 3.6 0 5.6 3.5 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg>',
@@ -455,13 +476,46 @@ async function boot() {
 boot();
 
 function route() {
+  CUR = pageKey();
   const u = new URLSearchParams(location.search).get('u');
   if (u) return renderProfile(u);
   if (!me) return renderLanding();
   if (new URLSearchParams(location.search).has('home')) return renderHome(); // 하단 바 릴스 탭
   // 로그인: 친구가 있으면 홈(릴스), 없으면 내 피드
-  myFollows.size ? renderHome() : location.replace(feedUrl(me.id));
+  myFollows.size ? renderHome() : go(feedUrl(me.id), true);
 }
+
+// ---------- 화면 전환 (페이지 새로고침 없이) ----------
+// 하단 바·링크 이동 때 앱을 다시 불러오지 않고 주소만 바꾼 뒤 화면을 그림 → 로고 로딩 화면이 안 뜸
+const CACHE = { home: null, prof: new Map() };
+let CUR = '';
+const pageKey = () => location.pathname + location.search;
+function go(url, replace) {
+  const u = new URL(url, location.href);
+  if (u.pathname + u.search === pageKey() && !replace) return;
+  history[replace ? 'replaceState' : 'pushState']({}, '', u.pathname + u.search);
+  closeSheet(); document.querySelector('.overlay')?.remove();
+  S.autoOpened = false;
+  S.tab = u.searchParams.get('tab') === 'inbox' ? 'inbox' : 'grid';
+  scrollTo(0, 0);
+  CUR = pageKey(); route();
+}
+// 뒤로가기/앞으로가기: 주소가 바뀐 경우에만 화면 다시 그림(시트 닫기용 히스토리는 무시)
+addEventListener('popstate', () => {
+  if (pageKey() === CUR) return;
+  closeSheet(); document.querySelector('.overlay')?.remove();
+  S.autoOpened = true; // 뒤로 와서 시트가 다시 열리지 않게
+  S.tab = new URLSearchParams(location.search).get('tab') === 'inbox' ? 'inbox' : 'grid';
+  CUR = pageKey(); route();
+});
+// 앱 안의 링크(<a href="?u=...">)도 새로고침 없이 이동
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[href]');
+  if (!a || a.target || e.metaKey || e.ctrlKey || e.shiftKey) return;
+  const u = new URL(a.href, location.href);
+  if (u.origin !== location.origin || u.pathname !== location.pathname) return;
+  e.preventDefault(); go(u.href);
+});
 
 // ---------- 프로필 설정 (첫 로그인 / 편집) ----------
 function renderSetup(first) {
@@ -561,26 +615,35 @@ function renderLanding() {
 // ---------- 프로필 ----------
 const S = { tab: new URLSearchParams(location.search).get('tab') === 'inbox' ? 'inbox' : 'grid' };
 
-async function renderProfile(uid) {
+async function renderProfile(uid, fresh) {
+  CUR = pageKey();
+  const myKey = CUR;
+  // 한 번 본 피드는 저장해 둔 화면을 바로 보여주고, 최신 데이터는 뒤에서 받아 갱신
+  const cached = CACHE.prof.get(uid);
+  if (cached && !fresh) { Object.assign(S, cached, { uid }); if (!S.isOwner) S.tab = 'grid'; paintProfile(); }
   let res;
   try {
     res = await withTimeout(Promise.all([
       sb.from('profiles').select('*').eq('id', uid).maybeSingle(),
       sb.from('posts').select('*').eq('owner_id', uid).order('created_at', { ascending: false }),
     ]), 10000);
-  } catch { return renderError(() => renderProfile(uid)); }
+  } catch { return cached ? undefined : renderError(() => renderProfile(uid)); }
+  if (pageKey() !== myKey) return; // 그 사이 다른 화면으로 이동함
   const [{ data: prof, error: e1 }, { data: posts, error: e2 }] = res;
-  if (e1 || e2) return renderError(() => renderProfile(uid)); // 네트워크 오류를 '없는 피드'로 오인하지 않도록
+  if (e1 || e2) return cached ? undefined : renderError(() => renderProfile(uid)); // 네트워크 오류를 '없는 피드'로 오인하지 않도록
   if (!prof) {
     $app.innerHTML = `<div class="landing"><span class="logo">${LOGO}</span><div class="hero"><h1>Not found.</h1>
-      <p class="tagline">존재하지 않는 피드예요. 링크가 정확한지 확인해 주세요.</p><button class="btn primary block" onclick="location.href=location.pathname">내 피드 만들기</button></div></div>`;
+      <p class="tagline">존재하지 않는 피드예요. 링크가 정확한지 확인해 주세요.</p><button class="btn primary block" onclick="go(location.pathname)">내 피드 만들기</button></div></div>`;
     return;
   }
+  const sig = JSON.stringify([prof, posts.map(p => [p.id, p.status, p.answer, p.approved_at])]);
+  if (cached && cached.sig === sig && !fresh) { S.fetchedAt = Date.now(); return; } // 바뀐 게 없으면 다시 그리지 않음
   S.uid = uid; S.prof = prof; S.isOwner = me?.id === uid; S.fetchedAt = Date.now();
   S.approved = posts.filter(p => p.status === 'approved');
   S.pending = posts.filter(p => p.status === 'pending');
   await loadPolls(S.approved).catch(() => {});
   if (!S.isOwner) S.tab = 'grid';
+  CACHE.prof.set(uid, { prof, isOwner: S.isOwner, approved: S.approved, pending: S.pending, sig });
   paintProfile();
   // 공유 링크(?m=미션번호)로 들어온 친구: 사진 보내기 시트를 바로 열어줌 (한 번만)
   const m = new URLSearchParams(location.search).get('m');
@@ -597,7 +660,7 @@ function paintProfile() {
 
   $app.innerHTML = `
     <header class="top">
-      <button class="logo" onclick="location.href=location.pathname">${LOGO}</button>
+      <button class="logo" onclick="go(location.pathname)">${LOGO}</button>
       <div class="sp"></div>
       ${me ? `<button class="icon-btn" aria-label="친구 검색" onclick="openSearch()">${I.search}</button>` : ''}
       ${isOwner
@@ -645,7 +708,9 @@ function setTab(t) { S.tab = t; paintProfile(); }
 
 // 앱으로 돌아왔을 때(홈 화면 앱 포함) 30초 이상 지났으면 새로 불러오기
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && S.uid && Date.now() - (S.fetchedAt || 0) > 30000) renderProfile(S.uid);
+  if (document.visibilityState !== 'visible') return;
+  if (document.querySelector('.reels')) { if (Date.now() - (S.homeAt || 0) > 30000) { S.homeAt = Date.now(); renderHome(); } }
+  else if (S.uid && Date.now() - (S.fetchedAt || 0) > 30000) renderProfile(S.uid);
 });
 
 function renderBody() {
@@ -708,15 +773,22 @@ async function toggleFollow(uid, btn) {
 }
 
 // ---------- 하단 바 (릴스 · 친구 · 내 피드) ----------
+// 유튜브 스타일: 떠 있는 캡슐 바, 아이콘만, 현재 탭은 알약 배경
 function navBar(active) {
   if (!me) return '';
   const item = (key, label, icon, onclick) =>
-    `<button class="${active === key ? 'on' : ''}" onclick="${onclick}" aria-label="${label}"${active === key ? ' aria-current="page"' : ''}>${icon}<span>${label}</span></button>`;
+    `<button class="${active === key ? 'on' : ''}" onclick="${onclick}" aria-label="${label}"${active === key ? ' aria-current="page"' : ''}>${icon}</button>`;
   return `<nav class="bnav ${active === 'reels' ? 'dark' : ''}">
-    ${item('reels', '릴스', I.reels, "location.href=location.pathname+'?home=1'")}
-    ${item('friends', '친구', I.users, 'openSearch()')}
-    ${item('feed', '내 피드', `<span class="bav">${avatar(myProf, 'xs')}</span>`, `location.href='${feedUrl(me.id)}'`)}
+    ${item('reels', '릴스', I.reelsNav, "go(location.pathname+'?home=1')")}
+    ${item('friends', '친구', I.usersNav, 'openSearch()')}
+    ${item('create', '만들기', I.create, 'openCreate()')}
+    ${item('feed', '내 피드', `<span class="bav">${avatar(myProf, 'xs')}</span>`, `go('${feedUrl(me.id)}')`)}
   </nav>`;
+}
+// ＋ 만들기: 내 피드 부탁하기 / 친구 피드에 보내기
+function openCreate() {
+  menu(`<button class="menu-item" onclick="closeSheet();go('${feedUrl(me.id)}');setTimeout(shareFeed,50)">📣 내 피드 채워달라고 부탁하기</button>
+        <button class="menu-item" onclick="openSearch()">📷 친구 피드에 사진·투표·질문 보내기</button>`);
 }
 
 // ---------- 친구 검색 (검색어가 없으면 내 친구 목록) ----------
@@ -815,22 +887,37 @@ async function openComments(id, ownerId) {
 
 // ---------- 홈: 친구 피드의 최신 사진을 릴스로 ----------
 let muted = true;
-async function renderHome() {
-  $app.innerHTML = `<div class="spin"><span class="logo">${LOGO}</span></div>`;
+async function fetchHome() {
   const ids = [...myFollows];
-  let posts, owners;
-  try {
-    const r = await withTimeout(sb.from('posts').select('*').in('owner_id', ids).eq('status', 'approved').order('approved_at', { ascending: false }).limit(40), 10000);
-    if (r.error) throw r.error;
-    posts = r.data;
-    const o = await sb.from('profiles').select('id, name, avatar_url').in('id', ids);
-    owners = new Map((o.data || []).map(p => [p.id, p]));
-    await loadSocial(posts.map(p => p.id));
-    await loadPolls(posts).catch(() => {});
-    HOME.posts = posts;
-  } catch { return renderError(renderHome); }
-
-  const top = `<header class="rtop"><button class="logo" onclick="location.href=location.pathname">${LOGO}</button><div class="sp"></div>
+  const r = await withTimeout(sb.from('posts').select('*').in('owner_id', ids).eq('status', 'approved').order('approved_at', { ascending: false }).limit(40), 10000);
+  if (r.error) throw r.error;
+  const o = await sb.from('profiles').select('id, name, avatar_url').in('id', ids);
+  await loadSocial(r.data.map(p => p.id));
+  await loadPolls(r.data).catch(() => {});
+  return { posts: r.data, owners: new Map((o.data || []).map(p => [p.id, p])) };
+}
+// 홈: 저장해 둔 릴스를 바로 보여주고 뒤에서 갱신. fresh=true(당겨서 새로고침)면 새로 받아 다시 그림
+async function renderHome(fresh) {
+  CUR = pageKey(); const myKey = CUR;
+  $app.classList.remove('has-nav');
+  if (CACHE.home && !fresh) {
+    paintHome(CACHE.home);
+    fetchHome().then(d => {
+      const same = d.posts.map(p => p.id).join() === CACHE.home.posts.map(p => p.id).join();
+      CACHE.home = d;
+      const r = document.querySelector('.reels');
+      if (!same && pageKey() === myKey && r && r.scrollTop < 10) paintHome(d); // 맨 위에 있을 때만 조용히 교체
+    }).catch(() => {});
+    return;
+  }
+  if (!CACHE.home) $app.innerHTML = `<div class="reels"><div class="spin" style="padding-top:45vh"><span class="logo" style="color:#fff">${LOGO}</span></div></div>${navBar('reels')}`;
+  try { CACHE.home = await fetchHome(); } catch { return CACHE.home ? undefined : renderError(renderHome); }
+  if (pageKey() !== myKey) return;
+  paintHome(CACHE.home);
+}
+function paintHome({ posts, owners }) {
+  HOME.posts = posts;
+  const top = `<header class="rtop"><button class="logo" onclick="go(location.pathname)">${LOGO}</button><div class="sp"></div>
     <button class="icon-btn" aria-label="친구 검색" onclick="openSearch()">${I.search}</button></header>`;
   if (!posts.length) {
     $app.innerHTML = `<div class="reels">${top}<section class="reel rempty"><div>
@@ -858,7 +945,7 @@ async function renderHome() {
         <button class="rbtn" data-like="${p.id}" aria-label="좋아요" aria-pressed="${s.liked}" onclick="toggleLike('${p.id}')"><span>${s.liked ? I.heartOn : I.heart}</span><b>${s.likes || ''}</b></button>
         <button class="rbtn" data-cmt="${p.id}" aria-label="댓글" onclick="openComments('${p.id}','${p.owner_id}')"><span>${I.comment}</span><b>${s.comments || ''}</b></button>
         <button class="rbtn" aria-label="공유" onclick="shareOther('${p.owner_id}')"><span>${I.send}</span><b>공유</b></button>
-        <button class="rbtn rsend" aria-label="${esc(o.name)}에게 사진 보내기" onclick="location.href='${feedUrl(p.owner_id)}&m=0'"><span>${I.plus}</span><b>보내기</b></button>
+        <button class="rbtn rsend" aria-label="${esc(o.name)}에게 사진 보내기" onclick="go('${feedUrl(p.owner_id)}&m=0')"><span>${I.plus}</span><b>보내기</b></button>
       </div>
     </section>`;
   }).join('')}
@@ -997,7 +1084,7 @@ const findAny = id => (S.approved && findPost(id)) || HOME.posts.find(x => x.id 
     if (y0 == null) return; y0 = null;
     if (dy > 120 && !busy) {
       busy = true; ind.classList.add('spin'); ind.style.transform = 'translate(-50%, 24px)';
-      try { document.querySelector('.reels') ? await renderHome() : S.uid ? await renderProfile(S.uid) : location.reload(); } finally {
+      try { document.querySelector('.reels') ? await renderHome(true) : S.uid ? await renderProfile(S.uid, true) : location.reload(); } finally {
         busy = false; ind.classList.remove('spin', 'ready');
       }
     }
@@ -1473,7 +1560,7 @@ function demoClient() {
   // 데모 전용 하단 바: 시점 전환
   setTimeout(() => {
     const bar = document.createElement('div');
-    bar.style.cssText = 'position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:40;display:flex;gap:4px;align-items:center;padding:5px 5px 5px 14px;border-radius:999px;background:var(--fg);color:var(--bg);font-size:12px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.18)';
+    bar.style.cssText = 'position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:40;display:flex;gap:4px;align-items:center;padding:5px 5px 5px 14px;border-radius:999px;background:var(--fg);color:var(--bg);font-size:12px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.18)';
     const on = loggedIn();
     const pill = (label, active, fn) => `<button onclick="${fn}" style="border:0;border-radius:999px;padding:7px 12px;font-size:12px;font-weight:600;white-space:nowrap;background:${active ? 'var(--bg)' : 'transparent'};color:${active ? 'var(--fg)' : 'var(--bg)'}">${label}</button>`;
     bar.innerHTML = `<span style="opacity:.6;margin-right:6px">DEMO</span>${pill('주인장 시점', on, "demoView(1)")}${pill('친구 시점', !on, "demoView(0)")}${pill('↺', false, "demoReset()")}`;
