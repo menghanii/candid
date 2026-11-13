@@ -191,6 +191,8 @@
   /* 업로드 시트: 보내기 버튼 하단 고정 */
   .sheet-foot { position:sticky; bottom:calc(-24px - env(safe-area-inset-bottom)); margin:6px -20px calc(-24px - env(safe-area-inset-bottom)); padding:12px 20px calc(16px + env(safe-area-inset-bottom)); background:var(--bg); border-top:1px solid var(--line); }
   .pick { position:relative; }
+  .pick video { width:100%; height:100%; object-fit:cover; }
+  .vbadge { position:absolute; left:10px; top:10px; padding:5px 10px; border-radius:999px; background:rgba(0,0,0,.6); color:#fff; font-size:11px; font-weight:700; }
   .repick { position:absolute; right:10px; bottom:10px; padding:6px 12px; border-radius:999px; background:rgba(0,0,0,.6); color:#fff; font-size:12px; font-weight:600; backdrop-filter:blur(6px); }
   .asked { margin:-8px 0 16px; padding:10px 14px; border-radius:12px; background:var(--soft); font-size:13px; }
   .asked b { color:var(--accent); }
@@ -203,6 +205,7 @@
   /* 그리드: 보낸 친구 이름 */
   .grid button { position:relative; }
   .grid button::after { content:""; position:absolute; inset:auto 0 0; height:38%; background:linear-gradient(transparent, rgba(0,0,0,.32)); pointer-events:none; }
+  .vplay { position:absolute; right:7px; top:7px; z-index:1; color:#fff; filter:drop-shadow(0 1px 4px rgba(0,0,0,.4)); }
   .grid .from { position:absolute; left:7px; right:7px; bottom:6px; z-index:1; font-size:10px; font-weight:600; line-height:1.2; color:#fff; text-align:left; text-shadow:0 1px 6px rgba(0,0,0,.35); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .grid button.fresh { animation:fresh 1.4s ease-out; }
   .grid button.fresh { outline:3px solid transparent; outline-offset:-3px; }
@@ -211,6 +214,61 @@
   .mchip { display:inline-block; padding:3px 9px; border-radius:999px; background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); font-size:11px; font-weight:700; }
   .msg-box { width:100%; min-height:84px; resize:none; line-height:1.5; font-size:15px; }
   .spin { display:flex; justify-content:center; padding:120px 0; }
+  /* 친구 추가 버튼 */
+  .btn.add { background:transparent; color:var(--accent); border-color:var(--accent); }
+  .av.xs { width:30px; height:30px; flex:none; font-size:13px; }
+  .frow { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); }
+  .frow a { flex:1; display:flex; align-items:center; gap:12px; color:inherit; text-decoration:none; min-width:0; }
+  .frow .av.xs { width:44px; height:44px; }
+  .frow small { display:block; color:var(--sub); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .frow .btn { flex:none; padding:8px 14px; font-size:13px; }
+  /* 댓글 */
+  .clist { min-height:120px; }
+  .crow { display:flex; gap:10px; padding:10px 0; font-size:14px; line-height:1.45; }
+  .crow small { color:var(--sub); font-size:11px; }
+  .cdel { flex:none; align-self:center; background:none; border:0; color:var(--sub); font-size:12px; }
+  .cbar { display:flex; gap:8px; align-items:center; }
+  .cbar .field { flex:1; }
+  .cbar .btn { flex:none; }
+  /* 게시물 상세 좋아요·댓글 */
+  .psoc { display:flex; gap:16px; padding:2px 16px 0; }
+  .pbtn { display:flex; align-items:center; gap:6px; background:none; border:0; padding:6px 4px; font-weight:700; font-size:14px; }
+  .pbtn svg { width:24px; height:24px; }
+
+  /* 홈 릴스 */
+  .reels { position:fixed; inset:0; z-index:10; overflow-y:auto; scroll-snap-type:y mandatory; background:#000; color:#fff; overscroll-behavior:contain; scrollbar-width:none; }
+  .reels::-webkit-scrollbar { display:none; }
+  .rtop { position:fixed; top:0; left:50%; transform:translateX(-50%); z-index:12; width:100%; max-width:480px; display:flex; align-items:center; gap:4px; padding:calc(10px + env(safe-area-inset-top)) 14px 10px 18px; background:linear-gradient(rgba(0,0,0,.45), transparent); }
+  .rtop .sp { flex:1; } .rtop .logo { color:#fff; } .rtop .icon-btn { color:#fff; }
+  .rme { display:block; margin-left:6px; border-radius:50%; box-shadow:0 0 0 2px #fff; }
+  .reel { position:relative; height:100vh; height:100dvh; max-width:480px; margin:0 auto; overflow:hidden; scroll-snap-align:start; scroll-snap-stop:always; }
+  .rbg { position:absolute; inset:-60px; background-size:cover; background-position:center; filter:blur(36px) brightness(.5); }
+  .rmedia { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
+  .reel::after { content:""; position:absolute; inset:auto 0 0; height:42%; background:linear-gradient(transparent, rgba(0,0,0,.65)); pointer-events:none; }
+  .rinfo { position:absolute; z-index:2; left:16px; right:84px; bottom:calc(26px + env(safe-area-inset-bottom)); text-shadow:0 1px 8px rgba(0,0,0,.4); }
+  .rowner { display:inline-flex; align-items:center; gap:8px; color:#fff; text-decoration:none; font-size:15px; }
+  .rowner span { font-weight:400; opacity:.8; }
+  .rfrom { margin-top:10px; font-size:13px; }
+  .rfrom .mchip { margin-left:4px; background:rgba(255,255,255,.18); color:#fff; }
+  .rtext { margin-top:8px; font-size:18px; font-weight:700; line-height:1.35; letter-spacing:-.02em; word-break:keep-all; }
+  .rinfo small { display:block; margin-top:8px; font-size:11px; opacity:.7; }
+  .rside { position:absolute; z-index:2; right:8px; bottom:calc(30px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; align-items:center; gap:16px; }
+  .rbtn { display:flex; flex-direction:column; align-items:center; gap:3px; min-width:56px; background:none; border:0; color:#fff; font-size:12px; font-weight:700; filter:drop-shadow(0 1px 6px rgba(0,0,0,.35)); }
+  .rbtn b { min-height:15px; }
+  .rbtn:active span { transform:scale(.88); }
+  .rbtn span { transition:transform .15s; }
+  .rsend span { display:flex; width:40px; height:40px; align-items:center; justify-content:center; border-radius:50%; background:var(--accent); }
+  .rsend span svg { width:22px; height:22px; }
+  .rmute { position:absolute; z-index:3; right:14px; top:calc(64px + env(safe-area-inset-top)); padding:8px; border:0; border-radius:50%; background:rgba(0,0,0,.4); color:#fff; }
+  .rburst { position:absolute; z-index:3; left:50%; top:50%; pointer-events:none; opacity:0; transform:translate(-50%,-50%) scale(.4); }
+  .rburst svg { width:110px; height:110px; filter:drop-shadow(0 4px 20px rgba(0,0,0,.35)); }
+  .rburst.go { animation:burst .8s cubic-bezier(.2,1.4,.4,1) forwards; }
+  @keyframes burst { 0% { opacity:0; transform:translate(-50%,-50%) scale(.4); } 25% { opacity:1; transform:translate(-50%,-50%) scale(1.1); } 70% { opacity:1; transform:translate(-50%,-50%) scale(1); } 100% { opacity:0; transform:translate(-50%,-60%) scale(1); } }
+  .rempty { display:flex; align-items:center; justify-content:center; padding:0 32px; text-align:center; }
+  .rempty h2 { font-family:var(--display); font-weight:800; font-size:34px; letter-spacing:-.05em; margin:0 0 10px; }
+  .rempty h2 em { color:var(--accent); font-style:normal; }
+  .rempty p { color:#b8b8bd; line-height:1.6; margin:0 0 24px; }
+  .rempty .btn { background:#fff; color:#000; border-color:#fff; } .rempty .btn:not(.primary) { background:transparent; color:#fff; border-color:#3a3a3c; }
 </style>
 </head>
 <body>
@@ -230,6 +288,15 @@ const I = {
   share: sv('<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/>', 20),
   more: sv('<circle cx="5" cy="12" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="19" cy="12" r=".6"/>', 22, 2.4),
   close: sv('<path d="M18 6 6 18M6 6l12 12"/>'),
+  play: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>',
+  heart: sv('<path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.4 4.5 7 4.5c2.1 0 3.6 1.2 5 3 1.4-1.8 2.9-3 5-3 3.6 0 5.6 3.5 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/>', 30, 1.8),
+  heartOn: '<svg width="30" height="30" viewBox="0 0 24 24" fill="#ff3040" stroke="#ff3040" stroke-width="1.8" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.4 4.5 7 4.5c2.1 0 3.6 1.2 5 3 1.4-1.8 2.9-3 5-3 3.6 0 5.6 3.5 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg>',
+  comment: sv('<path d="M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3.5 20l1.2-4.1A8.5 8.5 0 1 1 20.5 11.5z"/>', 30, 1.8),
+  send: sv('<path d="M21 3 10 14M21 3l-7 18-4-7-7-4z"/>', 28, 1.8),
+  sound: sv('<path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>', 20, 1.8),
+  mute: sv('<path d="M11 5 6 9H3v6h3l5 4z"/><path d="m22 9-6 6M16 9l6 6"/>', 20, 1.8),
+  users: sv('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18.5 14.8c1.7.8 2.8 2.5 3 5.2"/>'),
+  reels: sv('<rect x="3" y="3" width="18" height="18" rx="5"/><path d="M3 8.5h18M8.5 3l2.5 5.5M14 3l2.5 5.5"/><path d="M10 12.5v5l4.5-2.5z"/>'),
   bell: sv('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>'),
   bellOn: '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" fill="none"/></svg>',
   google: '<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>',
@@ -310,6 +377,7 @@ async function boot() {
         const r = await sb.from('profiles').select('*').eq('id', me.id).maybeSingle();
         if (r.error) throw r.error;
         myProf = r.data;
+        await loadFollows();
       }
     })(), 10000);
   } catch { return renderError(boot); }
@@ -321,7 +389,9 @@ boot();
 function route() {
   const u = new URLSearchParams(location.search).get('u');
   if (u) return renderProfile(u);
-  me ? location.replace(feedUrl(me.id)) : renderLanding();
+  if (!me) return renderLanding();
+  // 로그인: 친구가 있으면 홈(릴스), 없으면 내 피드
+  myFollows.size ? renderHome() : location.replace(feedUrl(me.id));
 }
 
 // ---------- 프로필 설정 (첫 로그인 / 편집) ----------
@@ -459,6 +529,7 @@ function paintProfile() {
     <header class="top">
       <button class="logo" onclick="location.href=location.pathname">${LOGO}</button>
       <div class="sp"></div>
+      ${me && myFollows.size ? `<button class="icon-btn" aria-label="홈(친구 새 사진)" onclick="location.href=location.pathname">${I.reels}</button>` : ''}
       ${isOwner
         ? `${DEMO ? '' : `<button class="icon-btn" id="bell" aria-label="알림 설정" onclick="openPush()">${I.bell}</button>`}
            <button class="icon-btn" aria-label="승인함${pending.length ? `, 대기 ${pending.length}장` : ''}" onclick="setTab('inbox')">${I.inbox(22)}${pending.length ? '<span class="dot"></span>' : ''}</button>
@@ -484,7 +555,8 @@ function paintProfile() {
     <div class="actions">
       ${isOwner
         ? `<button class="btn primary" onclick="shareFeed()">친구에게 피드 부탁하기</button>`
-        : `<button class="btn primary" onclick="openCompose()">📷 ${esc(prof.name)}에게 사진 보내기</button>`}
+        : `<button class="btn primary" onclick="openCompose()">📷 ${esc(prof.name)}에게 사진 보내기</button>
+           ${me ? `<button class="btn ${myFollows.has(uid) ? '' : 'add'}" style="flex:0 0 auto" onclick="toggleFollow('${uid}', this)">${myFollows.has(uid) ? '친구 ✓' : '친구 추가'}</button>` : ''}`}
     </div>
     ${!isOwner ? `<p style="text-align:center;margin:-6px 0 16px;font-size:13px;color:var(--sub)">${me ? `<a href="${feedUrl(me.id)}" style="color:inherit">내 피드로 가기</a>` : `나도 친구들한테 받아보고 싶다면? <a href="${location.pathname}" style="color:var(--fg);font-weight:600">내 피드 만들기</a>`}</p>` : ''}
     <nav class="tabs">
@@ -512,7 +584,7 @@ function renderBody() {
       ? `<div class="note">승인한 사진만 피드에 올라가요. 거절해도 친구에게 알림이 가지 않아요.</div>
          ${pending.map(p => `
           <div class="row">
-            <button class="thumb" onclick="openPost('${p.id}')" aria-label="크게 보기"><img src="${photoUrl(p.image_path)}" alt="${esc(p.author_name)}가 보낸 ${esc(p.mission)}"></button>
+            <button class="thumb" onclick="openPost('${p.id}')" aria-label="크게 보기"><img src="${thumbUrl(p)}" alt="${esc(p.author_name)}가 보낸 ${esc(p.mission)}"></button>
             <div class="meta">
               <span class="mtag">${esc(p.mission)}</span>
               <div class="t">${esc(p.text) || '<span style="color:var(--sub)">코멘트 없음</span>'}</div>
@@ -527,7 +599,7 @@ function renderBody() {
     return;
   }
   if (approved.length) {
-    $b.innerHTML = `<div class="grid">${approved.map(p => `<button onclick="openPost('${p.id}')" class="${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${esc(p.author_name)}가 보낸 ${esc(p.mission)}${p.text ? ': ' + esc(p.text) : ''}"><img src="${photoUrl(p.image_path)}" alt="" loading="lazy"><span class="from">from ${esc(p.author_name)}</span></button>`).join('')}</div>`;
+    $b.innerHTML = `<div class="grid">${approved.map(p => `<button onclick="openPost('${p.id}')" class="${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${esc(p.author_name)}가 보낸 ${esc(p.mission)}${p.text ? ': ' + esc(p.text) : ''}"><img src="${thumbUrl(p)}" alt="" loading="lazy">${isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}<span class="from">from ${esc(p.author_name)}</span></button>`).join('')}</div>`;
     S.justApproved = null;
     return;
   }
@@ -541,6 +613,178 @@ function renderBody() {
     : `<div class="empty"><h2>Be the <em>first.</em></h2>
         <p>${esc(prof.name)}의 피드가 아직 비어 있어요.<br>첫 사진을 보내주세요.</p>
         <button class="btn primary block" onclick="openCompose()">사진 보내기</button></div>`;
+}
+
+// ---------- 친구 ----------
+let myFollows = new Set();
+async function loadFollows() {
+  myFollows = new Set();
+  if (!me) return;
+  const { data, error } = await sb.from('follows').select('followee_id').eq('follower_id', me.id);
+  if (!error) data.forEach(r => myFollows.add(r.followee_id)); // social.sql 실행 전이면 조용히 빈 목록
+}
+async function toggleFollow(uid, btn) {
+  if (!me) return toast('로그인하면 친구를 추가할 수 있어요');
+  const on = myFollows.has(uid);
+  on ? myFollows.delete(uid) : myFollows.add(uid);
+  if (btn) { btn.textContent = on ? '친구 추가' : '친구 ✓'; btn.classList.toggle('add', on); }
+  const { error } = on
+    ? await sb.from('follows').delete().eq('follower_id', me.id).eq('followee_id', uid)
+    : await sb.from('follows').insert({ follower_id: me.id, followee_id: uid });
+  if (error) { on ? myFollows.add(uid) : myFollows.delete(uid); if (btn) { btn.textContent = on ? '친구 ✓' : '친구 추가'; btn.classList.toggle('add', !on); } return toast(kerr(error)); }
+  toast(on ? '친구에서 뺐어요' : '친구로 추가했어요. 새 사진이 홈에 떠요');
+}
+async function openFriends() {
+  const ids = [...myFollows];
+  const w = sheet(`<h3>Friends.</h3><p class="hint">추가한 친구의 피드에 새 사진이 올라오면 홈에 떠요.</p><div id="fl"><p class="hint">불러오는 중…</p></div>`);
+  if (!ids.length) { w.querySelector('#fl').innerHTML = '<p class="hint">아직 추가한 친구가 없어요. 친구 피드에 들어가서 <b>친구 추가</b>를 눌러 보세요.</p>'; return; }
+  const { data, error } = await sb.from('profiles').select('id, name, avatar_url, bio').in('id', ids);
+  if (error) return w.querySelector('#fl').innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
+  w.querySelector('#fl').innerHTML = data.map(p => `
+    <div class="frow"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b>${p.bio ? `<small>${esc(p.bio)}</small>` : ''}</span></a>
+      <button class="btn" onclick="toggleFollow('${p.id}', this)">친구 ✓</button></div>`).join('');
+}
+
+// ---------- 좋아요·댓글 (홈 릴스와 게시물 상세에서 공유) ----------
+const SOC = new Map(); // postId → { likes, liked, comments }
+async function loadSocial(ids) {
+  if (!ids.length) return;
+  ids.forEach(id => SOC.set(id, { likes: 0, liked: false, comments: 0 }));
+  const [l, c] = await Promise.all([
+    sb.from('likes').select('post_id, user_id').in('post_id', ids),
+    sb.from('comments').select('post_id').in('post_id', ids),
+  ]);
+  (l.data || []).forEach(r => { const s = SOC.get(r.post_id); s.likes++; if (me && r.user_id === me.id) s.liked = true; });
+  (c.data || []).forEach(r => SOC.get(r.post_id).comments++);
+}
+function paintSoc(id) {
+  const s = SOC.get(id); if (!s) return;
+  document.querySelectorAll(`[data-like="${id}"]`).forEach(b => { b.querySelector('span').innerHTML = s.liked ? I.heartOn : I.heart; b.querySelector('b').textContent = s.likes || ''; b.setAttribute('aria-pressed', s.liked); });
+  document.querySelectorAll(`[data-cmt="${id}"] b`).forEach(b => b.textContent = s.comments || '');
+}
+async function toggleLike(id, only) {
+  if (!me) return toast('로그인하면 좋아요를 남길 수 있어요');
+  const s = SOC.get(id); if (!s || (only && s.liked)) return;
+  s.liked = !s.liked; s.likes += s.liked ? 1 : -1; paintSoc(id);
+  if (s.liked) navigator.vibrate?.(8);
+  const { error } = s.liked
+    ? await sb.from('likes').insert({ post_id: id, user_id: me.id })
+    : await sb.from('likes').delete().eq('post_id', id).eq('user_id', me.id);
+  if (error) { s.liked = !s.liked; s.likes += s.liked ? 1 : -1; paintSoc(id); toast(kerr(error)); }
+}
+async function openComments(id, ownerId) {
+  const w = sheet(`<h3>Comments.</h3><div id="cl" class="clist"><p class="hint">불러오는 중…</p></div>
+    <div class="sheet-foot cbar">${me
+      ? `<input class="field" id="cin" maxlength="200" placeholder="따뜻한 한마디 남기기" style="margin:0"><button class="btn primary" id="cgo">게시</button>`
+      : `<button class="btn primary block" onclick="closeSheet();location.href=location.pathname">로그인하고 댓글 달기</button>`}</div>`);
+  const paint = async () => {
+    const { data, error } = await sb.from('comments').select('id, body, created_at, user_id, profiles(name, avatar_url)').eq('post_id', id).order('created_at', { ascending: true });
+    if (error) return w.querySelector('#cl').innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
+    const s = SOC.get(id); if (s) { s.comments = data.length; paintSoc(id); }
+    w.querySelector('#cl').innerHTML = data.length ? data.map(c => `
+      <div class="crow">${avatar(c.profiles, 'xs')}<div style="flex:1;min-width:0"><b>${esc(c.profiles?.name || '친구')}</b> <small>${ago(c.created_at)}</small><div>${esc(c.body)}</div></div>
+        ${me && (c.user_id === me.id || ownerId === me.id) ? `<button class="cdel" data-del="${c.id}" aria-label="댓글 삭제">삭제</button>` : ''}</div>`).join('')
+      : '<p class="hint" style="text-align:center;padding:24px 0">첫 댓글을 남겨 보세요</p>';
+    w.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+      const { error } = await sb.from('comments').delete().eq('id', b.dataset.del);
+      error ? toast(kerr(error)) : paint();
+    });
+  };
+  paint();
+  const go = w.querySelector('#cgo'), inp = w.querySelector('#cin');
+  if (go) {
+    const send = async () => {
+      const body = inp.value.trim(); if (!body) return;
+      go.disabled = true;
+      const { error } = await sb.from('comments').insert({ post_id: id, user_id: me.id, body });
+      go.disabled = false;
+      if (error) return toast(kerr(error));
+      inp.value = ''; paint();
+    };
+    go.onclick = send; inp.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) send(); };
+  }
+}
+
+// ---------- 홈: 친구 피드의 최신 사진을 릴스로 ----------
+let muted = true;
+async function renderHome() {
+  $app.innerHTML = `<div class="spin"><span class="logo">${LOGO}</span></div>`;
+  const ids = [...myFollows];
+  let posts, owners;
+  try {
+    const r = await withTimeout(sb.from('posts').select('*').in('owner_id', ids).eq('status', 'approved').order('approved_at', { ascending: false }).limit(40), 10000);
+    if (r.error) throw r.error;
+    posts = r.data;
+    const o = await sb.from('profiles').select('id, name, avatar_url').in('id', ids);
+    owners = new Map((o.data || []).map(p => [p.id, p]));
+    await loadSocial(posts.map(p => p.id));
+  } catch { return renderError(renderHome); }
+
+  const top = `<header class="rtop"><button class="logo" onclick="location.href=location.pathname">${LOGO}</button><div class="sp"></div>
+    <button class="icon-btn" aria-label="친구 목록" onclick="openFriends()">${I.users}</button>
+    <a class="rme" href="${feedUrl(me.id)}" aria-label="내 피드">${avatar(myProf, 'xs')}</a></header>`;
+  if (!posts.length) {
+    $app.innerHTML = `<div class="reels">${top}<section class="reel rempty"><div>
+      <h2>Quiet for now.</h2><p>친구들 피드에 새 사진이 올라오면 여기 떠요.<br>친구 피드에 사진을 먼저 보내 보는 건 어때요?</p>
+      <button class="btn primary block" onclick="openFriends()">친구 목록 보기</button><div style="height:8px"></div>
+      <a class="btn block" href="${feedUrl(me.id)}" style="display:block;text-decoration:none;text-align:center">내 피드로 가기</a></div></section></div>`;
+    return;
+  }
+  $app.innerHTML = `<div class="reels" id="reels">${top}${posts.map(p => {
+    const o = owners.get(p.owner_id) || { name: '친구' }, s = SOC.get(p.id);
+    return `<section class="reel" data-id="${p.id}">
+      <div class="rbg" style="background-image:url('${thumbUrl(p)}')"></div>
+      ${isVideo(p)
+        ? `<video class="rmedia" src="${photoUrl(p.image_path)}" poster="${thumbUrl(p)}" muted playsinline loop preload="none"></video>
+           <button class="rmute" aria-label="소리 켜기/끄기">${muted ? I.mute : I.sound}</button>`
+        : `<img class="rmedia" src="${photoUrl(p.image_path)}" alt="${esc(p.author_name)}가 보낸 사진" loading="lazy">`}
+      <div class="rburst">${I.heartOn}</div>
+      <div class="rinfo">
+        <a class="rowner" href="${feedUrl(p.owner_id)}">${avatar(o, 'xs')}<b>${esc(o.name)}</b><span>의 피드</span></a>
+        <div class="rfrom">from <b>${esc(p.author_name)}</b> <span class="mchip">${esc(p.mission)}</span></div>
+        ${p.text ? `<div class="rtext">“${esc(p.text)}”</div>` : ''}
+        <small>${ago(p.approved_at)}</small>
+      </div>
+      <div class="rside">
+        <button class="rbtn" data-like="${p.id}" aria-label="좋아요" aria-pressed="${s.liked}" onclick="toggleLike('${p.id}')"><span>${s.liked ? I.heartOn : I.heart}</span><b>${s.likes || ''}</b></button>
+        <button class="rbtn" data-cmt="${p.id}" aria-label="댓글" onclick="openComments('${p.id}','${p.owner_id}')"><span>${I.comment}</span><b>${s.comments || ''}</b></button>
+        <button class="rbtn" aria-label="공유" onclick="shareOther('${p.owner_id}')"><span>${I.send}</span><b>공유</b></button>
+        <button class="rbtn rsend" aria-label="${esc(o.name)}에게 사진 보내기" onclick="location.href='${feedUrl(p.owner_id)}&m=0'"><span>${I.plus}</span><b>보내기</b></button>
+      </div>
+    </section>`;
+  }).join('')}
+    <section class="reel rempty"><div><h2>All caught <em>up.</em></h2><p>친구들 새 사진을 다 봤어요.<br>이번엔 내가 친구 피드를 채워줄 차례!</p>
+      <button class="btn primary block" onclick="openFriends()">친구 피드에 사진 보내기</button></div></section></div>`;
+
+  // 화면에 보이는 영상만 재생
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    const v = e.target.querySelector('video'); if (!v) return;
+    if (e.isIntersecting) { v.preload = 'auto'; v.muted = muted; v.play().catch(() => {}); } else v.pause();
+  }), { threshold: 0.6 });
+  document.querySelectorAll('.reel[data-id]').forEach(r => {
+    io.observe(r);
+    // 두 번 탭: 좋아요 + 하트 / 한 번 탭(영상): 소리 켜기·끄기
+    let last = 0, timer;
+    r.querySelector('.rmedia').addEventListener('click', () => {
+      const now = Date.now();
+      if (now - last < 300) {
+        clearTimeout(timer); last = 0;
+        const b = r.querySelector('.rburst'); b.classList.remove('go'); void b.offsetWidth; b.classList.add('go');
+        toggleLike(r.dataset.id, true);
+      } else { last = now; timer = setTimeout(() => r.querySelector('video') && toggleMute(), 300); }
+    });
+    r.querySelector('.rmute')?.addEventListener('click', toggleMute);
+  });
+}
+function toggleMute() {
+  muted = !muted;
+  document.querySelectorAll('.reel video').forEach(v => v.muted = muted);
+  document.querySelectorAll('.rmute').forEach(b => b.innerHTML = muted ? I.mute : I.sound);
+}
+function shareOther(uid) {
+  const url = `${feedUrl(uid)}&m=0`;
+  if (navigator.share) return navigator.share({ title: 'candid.', url }).catch(() => {});
+  navigator.clipboard.writeText(url).then(() => toast('피드 링크를 복사했어요')).catch(() => prompt('이 링크를 복사해 주세요', url));
 }
 
 // ---------- 게시물 상세 ----------
@@ -557,8 +801,13 @@ function openPost(id) {
         <div class="who"><b>${esc(p.author_name)}<span style="font-weight:400;color:var(--sub)">님이 보냄</span></b><span class="mchip">${esc(p.mission)}</span></div>
         <button class="icon-btn" data-close aria-label="닫기">${I.close}</button>
       </div>
-      <img class="post-img" src="${photoUrl(p.image_path)}" alt="${esc(p.author_name)}가 보낸 사진">
+      ${isVideo(p)
+        ? `<video class="post-img" src="${photoUrl(p.image_path)}" poster="${thumbUrl(p)}" controls playsinline autoplay muted loop></video>`
+        : `<img class="post-img" src="${photoUrl(p.image_path)}" alt="${esc(p.author_name)}가 보낸 사진">`}
       ${p.text ? `<div class="post-c"><div class="quote">${esc(p.text)}</div></div>` : ''}
+      ${p.status === 'approved' ? `<div class="psoc">
+        <button class="pbtn" data-like="${p.id}" aria-label="좋아요" onclick="toggleLike('${p.id}')"><span>${I.heart}</span><b></b></button>
+        <button class="pbtn" data-cmt="${p.id}" aria-label="댓글" onclick="openComments('${p.id}','${p.owner_id}')"><span>${I.comment}</span><b></b></button></div>` : ''}
       <div class="post-f">
         ${p.status === 'pending' ? `받은 지 ${ago(p.created_at)} · 승인 대기 중` : `${ago(p.approved_at || p.created_at)} 피드에 올림`}
         <div class="sp"></div>
@@ -571,6 +820,7 @@ function openPost(id) {
     </article>`;
   ov.onclick = e => { if (e.target === ov || e.target.closest('[data-close]')) ov.remove(); };
   document.body.appendChild(ov);
+  if (p.status === 'approved') loadSocial([p.id]).then(() => paintSoc(p.id)).catch(() => {});
 }
 
 // ---------- 바텀시트 ----------
@@ -595,6 +845,7 @@ const menu = items => sheet(`<div class="menu">${items}</div><div class="menu"><
 
 function openMenu() {
   menu(`<button class="menu-item" onclick="closeSheet();renderSetup(false)">프로필 편집</button>
+        <button class="menu-item" onclick="openFriends()">친구 목록</button>
         <button class="menu-item" onclick="closeSheet();shareFeed()">내 피드 링크 공유</button>
         ${DEMO ? '' : '<button class="menu-item" onclick="openPush()">알림 설정</button>'}
         <button class="menu-item danger" onclick="logout()">로그아웃</button>`);
@@ -619,7 +870,7 @@ function openCompose(mi = 0, asked = false) {
     ${asked ? `<div class="asked">${name}님이 <b>'${esc(mission)}'</b>을(를) 부탁했어요</div>` : ''}
     <div class="label">MISSION</div>
     <div class="chips" role="radiogroup">${MISSIONS.map(m => `<button class="chip ${m === mission ? 'on' : ''}" role="radio" aria-checked="${m === mission}" data-m="${m}">${m}</button>`).join('')}</div>
-    <label class="pick" id="pick">${I.camera}<span>사진 선택</span><input type="file" accept="image/*" id="file" hidden></label>
+    <label class="pick" id="pick">${I.camera}<span>사진·영상 선택</span><small style="font-size:11px">영상은 10초까지</small><input type="file" accept="image/*,video/*" id="file" hidden></label>
     <input class="field" id="text" placeholder="한 줄 코멘트 (예: 이 표정 레전드)" maxlength="80">
     <input class="field" id="author" placeholder="보내는 사람 (비우면 익명의 친구)" maxlength="12" value="${esc(nick)}">
     <div class="sheet-foot"><button class="btn primary block" id="send" disabled>사진을 먼저 골라주세요</button></div>`,
@@ -642,25 +893,41 @@ function openCompose(mi = 0, asked = false) {
   const $file = w.querySelector('#file'), $send = w.querySelector('#send');
   $file.onchange = async () => {
     const f = $file.files[0]; if (!f) return;
-    try { image = await resize(f, 1080); } catch { return toast('이 사진은 열 수 없어요. 다른 사진을 골라 주세요'); }
     const pick = w.querySelector('#pick');
-    pick.innerHTML = `<img src="${URL.createObjectURL(image)}" alt="고른 사진"><span class="repick">다시 고르기</span>`;
+    $send.disabled = true; $send.textContent = '준비 중…';
+    try {
+      image = f.type.startsWith('video/') ? await prepareVideoMeta(f) : await prepareImage(f);
+    } catch { image = null; $send.textContent = '사진을 먼저 골라주세요'; return toast('이 파일은 열 수 없어요. 다른 사진이나 영상을 골라 주세요'); }
+    pick.innerHTML = image.kind === 'video'
+      ? `<video src="${image.previewUrl}" muted playsinline autoplay loop></video><span class="repick">다시 고르기</span>
+         <span class="vbadge">${image.duration > MAX_VIDEO_SEC + 0.5 ? `앞 ${MAX_VIDEO_SEC}초만 올라가요` : `${Math.round(image.duration)}초`}</span>`
+      : `<img src="${image.previewUrl}" alt="고른 사진"><span class="repick">다시 고르기</span>`;
     pick.appendChild($file);
     $send.disabled = false; $send.textContent = '보내기';
   };
   $send.onclick = async () => {
     if (!image) return;
     const author = w.querySelector('#author').value.trim();
-    $send.disabled = true; $send.textContent = '사진 올리는 중…';
-    const path = `${S.uid}/${crypto.randomUUID()}.jpg`;
-    const up = await sb.storage.from('photos').upload(path, image, { contentType: 'image/jpeg' });
-    if (!up.error) $send.textContent = '거의 다 됐어요…';
-    const ins = up.error ? up : await sb.from('posts').insert({
-      owner_id: S.uid, image_path: path, mission,
-      text: w.querySelector('#text').value.trim(),
-      author_name: author || '익명의 친구',
-    });
-    if (ins.error) { $send.disabled = false; $send.textContent = '다시 보내기'; return toast(kerr(ins.error)); }
+    $send.disabled = true;
+    let ins;
+    try {
+      let main = image.main;
+      if (image.kind === 'video') {
+        $send.textContent = '영상 줄이는 중… 0%';
+        main = await compressVideo(image, p => { $send.textContent = `영상 줄이는 중… ${Math.round(p * 100)}%`; });
+      }
+      $send.textContent = image.kind === 'video' ? '영상 올리는 중…' : '사진 올리는 중…';
+      const id = crypto.randomUUID();
+      const path = `${S.uid}/${id}.${extOf(main)}`, tpath = `${S.uid}/${id}_t.${extOf(image.thumb)}`;
+      await Promise.all([uploadBlob(path, main), uploadBlob(tpath, image.thumb)]);
+      $send.textContent = '거의 다 됐어요…';
+      ins = await sb.from('posts').insert({
+        owner_id: S.uid, image_path: path, thumb_path: tpath, media_type: image.kind, mission,
+        text: w.querySelector('#text').value.trim(),
+        author_name: author || '익명의 친구',
+      });
+    } catch (err) { ins = { error: err }; }
+    if (ins.error) { $send.disabled = false; $send.textContent = '다시 보내기'; return toast(/줄일 수 없어요/.test(ins.error.message) ? ins.error.message : kerr(ins.error)); }
     try { if (author && !me) localStorage.setItem('candid_author', author); } catch {}
     image = null; // 이제 닫아도 확인 안 물음
     const next = MISSIONS[(MISSIONS.indexOf(mission) + 1) % MISSIONS.length];
@@ -669,6 +936,7 @@ function openCompose(mi = 0, asked = false) {
       <div class="empty" style="padding:24px 0 8px"><h2>Sent.</h2>
       <p>${name}님이 승인하면 피드에 올라가요.<br>누가 보냈는지는 이름으로만 보여요.</p>
       <button class="btn primary block" id="more">한 장 더 보내기 · ${esc(next)}</button><div style="height:8px"></div>
+      ${me && !S.isOwner && !myFollows.has(S.uid) ? `<button class="btn add block" id="fol">${name} 친구 추가 · 새 사진을 홈에서 보기</button><div style="height:8px"></div>` : ''}
       ${S.isOwner ? '' : me
         ? `<a class="btn block" href="${feedUrl(me.id)}" style="display:block;text-decoration:none;text-align:center">내 피드로 가기</a><div style="height:8px"></div>`
         : `<button class="btn block" id="mine">나도 받아볼래 — 내 피드 만들기</button><div style="height:8px"></div>`}
@@ -677,6 +945,7 @@ function openCompose(mi = 0, asked = false) {
       removeEventListener('popstate', onPop); w._onClose = null; w.remove(); // 히스토리는 그대로 두고 시트만 교체
       openCompose(MISSIONS.indexOf(next));
     };
+    const fol = w.querySelector('#fol'); if (fol) fol.onclick = () => { toggleFollow(S.uid); fol.remove(); };
     const mine = w.querySelector('#mine');
     if (mine) mine.onclick = () => {
       try { localStorage.setItem('candid_ref', JSON.stringify({ uid: S.uid, name: S.prof.name })); } catch {}
@@ -780,7 +1049,7 @@ async function commitDelete(id) {
   pendingDeletes.delete(id); clearTimeout(job.timer);
   const { error } = await sb.from('posts').delete().eq('id', id);
   if (error) { toast(kerr(error)); return job.restore(); }
-  sb.storage.from('photos').remove([job.p.image_path]);
+  sb.storage.from('photos').remove([job.p.image_path, job.p.thumb_path].filter(Boolean));
 }
 addEventListener('pagehide', () => [...pendingDeletes.keys()].forEach(commitDelete));
 
@@ -867,29 +1136,46 @@ function demoClient() {
   const pend = [['서연', MISSIONS[0], '이거 올려도 되지? ㅎㅎ'], ['익명의 친구', MISSIONS[3], '중2 때 사진 발견함'], ['하린', MISSIONS[1], '우리 학교 축제 때']]
     .map(([author_name, mission, text], i) => ({ id: 'p' + i, owner_id: 'demo', author_name, mission, text, image_path: art(9 + i),
       status: 'pending', created_at: t(i * 2 + .3), approved_at: null }));
-  let db; try { db = JSON.parse(ss.get('demo_db')); } catch {}
-  db = db || { profiles: [{ id: 'demo', name: '민수', avatar_url: null, onboarded: true }], posts: [...seed, ...pend] };
-  const persist = () => ss.set('demo_db', JSON.stringify(db));
+  // 친구 2명(f1, f2)의 피드 — 홈 릴스 데모용
+  const fposts = [['f1', '지수', MISSIONS[0], '오늘 지수 표정 실화냐', 0.5], ['f2', '태윤', MISSIONS[2], '몰래 찍었는데 너무 잘 나옴', 2], ['f1', '민수', MISSIONS[1], '이건 인정이지', 5], ['f2', '하린', MISSIONS[3], '중학교 졸업식 ㅋㅋ', 9]]
+    .map(([owner_id, author_name, mission, text, h], i) => ({ id: 'f' + i, owner_id, author_name, mission, text, image_path: art(3 + i * 2), status: 'approved', created_at: t(h + 1), approved_at: t(h) }));
+  let db; try { db = JSON.parse(ss.get('demo_db2')); } catch {}
+  db = db || {
+    profiles: [{ id: 'demo', name: '민수', avatar_url: null, onboarded: true }, { id: 'f1', name: '지수', avatar_url: null, onboarded: true, bio: '굴욕샷 환영' }, { id: 'f2', name: '태윤', avatar_url: null, onboarded: true }],
+    posts: [...seed, ...pend, ...fposts],
+    follows: [{ follower_id: 'demo', followee_id: 'f1' }, { follower_id: 'demo', followee_id: 'f2' }],
+    likes: [{ post_id: 'f0', user_id: 'f2' }, { post_id: 'f0', user_id: 'f1' }, { post_id: 'f1', user_id: 'f1' }],
+    comments: [{ id: 'c1', post_id: 'f0', user_id: 'f2', body: '이거 진짜 레전드다 ㅋㅋㅋ', created_at: t(0.3) }],
+  };
+  const persist = () => ss.set('demo_db2', JSON.stringify(db));
   const loggedIn = () => ss.get('demo_login') === '1';
   const files = {};
 
   function from(table) {
-    let op = 'select', payload, single = false, order = null; const filters = [];
+    let op = 'select', payload, single = false, order = null, lim = 0; const filters = [];
     const run = () => {
-      let rows = db[table].filter(r => filters.every(([k, v]) => r[k] === v));
+      db[table] = db[table] || [];
+      let rows = db[table].filter(r => filters.every(([k, v, how]) => how === 'in' ? v.includes(r[k]) : r[k] === v));
       if (op === 'insert') {
-        const row = { id: 'x' + Math.random().toString(36).slice(2), status: 'pending', approved_at: null, created_at: new Date().toISOString(), ...payload };
-        if (files[row.image_path]) row.image_path = files[row.image_path]; // 새로고침해도 사진 유지
+        const row = { id: 'x' + Math.random().toString(36).slice(2), created_at: new Date().toISOString(), ...payload };
+        if (table === 'posts') Object.assign(row, { status: 'pending', approved_at: null, ...payload });
+        if (table === 'likes' || table === 'comments') row.user_id = row.user_id || ME.id;
+        if (table === 'follows') row.follower_id = row.follower_id || ME.id;
+        ['image_path', 'thumb_path'].forEach(k => { if (files[row[k]]) row[k] = files[row[k]]; }); // 새로고침해도 사진 유지
         db[table].push(row); persist(); return { data: null, error: null };
       }
       if (op === 'update') { rows.forEach(r => Object.assign(r, payload)); persist(); return { data: null, error: null }; }
       if (op === 'delete') { db[table] = db[table].filter(r => !rows.includes(r)); persist(); return { data: null, error: null }; }
       if (table === 'posts') rows = rows.filter(r => r.status === 'approved' || (loggedIn() && r.owner_id === ME.id)); // RLS 흉내
+      if (table === 'follows' && !loggedIn()) rows = [];
+      if (table === 'comments') rows = rows.map(r => ({ ...r, profiles: db.profiles.find(p => p.id === r.user_id) || null }));
       if (order) rows = [...rows].sort((a, b) => (a[order[0]] < b[order[0]] ? -1 : 1) * (order[1] ? 1 : -1));
+      if (lim) rows = rows.slice(0, lim);
       return { data: single ? rows[0] || null : rows, error: null };
     };
     const b = {
-      select: () => b, eq: (k, v) => (filters.push([k, v]), b), maybeSingle: () => (single = true, b),
+      select: () => b, eq: (k, v) => (filters.push([k, v]), b), in: (k, arr) => (filters.push([k, arr, 'in']), b),
+      maybeSingle: () => (single = true, b), limit: n => (lim = n, b),
       order: (k, o = {}) => (order = [k, o.ascending !== false], b),
       insert: p => (op = 'insert', payload = p, b), update: p => (op = 'update', payload = p, b), delete: () => (op = 'delete', b),
       then: (res, rej) => new Promise(r => setTimeout(r, 120)).then(run).then(res, rej),
@@ -927,6 +1213,103 @@ function demoClient() {
   };
 }
 
+// ---------- 미디어 최적화 (업로드 전 휴대폰에서 압축) ----------
+const MAX_VIDEO_SEC = 10;
+// 캔버스를 이미지로: WebP 지원 기기는 WebP(더 작음), 아니면 JPEG
+async function canvasBlob(c, q) {
+  const webp = await new Promise(r => c.toBlob(r, 'image/webp', q));
+  if (webp && webp.type === 'image/webp') return webp;
+  return new Promise(r => c.toBlob(r, 'image/jpeg', q + 0.04));
+}
+function drawScaled(src, w0, h0, max) {
+  const s = Math.min(1, max / Math.max(w0, h0));
+  const c = document.createElement('canvas'); c.width = Math.round(w0 * s); c.height = Math.round(h0 * s);
+  c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+  return c;
+}
+const extOf = b => ({ 'image/webp': 'webp', 'image/jpeg': 'jpg', 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov' })[b.type.split(';')[0]] || 'bin';
+
+// 사진: 본문 1080px(약 150~300KB) + 그리드용 썸네일 480px(약 25~40KB)
+async function prepareImage(file) {
+  const img = await decodeFile(file);
+  const main = await canvasBlob(drawScaled(img, img.width, img.height, 1080), 0.8);
+  const thumb = await canvasBlob(drawScaled(img, img.width, img.height, 480), 0.7);
+  return { kind: 'image', main, thumb, previewUrl: URL.createObjectURL(main) };
+}
+
+function loadVideo(file) {
+  return new Promise((ok, no) => {
+    const v = document.createElement('video');
+    v.preload = 'auto'; v.muted = true; v.playsInline = true; v.src = URL.createObjectURL(file);
+    v.onloadedmetadata = () => ok(v); v.onerror = () => no(new Error('video'));
+  });
+}
+const seek = (v, t) => new Promise(r => { v.onseeked = () => r(); v.currentTime = t; });
+
+// 영상 고르기: 미리보기용 정보와 대표 이미지(포스터)만 먼저 준비. 실제 압축은 '보내기' 누를 때(소리 녹음에 사용자 터치가 필요)
+async function prepareVideoMeta(file) {
+  const v = await loadVideo(file);
+  await seek(v, Math.min(0.15, (v.duration || 1) / 2));
+  const thumb = await canvasBlob(drawScaled(v, v.videoWidth, v.videoHeight, 720), 0.72);
+  return { kind: 'video', file, duration: v.duration, w: v.videoWidth, h: v.videoHeight, thumb, previewUrl: v.src, main: null };
+}
+
+// 영상 압축: 720p·약 1.6Mbps 로 다시 인코딩(앞 10초까지). 10초 기준 약 2~3MB
+async function compressVideo(meta, onProgress) {
+  const limit = Math.min(meta.duration || MAX_VIDEO_SEC, MAX_VIDEO_SEC);
+  const types = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+  const mime = window.MediaRecorder && HTMLCanvasElement.prototype.captureStream && types.find(t => MediaRecorder.isTypeSupported(t));
+  const original = () => {
+    if (meta.duration <= MAX_VIDEO_SEC + 0.5 && meta.file.size <= 10 * 1024 * 1024 && /^video\/(mp4|webm|quicktime)/.test(meta.file.type)) return meta.file;
+    throw new Error('이 기기에서는 영상을 줄일 수 없어요. 10초·10MB 이하 영상으로 골라 주세요');
+  };
+  if (!mime) return original();
+
+  const v = await loadVideo(meta.file);
+  v.muted = false; v.volume = 1; // 소리는 녹음용 오디오 그래프로만 보내고 스피커엔 연결하지 않음
+  const c = drawScaled(v, v.videoWidth, v.videoHeight, 720), g = c.getContext('2d');
+  const stream = c.captureStream(30);
+  let actx;
+  try {
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    const dest = actx.createMediaStreamDestination();
+    actx.createMediaElementSource(v).connect(dest);
+    dest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+    await actx.resume();
+  } catch {}
+  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 1_600_000, audioBitsPerSecond: 96_000 });
+  const chunks = []; rec.ondataavailable = e => e.data.size && chunks.push(e.data);
+  const done = new Promise(r => rec.onstop = r);
+
+  let stop = false;
+  const draw = () => {
+    if (stop) return;
+    g.drawImage(v, 0, 0, c.width, c.height);
+    onProgress?.(Math.min(1, v.currentTime / limit));
+    if (v.currentTime >= limit || v.ended) { stop = true; v.pause(); rec.state !== 'inactive' && rec.stop(); return; }
+    v.requestVideoFrameCallback ? v.requestVideoFrameCallback(draw) : requestAnimationFrame(draw);
+  };
+  await seek(v, 0);
+  rec.start(250);
+  try { await v.play(); } catch { stop = true; rec.stop(); await done; actx?.close(); return original(); }
+  draw();
+  const guard = setTimeout(() => { if (!stop) { stop = true; v.pause(); rec.state !== 'inactive' && rec.stop(); } }, (limit + 6) * 1000);
+  await done; clearTimeout(guard); actx?.close();
+  const out = new Blob(chunks, { type: mime.split(';')[0] });
+  // 다시 인코딩한 게 더 크면(이미 작은 영상) 원본 사용
+  if (!out.size) return original();
+  try { if (out.size >= meta.file.size) return original(); } catch {}
+  return out;
+}
+
+// 업로드: 경로는 랜덤 UUID라 내용이 안 바뀜 → 브라우저 캐시 1년(재방문 시 전송량 0)
+async function uploadBlob(path, blob) {
+  const { error } = await sb.storage.from('photos').upload(path, blob, { contentType: blob.type.split(';')[0], cacheControl: '31536000' });
+  if (error) throw error;
+}
+const thumbUrl = p => photoUrl(p.thumb_path || p.image_path);
+const isVideo = p => p.media_type === 'video';
+
 // 정사각형으로 가운데 잘라서 축소 (프로필 사진용)
 async function resizeSquare(file, size) {
   const img = await decodeFile(file), side = Math.min(img.width, img.height);
@@ -952,7 +1335,7 @@ async function makeStory(id) {
   const p = S.approved.find(x => x.id === id); if (!p) return;
   toast('스토리 이미지를 만드는 중…');
   await Promise.all([document.fonts.load('800 80px "Bricolage Grotesque"'), document.fonts.load('800 40px Pretendard')]).catch(() => {});
-  let img; try { img = await loadImg(photoUrl(p.image_path)); } catch { return toast('사진을 불러오지 못했어요. 다시 시도해 주세요'); }
+  let img; try { img = await loadImg(isVideo(p) ? thumbUrl(p) : photoUrl(p.image_path)); } catch { return toast('사진을 불러오지 못했어요. 다시 시도해 주세요'); }
   const c = document.createElement('canvas'); c.width = 1080; c.height = 1920;
   const g = c.getContext('2d');
   const cover = (W, H) => { const r = Math.max(W / img.width, H / img.height), sw = W / r, sh = H / r; return [(img.width - sw) / 2, (img.height - sh) / 2, sw, sh]; };
