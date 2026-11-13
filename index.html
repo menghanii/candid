@@ -236,7 +236,7 @@
   .pbtn svg { width:24px; height:24px; }
 
   /* 홈 릴스 */
-  .reels { position:fixed; inset:0; z-index:10; overflow-y:auto; scroll-snap-type:y mandatory; background:#000; color:#fff; overscroll-behavior:contain; scrollbar-width:none; }
+  .reels { position:fixed; inset:0 0 auto 0; top:0; z-index:10; overflow-y:auto; scroll-snap-type:y mandatory; background:#000; color:#fff; overscroll-behavior:contain; scrollbar-width:none; }
   .reels::-webkit-scrollbar { display:none; }
   .rtop { position:fixed; top:0; left:50%; transform:translateX(-50%); z-index:12; width:100%; max-width:480px; display:flex; align-items:center; gap:4px; padding:calc(10px + env(safe-area-inset-top)) 14px 10px 18px; background:linear-gradient(rgba(0,0,0,.45), transparent); }
   .rtop .sp { flex:1; } .rtop .logo { color:#fff; } .rtop .icon-btn { color:#fff; }
@@ -269,6 +269,22 @@
   .rempty h2 em { color:var(--accent); font-style:normal; }
   .rempty p { color:#b8b8bd; line-height:1.6; margin:0 0 24px; }
   .rempty .btn { background:#fff; color:#000; border-color:#fff; } .rempty .btn:not(.primary) { background:transparent; color:#fff; border-color:#3a3a3c; }
+  /* 하단 바 */
+  .bnav { position:fixed; left:50%; bottom:0; transform:translateX(-50%); z-index:15; width:100%; max-width:480px; display:flex; height:calc(58px + env(safe-area-inset-bottom)); padding-bottom:env(safe-area-inset-bottom); background:color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border-top:1px solid var(--line); }
+  .bnav button { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; background:none; border:0; color:var(--sub); font-size:10px; font-weight:600; }
+  .bnav button.on { color:var(--fg); }
+  .bnav button.on .bav { box-shadow:0 0 0 2px var(--fg); }
+  .bnav .bav { display:block; border-radius:50%; }
+  .bnav .bav .av.xs { width:24px; height:24px; }
+  .bnav.dark { background:#000; border-top-color:#1c1c1f; } .bnav.dark button { color:#8e8e93; } .bnav.dark button.on { color:#fff; }
+  .app.has-nav { padding-bottom:calc(64px + env(safe-area-inset-bottom)); }
+  .has-nav ~ .toast, body:has(.bnav) .toast { bottom:calc(76px + env(safe-area-inset-bottom)); }
+  .reels:has(~ .bnav), .reels { bottom:calc(58px + env(safe-area-inset-bottom)); }
+  .reel { height:100%; }
+  /* 검색 */
+  .sbox { position:relative; margin-bottom:8px; }
+  .sbox svg { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--sub); pointer-events:none; }
+  .sbox .field { padding-left:44px; margin:0; }
 </style>
 </head>
 <body>
@@ -288,6 +304,7 @@ const I = {
   share: sv('<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/>', 20),
   more: sv('<circle cx="5" cy="12" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="19" cy="12" r=".6"/>', 22, 2.4),
   close: sv('<path d="M18 6 6 18M6 6l12 12"/>'),
+  search: sv('<circle cx="11" cy="11" r="7"/><path d="m20.5 20.5-4.2-4.2"/>'),
   play: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>',
   heart: sv('<path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.4 4.5 7 4.5c2.1 0 3.6 1.2 5 3 1.4-1.8 2.9-3 5-3 3.6 0 5.6 3.5 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/>', 30, 1.8),
   heartOn: '<svg width="30" height="30" viewBox="0 0 24 24" fill="#ff3040" stroke="#ff3040" stroke-width="1.8" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.4 4.5 7 4.5c2.1 0 3.6 1.2 5 3 1.4-1.8 2.9-3 5-3 3.6 0 5.6 3.5 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg>',
@@ -364,7 +381,7 @@ const https = u => u ? String(u).replace(/^http:\/\//, 'https://') : u;
 const cfg = window.FG_CONFIG || {};
 const DEMO = !cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY;
 const sb = DEMO ? demoClient() : (window.supabase ? supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY) : null);
-const photoUrl = path => sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
+const photoUrl = path => /^https?:/.test(path) ? path : sb.storage.from('photos').getPublicUrl(path).data.publicUrl; // 외부 주소(데모 친구 사진)는 그대로
 const feedUrl = id => `${location.origin}${location.pathname}?u=${id}`;
 let me = null, myProf = null;
 
@@ -390,6 +407,7 @@ function route() {
   const u = new URLSearchParams(location.search).get('u');
   if (u) return renderProfile(u);
   if (!me) return renderLanding();
+  if (new URLSearchParams(location.search).has('home')) return renderHome(); // 하단 바 릴스 탭
   // 로그인: 친구가 있으면 홈(릴스), 없으면 내 피드
   myFollows.size ? renderHome() : location.replace(feedUrl(me.id));
 }
@@ -529,7 +547,7 @@ function paintProfile() {
     <header class="top">
       <button class="logo" onclick="location.href=location.pathname">${LOGO}</button>
       <div class="sp"></div>
-      ${me && myFollows.size ? `<button class="icon-btn" aria-label="홈(친구 새 사진)" onclick="location.href=location.pathname">${I.reels}</button>` : ''}
+      ${me ? `<button class="icon-btn" aria-label="친구 검색" onclick="openSearch()">${I.search}</button>` : ''}
       ${isOwner
         ? `${DEMO ? '' : `<button class="icon-btn" id="bell" aria-label="알림 설정" onclick="openPush()">${I.bell}</button>`}
            <button class="icon-btn" aria-label="승인함${pending.length ? `, 대기 ${pending.length}장` : ''}" onclick="setTab('inbox')">${I.inbox(22)}${pending.length ? '<span class="dot"></span>' : ''}</button>
@@ -563,7 +581,9 @@ function paintProfile() {
       <button class="${S.tab === 'grid' ? 'on' : ''}" onclick="setTab('grid')">피드</button>
       ${isOwner ? `<button class="${S.tab === 'inbox' ? 'on' : ''}" onclick="setTab('inbox')">승인함${pending.length ? `<span class="n">${pending.length}</span>` : ''}</button>` : ''}
     </nav>
-    <main id="body"></main>`;
+    <main id="body"></main>
+    ${navBar(isOwner ? 'feed' : '')}`;
+  $app.classList.toggle('has-nav', !!me);
   renderBody();
   if (isOwner) updateBell();
   scrollTo(0, y);
@@ -634,16 +654,52 @@ async function toggleFollow(uid, btn) {
   if (error) { on ? myFollows.add(uid) : myFollows.delete(uid); if (btn) { btn.textContent = on ? '친구 ✓' : '친구 추가'; btn.classList.toggle('add', !on); } return toast(kerr(error)); }
   toast(on ? '친구에서 뺐어요' : '친구로 추가했어요. 새 사진이 홈에 떠요');
 }
-async function openFriends() {
-  const ids = [...myFollows];
-  const w = sheet(`<h3>Friends.</h3><p class="hint">추가한 친구의 피드에 새 사진이 올라오면 홈에 떠요.</p><div id="fl"><p class="hint">불러오는 중…</p></div>`);
-  if (!ids.length) { w.querySelector('#fl').innerHTML = '<p class="hint">아직 추가한 친구가 없어요. 친구 피드에 들어가서 <b>친구 추가</b>를 눌러 보세요.</p>'; return; }
-  const { data, error } = await sb.from('profiles').select('id, name, avatar_url, bio').in('id', ids);
-  if (error) return w.querySelector('#fl').innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
-  w.querySelector('#fl').innerHTML = data.map(p => `
-    <div class="frow"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b>${p.bio ? `<small>${esc(p.bio)}</small>` : ''}</span></a>
-      <button class="btn" onclick="toggleFollow('${p.id}', this)">친구 ✓</button></div>`).join('');
+
+// ---------- 하단 바 (릴스 · 친구 · 내 피드) ----------
+function navBar(active) {
+  if (!me) return '';
+  const item = (key, label, icon, onclick) =>
+    `<button class="${active === key ? 'on' : ''}" onclick="${onclick}" aria-label="${label}"${active === key ? ' aria-current="page"' : ''}>${icon}<span>${label}</span></button>`;
+  return `<nav class="bnav ${active === 'reels' ? 'dark' : ''}">
+    ${item('reels', '릴스', I.reels, "location.href=location.pathname+'?home=1'")}
+    ${item('friends', '친구', I.users, 'openSearch()')}
+    ${item('feed', '내 피드', `<span class="bav">${avatar(myProf, 'xs')}</span>`, `location.href='${feedUrl(me.id)}'`)}
+  </nav>`;
 }
+
+// ---------- 친구 검색 (검색어가 없으면 내 친구 목록) ----------
+async function openSearch() {
+  const w = sheet(`<h3>Find friends.</h3>
+    <div class="sbox">${I.search}<input class="field" id="sq" type="search" placeholder="이름으로 친구 찾기" autocomplete="off" enterkeyhint="search"></div>
+    <div id="sr"><p class="hint">불러오는 중…</p></div>`);
+  const $q = w.querySelector('#sq'), $r = w.querySelector('#sr');
+  const row = p => `<div class="frow"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b>${p.bio ? `<small>${esc(p.bio)}</small>` : ''}</span></a>
+    ${p.id === me?.id ? '<small style="color:var(--sub)">나</small>' : `<button class="btn ${myFollows.has(p.id) ? '' : 'add'}" onclick="toggleFollow('${p.id}', this)">${myFollows.has(p.id) ? '친구 ✓' : '친구 추가'}</button>`}</div>`;
+  const showFriends = async () => {
+    const ids = [...myFollows];
+    if (!ids.length) return $r.innerHTML = '<p class="hint" style="padding:16px 0">아직 추가한 친구가 없어요. 위에서 이름으로 찾아보세요.</p>';
+    const { data, error } = await sb.from('profiles').select('id, name, avatar_url, bio').in('id', ids);
+    if (error) return $r.innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
+    $r.innerHTML = `<div class="label" style="margin-top:8px">MY FRIENDS · ${data.length}</div>${data.map(row).join('')}`;
+  };
+  let timer, seq = 0;
+  $q.oninput = () => {
+    clearTimeout(timer);
+    const term = $q.value.trim();
+    if (!term) return showFriends();
+    timer = setTimeout(async () => {
+      const my = ++seq;
+      const like = `%${term.replace(/[%_\\]/g, c => '\\' + c)}%`;
+      const { data, error } = await sb.from('profiles').select('id, name, avatar_url, bio').ilike('name', like).eq('onboarded', true).limit(20);
+      if (my !== seq) return; // 늦게 도착한 이전 검색 결과는 무시
+      if (error) return $r.innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
+      $r.innerHTML = data.length ? `<div class="label" style="margin-top:8px">RESULTS</div>${data.map(row).join('')}` : `<p class="hint" style="padding:16px 0">'${esc(term)}'(으)로 찾은 친구가 없어요.</p>`;
+    }, 250);
+  };
+  showFriends();
+  setTimeout(() => $q.focus(), 350);
+}
+const openFriends = openSearch;
 
 // ---------- 좋아요·댓글 (홈 릴스와 게시물 상세에서 공유) ----------
 const SOC = new Map(); // postId → { likes, liked, comments }
@@ -721,13 +777,12 @@ async function renderHome() {
   } catch { return renderError(renderHome); }
 
   const top = `<header class="rtop"><button class="logo" onclick="location.href=location.pathname">${LOGO}</button><div class="sp"></div>
-    <button class="icon-btn" aria-label="친구 목록" onclick="openFriends()">${I.users}</button>
-    <a class="rme" href="${feedUrl(me.id)}" aria-label="내 피드">${avatar(myProf, 'xs')}</a></header>`;
+    <button class="icon-btn" aria-label="친구 검색" onclick="openSearch()">${I.search}</button></header>`;
   if (!posts.length) {
     $app.innerHTML = `<div class="reels">${top}<section class="reel rempty"><div>
       <h2>Quiet for now.</h2><p>친구들 피드에 새 사진이 올라오면 여기 떠요.<br>친구 피드에 사진을 먼저 보내 보는 건 어때요?</p>
-      <button class="btn primary block" onclick="openFriends()">친구 목록 보기</button><div style="height:8px"></div>
-      <a class="btn block" href="${feedUrl(me.id)}" style="display:block;text-decoration:none;text-align:center">내 피드로 가기</a></div></section></div>`;
+      <button class="btn primary block" onclick="openSearch()">친구 찾기</button><div style="height:8px"></div>
+      <a class="btn block" href="${feedUrl(me.id)}" style="display:block;text-decoration:none;text-align:center">내 피드로 가기</a></div></section></div>${navBar('reels')}`;
     return;
   }
   $app.innerHTML = `<div class="reels" id="reels">${top}${posts.map(p => {
@@ -754,7 +809,7 @@ async function renderHome() {
     </section>`;
   }).join('')}
     <section class="reel rempty"><div><h2>All caught <em>up.</em></h2><p>친구들 새 사진을 다 봤어요.<br>이번엔 내가 친구 피드를 채워줄 차례!</p>
-      <button class="btn primary block" onclick="openFriends()">친구 피드에 사진 보내기</button></div></section></div>`;
+      <button class="btn primary block" onclick="openFriends()">친구 피드에 사진 보내기</button></div></section></div>${navBar('reels')}`;
 
   // 화면에 보이는 영상만 재생
   const io = new IntersectionObserver(es => es.forEach(e => {
@@ -1155,7 +1210,7 @@ function demoClient() {
     let op = 'select', payload, single = false, order = null, lim = 0; const filters = [];
     const run = () => {
       db[table] = db[table] || [];
-      let rows = db[table].filter(r => filters.every(([k, v, how]) => how === 'in' ? v.includes(r[k]) : r[k] === v));
+      let rows = db[table].filter(r => filters.every(([k, v, how]) => how === 'in' ? v.includes(r[k]) : how === 're' ? v.test(r[k] || '') : r[k] === v));
       if (op === 'insert') {
         const row = { id: 'x' + Math.random().toString(36).slice(2), created_at: new Date().toISOString(), ...payload };
         if (table === 'posts') Object.assign(row, { status: 'pending', approved_at: null, ...payload });
@@ -1175,6 +1230,7 @@ function demoClient() {
     };
     const b = {
       select: () => b, eq: (k, v) => (filters.push([k, v]), b), in: (k, arr) => (filters.push([k, arr, 'in']), b),
+      ilike: (k, pat) => (filters.push([k, new RegExp(pat.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/%/g, '.*'), 'i'), 're']), b),
       maybeSingle: () => (single = true, b), limit: n => (lim = n, b),
       order: (k, o = {}) => (order = [k, o.ascending !== false], b),
       insert: p => (op = 'insert', payload = p, b), update: p => (op = 'update', payload = p, b), delete: () => (op = 'delete', b),
@@ -1186,7 +1242,7 @@ function demoClient() {
   // 데모 전용 하단 바: 시점 전환
   setTimeout(() => {
     const bar = document.createElement('div');
-    bar.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:40;display:flex;gap:4px;align-items:center;padding:5px 5px 5px 14px;border-radius:999px;background:var(--fg);color:var(--bg);font-size:12px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.18)';
+    bar.style.cssText = 'position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:40;display:flex;gap:4px;align-items:center;padding:5px 5px 5px 14px;border-radius:999px;background:var(--fg);color:var(--bg);font-size:12px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.18)';
     const on = loggedIn();
     const pill = (label, active, fn) => `<button onclick="${fn}" style="border:0;border-radius:999px;padding:7px 12px;font-size:12px;font-weight:600;white-space:nowrap;background:${active ? 'var(--bg)' : 'transparent'};color:${active ? 'var(--fg)' : 'var(--bg)'}">${label}</button>`;
     bar.innerHTML = `<span style="opacity:.6;margin-right:6px">DEMO</span>${pill('주인장 시점', on, "demoView(1)")}${pill('친구 시점', !on, "demoView(0)")}${pill('↺', false, "demoReset()")}`;
