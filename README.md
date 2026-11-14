@@ -90,6 +90,9 @@ python3 -m http.server 3000   # → http://localhost:3000
 ## 6. 프로필 설정 (이름/사진 직접 선택)
 SQL Editor 에서 `sql/03_profile.sql` 실행. 첫 로그인 시 프로필 설정 화면이 뜨고, 이후 메뉴 → 프로필 편집 또는 내 프로필 사진을 눌러 변경.
 
+## 캐릭터 닷(.)
+로고 끝 파란 점이 캐릭터가 된 '닷'. 모양·색·표정·크기·쓰는 곳은 [`docs/CHARACTER.md`](docs/CHARACTER.md), 원본은 `brand/dot-2d*.svg`(앱에서 사용) · `brand/dot-3d-clay.svg`(3D 질감 시안, 아직 미사용).
+
 ## SQL 목록 (`sql/`, 번호 순서대로 실행 · 여러 번 실행해도 안전)
 | 파일 | 내용 |
 |---|---|
