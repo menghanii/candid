@@ -86,7 +86,14 @@ SQL Editor 에서 `sql/03_profile.sql` 실행. 첫 로그인 시 프로필 설�
 | `05_social.sql` | 친구(follows), 좋아요, 댓글, 동영상·썸네일 |
 | `06_interact.sql` | 투표·질문 게시물, 투표 테이블 |
 | `07_handle.sql` | 아이디(@handle) |
+| `08_gacha.sql` | 가챠(뽑기권·아이템·인벤토리) |
+| `09_multi_stickers.sql` | 여러 장 게시물, 친구 사진 스티커 |
+| `10_free_stickers.sql` | 무료 스티커 목록(도구로 자동 생성) |
+| `11_hide.sql` | 피드에서 내리기(되돌리기 보관) |
+| `12_text_rotate.sql` | 스티커 텍스트·회전 |
+| `13_fix_sticker_policy.sql` | 스티커 붙이기 무한 반복(42P17) 수정 |
+| `14_indexes.sql` | 조회 성능용 인덱스 |
 | `demo/seed.sql` | (선택) 데모 친구 4명 + 게시물 |
 | `demo/cleanup.sql` | (선택) 데모 친구 전부 삭제 |
 
-새 SQL을 추가할 때는 다음 번호(`08_...sql`)로 만듭니다.
+새 SQL을 추가할 때는 다음 번호(`15_...sql`)로 만듭니다.

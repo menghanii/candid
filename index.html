@@ -1133,7 +1133,7 @@ async function renderProfile(uid, fresh) {
   try {
     res = await withTimeout(Promise.all([
       sb.from('profiles').select('*').eq('id', uid).maybeSingle(),
-      sb.from('posts').select('*').eq('owner_id', uid).order('created_at', { ascending: false }),
+      sb.from('posts').select(POST_COLS).eq('owner_id', uid).order('created_at', { ascending: false }),
     ]), 10000);
   } catch { return cached ? undefined : renderError(() => renderProfile(uid)); }
   if (pageKey() !== myKey) return; // 그 사이 다른 화면으로 이동함
@@ -1397,6 +1397,8 @@ const openFriends = openSearch;
 
 // ---------- 좋아요·댓글 (홈 릴스와 게시물 상세에서 공유) ----------
 const SOC = new Map(); // postId → { likes, liked, comments }
+// 게시물 조회 컬럼: select('*') 대신 화면에서 실제 쓰는 칸만 (media jsonb 등 큰 칸이 늘어도 영향 없게)
+const POST_COLS = 'id,owner_id,author_name,mission,text,image_path,thumb_path,media_type,media,poll_options,status,answer,answered_at,approved_at,created_at,hidden_at';
 async function loadSocial(ids) {
   if (!ids.length) return;
   ids.forEach(id => SOC.set(id, { likes: 0, liked: false, comments: 0 }));
@@ -1459,7 +1461,7 @@ async function openComments(id, ownerId) {
 let muted = true, HIDE_STK = false; // HIDE_STK: 릴스에서 스티커 숨김(세션 동안 유지)
 async function fetchHome() {
   const ids = [...myFollows];
-  const r = await withTimeout(sb.from('posts').select('*').in('owner_id', ids).eq('status', 'approved').order('approved_at', { ascending: false }).limit(40), 10000);
+  const r = await withTimeout(sb.from('posts').select(POST_COLS).in('owner_id', ids).eq('status', 'approved').order('approved_at', { ascending: false }).limit(40), 10000);
   if (r.error) throw r.error;
   const o = await sb.from('profiles').select('*').in('id', ids);
   await loadSocial(r.data.map(p => p.id));
