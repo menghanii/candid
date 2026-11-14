@@ -828,6 +828,9 @@
   .rcar .stage > img, .rcar .stage > video { max-height:none; aspect-ratio:4/5; }
   /* 릴스: 사진·영상을 자르지 않고 원본 비율 그대로(남는 곳은 흐린 배경). 비율은 불러온 뒤 --ar 로 */
   .rcar .stage.fit { width:min(100%, calc((100dvh - 2 * var(--rpad)) * var(--ar))); }
+  /* 여러 장: 장마다 비율이 달라도 각 장을 같은 영역의 정가운데에(위아래 여백 동일) */
+  .rcar .carwrap.multi, .rcar .car { height:100%; }
+  .rcar .slide { display:flex; align-items:center; justify-content:center; }
   .rcar .stage.fit > img, .rcar .stage.fit > video { aspect-ratio:var(--ar); object-fit:cover; }
   .rcar .car-n { top:8px; right:8px; }
   .rcar .car-dots { display:none; } /* 릴스는 오른쪽 위 1/3 표시로 충분(글과 겹치지 않게) */
