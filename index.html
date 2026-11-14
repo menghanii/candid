@@ -399,6 +399,15 @@
   .grid .from q { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:3px; font-size:11px; font-weight:700; line-height:1.3; letter-spacing:-.01em; word-break:keep-all; quotes:none; }
   .grid .from .pd { color:#7d97ff; }
   .grid button:has(q)::after { height:55%; background:linear-gradient(transparent, rgba(0,0,0,.5)); }
+  /* 위에서 내려오는 패널 (친구 검색) */
+  .sheet-wrap.from-top { align-items:flex-start; background-color:rgba(0,0,0,.55); }
+  .sheet-wrap.from-top .sheet { border-bottom:1px solid var(--line); box-shadow:0 12px 40px rgba(0,0,0,.35); }
+  .sheet-wrap.from-top .sheet { max-height:82vh; border-radius:0 0 24px 24px; padding:calc(12px + env(safe-area-inset-top)) 20px 8px; animation:down .32s cubic-bezier(.32,.72,0,1); }
+  @keyframes down { from { transform:translateY(-100%); } }
+  .sheet-wrap.from-top .grab { margin:14px auto 4px; }
+  .shead { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .shead h3 { margin:0; }
+  .shead .icon-btn { margin:0 -8px 0 0; }
 </style>
 </head>
 <body>
@@ -868,9 +877,9 @@ async function renderFriendsTab($b) {
 
 // ---------- 친구 검색 (검색어가 없으면 내 친구 목록) ----------
 async function openSearch() {
-  const w = sheet(`<h3>Find friends<i class="pd">.</i></h3>
+  const w = sheet(`<div class="shead"><h3>Find friends<i class="pd">.</i></h3><button class="icon-btn" aria-label="닫기" onclick="closeSheet()">${I.close}</button></div>
     <div class="sbox">${I.search}<input class="field" id="sq" type="search" placeholder="이름으로 친구 찾기" autocomplete="off" enterkeyhint="search"></div>
-    <div id="sr"><p class="hint">불러오는 중…</p></div>`);
+    <div id="sr"><p class="hint">불러오는 중…</p></div>`, null, { top: true });
   const $q = w.querySelector('#sq'), $r = w.querySelector('#sr');
   const row = p => `<div class="frow"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b>${p.bio ? `<small>${esc(p.bio)}</small>` : ''}</span></a>
     ${p.id === me?.id ? '<small style="color:var(--sub)">나</small>' : `<button class="btn ${myFollows.has(p.id) ? '' : 'add'}" onclick="toggleFollow('${p.id}', this)">${myFollows.has(p.id) ? '친구 ✓' : '친구 추가'}</button>`}</div>`;
@@ -1224,37 +1233,40 @@ function openPost(id) {
 
 // ---------- 바텀시트 ----------
 // guard: 배경을 눌러 닫기 전에 호출, false 를 돌려주면 닫지 않음
-function sheet(html, guard) {
+// opts.top: 위에서 내려오는 패널(상단 메뉴에서 여는 친구 검색 등)
+function sheet(html, guard, opts = {}) {
   closeSheet();
   const w = document.createElement('div');
-  w.className = 'sheet-wrap';
+  w.className = 'sheet-wrap' + (opts.top ? ' from-top' : '');
   w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
-  w.innerHTML = `<div class="sheet"><div class="grab"></div>${html}</div>`;
+  w.innerHTML = opts.top ? `<div class="sheet">${html}<div class="grab"></div></div>` : `<div class="sheet"><div class="grab"></div>${html}</div>`;
   w._guard = guard || (() => true);
   w.onclick = e => { if (e.target === w && w._guard()) closeSheet(); };
   document.body.appendChild(w);
   dragToClose(w);
   return w;
 }
-// 시트를 아래로 끌어서 닫기: 손가락을 따라 내려가고, 110px 이상 또는 빠르게 튕기면 닫힘
+// 시트를 끌어서 닫기: 아래 시트는 아래로, 위 패널은 위로. 110px 이상 또는 빠르게 튕기면 닫힘
 function dragToClose(w) {
   const sh = w.querySelector('.sheet');
+  const dir = w.classList.contains('from-top') ? -1 : 1;
+  const atEdge = () => dir === 1 ? sh.scrollTop <= 0 : sh.scrollTop + sh.clientHeight >= sh.scrollHeight - 1;
   let y0 = null, x0 = 0, t0 = 0, dy = 0, dragging = false;
   sh.addEventListener('touchstart', e => {
     const fromGrab = e.target.closest('.grab');
-    if (!fromGrab && (sh.scrollTop > 0 || e.target.closest('textarea, .chips'))) return y0 = null;
+    if (!fromGrab && (!atEdge() || e.target.closest('textarea, .chips'))) return y0 = null;
     y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; t0 = Date.now(); dy = 0; dragging = false;
   }, { passive: true });
   sh.addEventListener('touchmove', e => {
     if (y0 == null) return;
-    const ny = e.touches[0].clientY - y0, nx = e.touches[0].clientX - x0;
+    const ny = (e.touches[0].clientY - y0) * dir, nx = e.touches[0].clientX - x0;
     if (!dragging) {
       if (Math.abs(nx) > 10 && Math.abs(nx) > Math.abs(ny)) return y0 = null; // 가로 스와이프(칩 등)는 양보
-      if (ny > 6 && sh.scrollTop <= 0) { dragging = true; sh.style.transition = 'none'; document.activeElement?.blur?.(); } else return;
+      if (ny > 6 && atEdge()) { dragging = true; sh.style.transition = 'none'; document.activeElement?.blur?.(); } else return;
     }
     e.preventDefault();
     dy = Math.max(0, ny);
-    sh.style.transform = `translateY(${dy}px)`;
+    sh.style.transform = `translateY(${dy * dir}px)`;
     w.style.backgroundColor = `rgba(10,10,10,${0.45 * (1 - Math.min(1, dy / 400))})`;
   }, { passive: false });
   sh.addEventListener('touchend', () => {
@@ -1271,7 +1283,7 @@ function closeSheet() {
   const done = w._onClose; w._onClose = null;
   w.classList.add('closing');
   const sh = w.querySelector('.sheet');
-  sh.style.transition = 'transform .22s cubic-bezier(.32,.72,0,1)'; sh.style.transform = 'translateY(100%)';
+  sh.style.transition = 'transform .22s cubic-bezier(.32,.72,0,1)'; sh.style.transform = w.classList.contains('from-top') ? 'translateY(-100%)' : 'translateY(100%)';
   setTimeout(() => w.remove(), 230);
   done?.();
 }
