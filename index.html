@@ -154,6 +154,14 @@
   .menu-item.danger { color:var(--danger); font-weight:600; }
 
   /* 랜딩 */
+  .landing { position:relative; }
+  .landing > *:not(.wander) { position:relative; z-index:1; }
+  .wander { position:absolute; left:0; top:0; z-index:2; padding:0; border:0; background:none; cursor:pointer; transition-property:transform; transition-timing-function:cubic-bezier(.45,.05,.4,1); -webkit-tap-highlight-color:transparent; }
+  .wander .dotc { display:block; transition:transform .2s; filter:drop-shadow(0 6px 10px rgba(0,0,0,.25)); }
+  .wander.walk .dotc-b { animation:dotHop .38s cubic-bezier(.3,.7,.4,1) infinite; }
+  .wander.jump .dotc-b { animation:dotJump .6s cubic-bezier(.3,.7,.4,1); }
+  @keyframes dotJump { 0% { transform:scale(1.1,.9); } 35% { transform:translateY(-55%) scale(.92,1.08); } 70% { transform:translateY(0) scale(1.12,.88); } 100% { transform:none; } }
+  @media (prefers-reduced-motion: reduce) { .wander { transition:none; } .wander .dotc-b { animation:none !important; } }
   .landing { min-height:100vh; display:flex; flex-direction:column; padding:28px 24px calc(28px + env(safe-area-inset-bottom)); }
   .landing .hero { flex:1; display:flex; flex-direction:column; justify-content:center; }
   .snap:nth-child(2) { animation-delay:.1s; } .snap:nth-child(3) { animation-delay:.2s; }
@@ -1368,7 +1376,40 @@ function renderLanding(inviter) {
       })()}
       ${inKakao && all.includes('google') ? `<button class="fine linkish" onclick="openExternal()">Google로 하려면 Safari·Chrome에서 열기</button>` : ''}
       ${appFirst ? '' : '<p class="fine">친구는 로그인 없이 사진을 보낼 수 있어요.<br>내가 승인한 사진만 피드에 올라갑니다.</p>'}
+      ${inviter || appFirst ? '' : `<button class="wander" id="wander" aria-label="닷">${DOT('base', { size: 44 })}</button>`}
     </div>`;
+  startWander();
+}
+// 첫 화면에서 닷이 여기저기 돌아다님: 잠깐 서 있다가 → 통통 튀며 다른 곳으로 → 가끔 두리번. 누르면 깡충 + 웃음
+function startWander() {
+  const w = document.getElementById('wander'); if (!w) return;
+  const land = w.closest('.landing'), calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let x = 0, y = 0, face = 1, timer;
+  const box = () => {
+    const L = land.getBoundingClientRect(), stop = land.querySelector('.social, .inapp')?.getBoundingClientRect();
+    return { minX: 12, maxX: L.width - w.offsetWidth - 12, minY: 70, maxY: Math.max(90, (stop ? stop.top - L.top : L.height * .6) - w.offsetHeight - 16) };
+  };
+  const mood = m => { w.innerHTML = DOT(m, { size: 44 }); w.firstElementChild.style.transform = `scaleX(${face})`; };
+  const place = (dur = 0) => { w.style.transitionDuration = `${dur}ms`; w.style.transform = `translate(${x}px, ${y}px)`; };
+  const step = () => {
+    if (!w.isConnected) return;
+    const b = box();
+    if (Math.random() < .25) { // 두리번
+      mood('look'); timer = setTimeout(() => { if (w.isConnected) { mood('base'); step(); } }, 1200 + Math.random() * 900); return;
+    }
+    const nx = b.minX + Math.random() * (b.maxX - b.minX), ny = b.minY + Math.random() * (b.maxY - b.minY);
+    const dist = Math.hypot(nx - x, ny - y), dur = Math.min(2600, Math.max(700, dist / .12));
+    face = nx < x ? -1 : 1; w.firstElementChild.style.transform = `scaleX(${face})`;
+    x = nx; y = ny; w.classList.add('walk'); place(dur);
+    timer = setTimeout(() => { w.classList.remove('walk'); timer = setTimeout(step, 900 + Math.random() * 2200); }, dur);
+  };
+  const b0 = box(); x = b0.maxX * .82; y = b0.minY + (b0.maxY - b0.minY) * .5; place();
+  w.onclick = () => {
+    clearTimeout(timer); w.classList.remove('walk'); mood('happy');
+    w.classList.remove('jump'); void w.offsetWidth; w.classList.add('jump'); navigator.vibrate?.(8);
+    timer = setTimeout(() => { if (w.isConnected) { mood('base'); w.classList.remove('jump'); step(); } }, 1100);
+  };
+  if (!calm) timer = setTimeout(step, 1200);
 }
 
 // ---------- 프로필 ----------
