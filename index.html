@@ -668,6 +668,18 @@
   .ibanner { bottom:calc(80px + env(safe-area-inset-bottom)); }
   .rinfo { bottom:calc(84px + env(safe-area-inset-bottom)); }
   .rside { bottom:calc(88px + env(safe-area-inset-bottom)); }
+  /* 영상 구간 자르기 */
+  .trim { margin-top:12px; padding:12px 14px 10px; border-radius:16px; background:var(--soft); }
+  .trim[hidden] { display:none; }
+  .trim-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; font-size:13px; }
+  .trim-head span { color:var(--accent); font-weight:700; font-variant-numeric:tabular-nums; }
+  .trim small { display:block; margin-top:8px; color:var(--sub); font-size:11px; }
+  .trim-bar { position:relative; height:36px; border-radius:10px; background:repeating-linear-gradient(90deg, color-mix(in srgb, var(--fg) 14%, transparent) 0 2px, transparent 2px 10px), var(--card); }
+  .trim-sel { position:absolute; top:0; bottom:0; border:3px solid var(--accent); border-radius:10px; background:color-mix(in srgb, var(--accent) 18%, transparent); pointer-events:none; }
+  .trim-bar .tr { position:absolute; inset:0; width:100%; height:100%; margin:0; background:none; pointer-events:none; -webkit-appearance:none; appearance:none; }
+  .trim-bar .tr::-webkit-slider-thumb { -webkit-appearance:none; pointer-events:auto; width:18px; height:40px; border-radius:6px; background:var(--accent); border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,.3); cursor:ew-resize; }
+  .trim-bar .tr::-moz-range-thumb { pointer-events:auto; width:18px; height:40px; border-radius:6px; background:var(--accent); border:2px solid #fff; cursor:ew-resize; }
+  .trim-bar .tr::-webkit-slider-runnable-track { background:none; height:100%; }
 </style>
 </head>
 <body>
@@ -1707,6 +1719,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
       ${asked ? `<div class="asked">${name}님이 <b>'${esc(MISSIONS[mi])}'</b>을(를) 부탁했어요</div>` : ''}
       <section data-sec="media">
         <label class="cmp-media" id="pick"><span class="cmp-empty">${I.camera}<b>사진·영상 선택</b><small>여러 장 가능(최대 10장) · 영상은 10초까지</small></span><input type="file" accept="image/*,video/*" id="file" multiple hidden></label>
+        <div class="trim" id="trim" hidden></div>
         <input class="cmp-cap one" id="text" maxlength="80" placeholder="한마디 남기기… (예: 이 표정 레전드)" autocomplete="off" enterkeyhint="done">
       </section>
       <section data-sec="poll">
@@ -1782,9 +1795,10 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
     if (!ready.length) { media = null; pk.querySelector('.cmp-empty').innerHTML = `${I.camera}<b>다시 선택해 주세요</b><small>이 파일은 열 수 없어요</small>`; return refresh(); }
     if (ready.length < files.length) toast(`${files.length - ready.length}개는 열 수 없어서 뺐어요`);
     media = ready;
+    media.forEach(m => { if (m.kind === 'video') { m.start = 0; m.end = Math.min(m.duration, MAX_VIDEO_SEC); } });
     const one = m => m.kind === 'video'
       ? `<video src="${m.previewUrl}" poster="${URL.createObjectURL(m.thumb)}" muted playsinline autoplay loop></video>
-         <span class="vbadge">${m.duration > MAX_VIDEO_SEC + 0.5 ? `앞 ${MAX_VIDEO_SEC}초만 올라가요` : `${Math.round(m.duration)}초`}</span>`
+         <span class="vbadge">${Math.round((m.end - m.start) * 10) / 10}초</span>`
       : `<img src="${m.previewUrl}" alt="고른 사진">`;
     pk.classList.add('has');
     pk.innerHTML = media.length === 1 ? one(media[0]) + `<span class="repick">바꾸기</span>`
@@ -1792,7 +1806,42 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
          <span class="car-n">1/${media.length}</span><div class="car-dots">${media.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div></div><span class="repick">다시 고르기</span>`;
     pk.appendChild($file);
     initCarousels(pk, () => false);
+    // 영상 구간 자르기: 지금 보이는 장이 영상이면 아래에 구간 선택 바 표시
+    const curIdx = () => +(pk.querySelector('.carwrap')?.dataset.idx || 0);
+    const curVideoEl = () => { const sl = pk.querySelectorAll('.slide'); return (sl.length ? sl[curIdx()] : pk).querySelector('video'); };
+    pk.querySelector('[data-car]')?.addEventListener('scroll', () => setTimeout(showTrim, 60), { passive: true });
+    showTrim();
     refresh();
+    function showTrim() {
+      const m = media[curIdx()], box = $('#trim');
+      if (!m || m.kind !== 'video' || !(m.duration > 1)) { box.hidden = true; return; }
+      box.hidden = false;
+      const D = m.duration, fmt = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+      box.innerHTML = `<div class="trim-head"><b>영상 구간</b><span id="trimv"></span></div>
+        <div class="trim-bar"><div class="trim-sel" id="tsel"></div>
+          <input type="range" class="tr" id="ta" min="0" max="${D}" step="0.1" value="${m.start}" aria-label="시작">
+          <input type="range" class="tr" id="tb" min="0" max="${D}" step="0.1" value="${m.end}" aria-label="끝"></div>
+        <small>양쪽 손잡이를 끌어 올릴 부분을 골라요 · 최대 ${MAX_VIDEO_SEC}초</small>`;
+      const ta = box.querySelector('#ta'), tb = box.querySelector('#tb'), v = curVideoEl();
+      const paint = () => {
+        box.querySelector('#tsel').style.left = (m.start / D * 100) + '%';
+        box.querySelector('#tsel').style.width = ((m.end - m.start) / D * 100) + '%';
+        box.querySelector('#trimv').textContent = `${fmt(m.start)} – ${fmt(m.end)} · ${(Math.round((m.end - m.start) * 10) / 10)}초`;
+        const badge = (pk.querySelectorAll('.slide')[curIdx()] || pk).querySelector('.vbadge'); if (badge) badge.textContent = `${Math.round((m.end - m.start) * 10) / 10}초`;
+      };
+      const onMove = which => {
+        let a = +ta.value, b = +tb.value;
+        if (which === 'a') { a = Math.min(a, b - 1); if (b - a > MAX_VIDEO_SEC) b = a + MAX_VIDEO_SEC; }
+        else { b = Math.max(b, a + 1); if (b - a > MAX_VIDEO_SEC) a = b - MAX_VIDEO_SEC; }
+        m.start = Math.max(0, a); m.end = Math.min(D, b); ta.value = m.start; tb.value = m.end;
+        if (v) { v.currentTime = which === 'a' ? m.start : Math.max(m.start, m.end - 1); }
+        paint();
+      };
+      ta.oninput = () => onMove('a'); tb.oninput = () => onMove('b');
+      // 미리보기는 고른 구간만 반복
+      if (v && !v._trimLoop) { v._trimLoop = true; v.addEventListener('timeupdate', () => { const mm = media[curIdx()]; if (mm?.kind === 'video' && (v.currentTime >= mm.end || v.currentTime < mm.start - 0.3)) v.currentTime = mm.start; }); }
+      paint();
+    }
   };
   // 보내는 사람 선택 버튼
   let who = 'name';
@@ -1812,10 +1861,11 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
   if (mode === 'media' && pick) $file.click(); // 누르자마자 사진첩 (버튼 터치 안에서만 열 수 있음)
 
   $send.onclick = async () => {
+    if (mode === 'media') unlockMedia(media); // iPhone: 누른 순간에 재생 권한 확보(소리 포함 압축용)
     // 보내는 사람: 이름(로그인=내 프로필 / 비로그인=입력한 이름) 또는 익명(로그인이어도 내 계정 정보를 남기지 않음)
     const typed = $('#author')?.value.trim() || '';
     const author = who === 'anon' ? '익명의 친구' : me ? (myProf?.name || '친구').slice(0, 12) : (typed || '익명의 친구');
-    const by = who === 'anon' ? { author_name: '익명의 친구', author_id: null } : { ...by };
+    const by = who === 'anon' ? { author_name: '익명의 친구', author_id: null } : { author_name: author };
     $send.disabled = true;
     const status = t => { $send.textContent = t; };
     let ins;
@@ -1833,7 +1883,11 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
         for (const [i, m] of media.entries()) {
           const tag = n > 1 ? ` (${i + 1}/${n})` : '';
           let main = m.main;
-          if (m.kind === 'video') { status(`영상 줄이는 중${tag} 0%`); main = await compressVideo(m, p => status(`영상 줄이는 중${tag} ${Math.round(p * 100)}%`)); }
+          if (m.kind === 'video') {
+            status(`영상 줄이는 중${tag} 0%`);
+            main = await compressVideo(m, p => status(`영상 줄이는 중${tag} ${Math.round(p * 100)}%`));
+            if (main.silent) toast('이 기기에서는 소리를 담지 못해 소리 없이 올라가요');
+          }
           status(`올리는 중${tag}…`);
           const id = crypto.randomUUID();
           const path = `${S.uid}/${id}.${extOf(main)}`, tpath = `${S.uid}/${id}_t.${extOf(m.thumb)}`;
@@ -2618,51 +2672,80 @@ async function prepareVideoMeta(file) {
 }
 
 // 영상 압축: 720p·약 1.6Mbps 로 다시 인코딩(앞 10초까지). 10초 기준 약 2~3MB
+// iPhone 은 버튼을 누른 '바로 그 순간'에만 소리 있는 재생을 허락 → 보내기 누르자마자 오디오·영상 재생 권한을 미리 받아 둠
+function unlockMedia(list) {
+  try { const A = window.AudioContext || window.webkitAudioContext; window.__candidActx = window.__candidActx || new A(); window.__candidActx.resume(); } catch {}
+  (list || []).filter(m => m.kind === 'video' && !m.el).forEach(m => {
+    const v = document.createElement('video');
+    v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto'; v.src = URL.createObjectURL(m.file);
+    v.muted = false; v._unlocking = true;
+    const p = v.play(); if (p) p.then(() => { if (v._unlocking) v.pause(); }).catch(() => {}); // 압축이 이미 시작됐으면 멈추지 않음
+    m.el = v;
+  });
+}
+
+// 영상 압축: 고른 구간(최대 10초)만 720p·약 1.6Mbps 로 다시 인코딩
 async function compressVideo(meta, onProgress) {
-  const limit = Math.min(meta.duration || MAX_VIDEO_SEC, MAX_VIDEO_SEC);
+  const dur = meta.duration || MAX_VIDEO_SEC;
+  const start = Math.max(0, meta.start || 0), end = Math.min(meta.end ?? dur, start + MAX_VIDEO_SEC), len = Math.max(0.5, end - start);
+  const trimmed = start > 0.05 || end < dur - 0.05;
   const types = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
   const mime = window.MediaRecorder && HTMLCanvasElement.prototype.captureStream && types.find(t => MediaRecorder.isTypeSupported(t));
+  const originalOk = !trimmed && dur <= MAX_VIDEO_SEC + 0.5 && meta.file.size <= 10 * 1024 * 1024 && /^video\/(mp4|webm|quicktime)/.test(meta.file.type);
   const original = () => {
-    if (meta.duration <= MAX_VIDEO_SEC + 0.5 && meta.file.size <= 10 * 1024 * 1024 && /^video\/(mp4|webm|quicktime)/.test(meta.file.type)) return meta.file;
-    throw new Error('이 기기에서는 영상을 줄일 수 없어요. 10초·10MB 이하 영상으로 골라 주세요');
+    if (originalOk) return meta.file;
+    throw new Error('이 기기에서는 영상을 줄일 수 없어요. 더 짧거나 작은 영상으로 골라 주세요');
   };
   if (!mime) return original();
 
-  let v; try { v = await loadVideo(meta.file); } catch { return original(); }
-  if (!v.videoWidth) { await primeVideo(v); if (!v.videoWidth) return original(); }
-  v.muted = false; v.volume = 1; // 소리는 녹음용 오디오 그래프로만 보내고 스피커엔 연결하지 않음
+  let v = meta.el;
+  if (!v) { try { v = await loadVideo(meta.file); } catch { return original(); } }
+  if (v.readyState < 1) await within(new Promise(r => v.addEventListener('loadedmetadata', r, { once: true })), 8000).catch(() => {});
+  // iPhone 은 화면에 붙어 있지 않은 영상의 장면을 안 그릴 수 있음 → 보이지 않게 화면에 붙여 둠
+  Object.assign(v.style, { position: 'fixed', left: '0', top: '0', width: '2px', height: '2px', opacity: '0.01', pointerEvents: 'none', zIndex: '-1' });
+  document.body.appendChild(v);
+  const cleanup = () => { try { v.pause(); } catch {} v.remove(); };
+  if (!v.videoWidth) await primeVideo(v);
+  if (!v.videoWidth) { cleanup(); return original(); }
+
   const c = drawScaled(v, v.videoWidth, v.videoHeight, 720), g = c.getContext('2d');
   const stream = c.captureStream(30);
-  let actx;
+  let withAudio = true;
   try {
-    actx = new (window.AudioContext || window.webkitAudioContext)();
+    const A = window.AudioContext || window.webkitAudioContext;
+    const actx = window.__candidActx || (window.__candidActx = new A());
     const dest = actx.createMediaStreamDestination();
-    actx.createMediaElementSource(v).connect(dest);
+    actx.createMediaElementSource(v).connect(dest); // 스피커엔 연결 안 함(녹음용)
     dest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
-    await actx.resume();
-  } catch {}
+    await within(actx.resume(), 1500).catch(() => {});
+  } catch { withAudio = false; }
   const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 1_600_000, audioBitsPerSecond: 96_000 });
   const chunks = []; rec.ondataavailable = e => e.data.size && chunks.push(e.data);
   const done = new Promise(r => rec.onstop = r);
-
   let stop = false;
+  const finish = () => { if (stop) return; stop = true; try { v.pause(); } catch {} if (rec.state !== 'inactive') rec.stop(); };
   const draw = () => {
     if (stop) return;
     g.drawImage(v, 0, 0, c.width, c.height);
-    onProgress?.(Math.min(1, v.currentTime / limit));
-    if (v.currentTime >= limit || v.ended) { stop = true; v.pause(); rec.state !== 'inactive' && rec.stop(); return; }
+    onProgress?.(Math.min(1, Math.max(0, (v.currentTime - start) / len)));
+    if (v.currentTime >= end || v.ended) return finish();
     v.requestVideoFrameCallback ? v.requestVideoFrameCallback(draw) : requestAnimationFrame(draw);
   };
-  await seek(v, 0).catch(() => {});
+  v._unlocking = false; // 미리 받아 둔 재생 권한의 '잠깐 재생 후 멈춤'이 늦게 와도 무시
+  await seek(v, start).catch(() => {});
   rec.start(250);
-  try { await v.play(); } catch { stop = true; rec.stop(); await done; actx?.close(); return original(); }
+  v.muted = false;
+  let played = false;
+  try { await within(v.play(), 3000); played = true; } catch {}
+  if (!played) { v.muted = true; withAudio = false; try { await within(v.play(), 3000); played = true; } catch {} } // 소리 재생이 막히면 소리 없이라도
+  if (!played) { finish(); await done; cleanup(); return original(); }
   draw();
-  const guard = setTimeout(() => { if (!stop) { stop = true; v.pause(); rec.state !== 'inactive' && rec.stop(); } }, (limit + 6) * 1000);
-  await done; clearTimeout(guard); actx?.close();
+  const guard = setTimeout(finish, (len + 6) * 1000);
+  await done; clearTimeout(guard); cleanup();
   const out = new Blob(chunks, { type: mime.split(';')[0] });
-  // 다시 인코딩한 게 더 크면(이미 작은 영상) 원본 사용
-  if (!out.size) return original();
-  try { if (out.size >= meta.file.size) return original(); } catch {}
+  if (out.size < 20000) return original();              // 거의 비어 있으면 실패로 보고 원본
+  if (originalOk && out.size >= meta.file.size) return meta.file; // 이미 작은 원본이면 원본
+  out.silent = !withAudio;
   return out;
 }
 
