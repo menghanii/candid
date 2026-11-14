@@ -1945,6 +1945,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
     if (dirty() && !confirm('작성 중인 내용이 사라져요. 닫을까요?')) { if (fromPop) history.pushState({ compose: 1 }, ''); return; }
     removeEventListener('popstate', onPop); el.remove();
     if (!fromPop && history.state?.compose) history.back();
+    setTimeout(maybeShowInstall, 800); // 링크로 들어오면 작성 화면이 먼저 떠서 배너가 밀려 있었음 → 닫은 뒤에 보여줌
   };
   const onPop = () => document.body.contains(el) ? close(true) : removeEventListener('popstate', onPop);
   addEventListener('popstate', onPop);
@@ -2108,10 +2109,12 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
       <button class="btn primary block" id="more">${what} 하나 더 보내기</button>
       ${me && !S.isOwner && !myFollows.has(S.uid) ? `<button class="btn add block" id="fol">${name} 친구 추가 · 새 소식을 홈에서 보기</button>` : ''}
       ${S.isOwner ? '' : me ? '' : `<button class="btn block" id="mine">나도 받아볼래 — 내 피드 만들기</button>`}
+      ${canInstall() ? `<button class="btn block" id="inst">📲 candid. 앱으로 쓰기</button>` : ''}
       <button class="btn block" style="border:0;background:none;color:var(--sub)" id="done">닫기</button></div>`;
-    const done = () => { el.remove(); if (history.state?.compose) history.back(); };
+    const done = () => { el.remove(); if (history.state?.compose) history.back(); setTimeout(maybeShowInstall, 800); };
     $('#done').onclick = done;
     $('#more').onclick = () => { el.remove(); openCompose(0, false, mode); };
+    const inst = $('#inst'); if (inst) inst.onclick = () => startInstall();
     const fol = $('#fol'); if (fol) fol.onclick = () => { toggleFollow(S.uid); fol.remove(); };
     const mine = $('#mine'); if (mine) mine.onclick = () => { try { localStorage.setItem('candid_ref', JSON.stringify({ uid: S.uid, name: S.prof.name })); } catch {} location.href = location.pathname; };
   };
