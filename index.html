@@ -402,8 +402,9 @@
   .stat-btn span { font-size:11px; color:var(--sub); }
   .stat-btn.on span { color:var(--fg); }
   .notis .pov-h b { flex:1; font-family:var(--sans); font-size:17px; letter-spacing:-.02em; }
-  .nlist { padding:4px 0 24px; }
-  .nrow { display:flex; width:100%; align-items:center; gap:12px; padding:12px 16px; border:0; background:none; color:inherit; font:inherit; text-align:left; }
+  .nlist { margin:0 -20px; padding:0 0 8px; }
+  .nlist .hint { padding-left:20px !important; padding-right:20px; }
+  .nrow { display:flex; width:100%; align-items:center; gap:12px; padding:11px 20px; border:0; background:none; color:inherit; font:inherit; text-align:left; }
   .nrow.new { background:color-mix(in srgb, var(--accent) 9%, transparent); }
   .nrow .ntx { flex:1; min-width:0; font-size:14px; line-height:1.45; word-break:keep-all; }
   .nrow .ntx small { display:block; margin-top:2px; color:var(--sub); font-size:12px; }
@@ -2437,16 +2438,16 @@ function notiText(i) {
   }
 }
 async function openNotis() {
-  const el = pageOverlay('notis', `<header class="pov-h"><button class="icon-btn" data-x aria-label="닫기">${I.close}</button><b>알림</b></header>
-    <div class="nlist" id="nl"><p class="hint" style="padding:24px 20px">불러오는 중…</p></div>`);
-  el.querySelector('[data-x]').onclick = () => el.remove();
+  // 검색처럼 위에서 내려오는 패널
+  const el = sheet(`<div class="shead"><h3>Notifications<i class="pd">.</i></h3><button class="icon-btn" aria-label="닫기" onclick="closeSheet()">${I.close}</button></div>
+    <div class="nlist" id="nl"><p class="hint" style="padding:16px 0">불러오는 중…</p></div>`, null, { top: true });
   let items; try { items = await fetchNotis(true); } catch (e) { return el.querySelector('#nl').innerHTML = `<p class="hint" style="padding:24px 20px">${esc(kerr(e))}</p>`; }
   if (!el.isConnected) return;
   const seen = notiSeen();
   try { localStorage.setItem(notiKey(), Date.now()); } catch {}
   NOTI.unread = 0; const d = document.getElementById('notidot'); if (d) d.hidden = true;
   const $l = el.querySelector('#nl');
-  if (!items.length) return $l.innerHTML = `<div class="empty"><h2>All <em>quiet.</em></h2><p>친구가 사진을 보내거나, 좋아요·댓글·꾸미기를 하면 여기 떠요.</p></div>`;
+  if (!items.length) return $l.innerHTML = `<p class="hint" style="padding:16px 0 20px">아직 알림이 없어요. 친구가 사진을 보내거나 좋아요·댓글·꾸미기를 하면 여기 떠요.</p>`;
   $l.innerHTML = items.map((i, x) => {
     const p = i.post, thumb = p && !isText(p) && mediaOf(p).length ? `<img class="nthumb" src="${thumbUrl(p)}" alt="" loading="lazy">` : '';
     const av = i.prof ? avatar(i.prof, 'xs') : `<div class="av xs">${esc((i.name || '?').slice(0, 1))}</div>`;
@@ -2456,10 +2457,10 @@ async function openNotis() {
   $l.querySelectorAll('[data-fol]').forEach(b => b.onclick = e => { e.stopPropagation(); toggleFollow(b.dataset.fol); b.remove(); });
   $l.querySelectorAll('.nrow').forEach(b => b.onclick = () => {
     const i = items[+b.dataset.i];
-    if (i.k === 'follow') { el.remove(); return go(feedUrl(i.uid)); }
-    if (i.k === 'post') { el.remove(); return openInbox(); }
+    if (i.k === 'follow') { closeSheet(); return go(feedUrl(i.uid)); }
+    if (i.k === 'post') { closeSheet(); return openInbox(); }
     if (!i.post || !findPost(i.post.id)) return toast('지금은 볼 수 없는 게시물이에요');
-    el.remove(); openPost(i.post.id);
+    closeSheet(); openPost(i.post.id);
     if (i.k === 'comment') setTimeout(() => { const c = document.querySelector('.overlay .pbtn[data-cmt]'); if (c) focusPostComments(c); }, 300);
   });
 }
