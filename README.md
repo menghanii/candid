@@ -35,7 +35,7 @@ supabase/functions/notify-owner/  푸시 발송 서버 함수
 하나만 쓸 거면 `config.js` 의 `PROVIDERS` 에서 다른 하나를 지우기.
 
 **Authentication → URL Configuration**
-- Site URL: 배포 주소 (예: `https://candid.ymhhaker.workers.dev/`)
+- Site URL: 배포 주소 (예: `https://candid.candidcrew.workers.dev/`)
 - Redirect URLs: 배포 주소와 `http://localhost:3000/**` 추가
 
 > 배포 도메인을 바꾸면(예: GitHub Pages → Cloudflare Pages) Site URL / Redirect URLs 도 새 도메인으로 바꿔야 로그인이 됩니다.
@@ -46,7 +46,7 @@ python3 -m http.server 3000   # → http://localhost:3000
 ```
 
 ## 4. 무료 배포 — Cloudflare
-현재 배포: **https://candid.ymhhaker.workers.dev**
+현재 배포: **https://candid.candidcrew.workers.dev**
 
 - **Workers**: Workers & Pages → Create → Workers → Git 연결(Workers Builds) 또는 Wrangler 로 배포. 빌드 없이 저장소 루트를 정적 자산으로 올립니다.
 - **Pages(대안)**: Workers & Pages → Create → Pages → Connect to Git → Framework preset None, Build command 비움, Build output directory `/`.
