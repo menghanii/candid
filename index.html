@@ -15,8 +15,8 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
-<link rel="icon" type="image/png" sizes="32x32" href="brand/icon-32.png?v=2">
-<link rel="apple-touch-icon" sizes="180x180" href="brand/icon-180.png?v=2">
+<link rel="icon" type="image/png" sizes="32x32" href="brand/icon-32.png?v=3">
+<link rel="apple-touch-icon" sizes="180x180" href="brand/icon-180.png?v=3">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="candid.">
@@ -1342,7 +1342,7 @@ function renderLanding(inviter) {
         <h1><em>${esc(inviter.name)}</em>님이<br>초대했어요</h1>
         <p class="tagline">친구들이 내 피드를 채워주는 앱, candid.<br>앱을 설치하면 친구가 사진을 보낼 때 바로 알림이 와요.</p></div>
         <button class="btn primary block inv-install" onclick="installNow()">📲 앱 설치하고 시작하기</button>
-        <div class="inv-or">또는 웹에서 바로 시작</div>` : appFirst ? `<div class="hero app1"><img class="app1-ic" src="brand/icon-180.png?v=2" alt="">
+        <div class="inv-or">또는 웹에서 바로 시작</div>` : appFirst ? `<div class="hero app1"><img class="app1-ic" src="brand/icon-180.png?v=3" alt="">
         <h1>거의 다 됐어요<em>!</em></h1>
         <p class="tagline">홈 화면 앱은 브라우저와 로그인이 따로예요.<br>여기서 <b style="color:var(--fg)">한 번만</b> 다시 로그인해 주세요.</p></div>` : `
       <div class="hero">
@@ -2486,7 +2486,7 @@ function maybeShowInstall() {
   if (!kind || document.querySelector('.ibanner, .composer, .cmp-done')) return;
   try { if (sessionStorage.getItem('candid_install_closed')) return; } catch {} // 이번 방문에서 닫았으면 그만
   const b = document.createElement('div'); b.className = 'ibanner';
-  b.innerHTML = `<img src="brand/icon-180.png?v=2" alt="">
+  b.innerHTML = `<img src="brand/icon-180.png?v=3" alt="">
     <div><b>candid. 앱으로 쓰기</b><span>${kind === 'inapp' ? 'Safari·Chrome에서 열면 설치할 수 있어요' : '홈 화면에 추가하면 새 사진 알림도 받아요'}</span></div>
     <button class="btn primary">${kind === 'android' ? '설치' : kind === 'ios' ? '방법 보기' : '열기'}</button>
     <button class="ix" aria-label="닫기">${I.close}</button>`;
@@ -2699,7 +2699,7 @@ function showInstallGuide() {
     arrow = 'center';
   }
   el.innerHTML = `<button class="ig-x" aria-label="닫기">${I.close}</button>
-    <img class="ig-ic" src="brand/icon-180.png?v=2" alt="">
+    <img class="ig-ic" src="brand/icon-180.png?v=3" alt="">
     <h2>홈 화면에 추가하기</h2>
     <p>앱처럼 바로 열리고, 친구가 사진을 보내면 알림이 와요.</p>
     ${otherIOS ? `<button class="btn primary block" id="igsafari" style="margin-bottom:18px">Safari로 열기 (추천)</button><p class="ig-sub" style="margin:-8px 0 20px">안 열리면 아래 방법으로 여기서 바로 추가해도 돼요</p>` : ''}
