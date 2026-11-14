@@ -658,6 +658,16 @@
   .who-card small { display:block; color:var(--sub); font-size:12px; }
   .who-card .av.xs { width:36px; height:36px; }
   .who-ic { width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:var(--soft); font-size:20px; flex:none; }
+  /* 하단 바: 바닥에 붙은 고정형 (iPhone 홈 화면 앱 첫 실행 시 떠 보이는 현상 방지) */
+  .bnav { bottom:0 !important; top:auto; width:100%; max-width:480px; height:auto; padding:8px 14px max(env(safe-area-inset-bottom), 10px); gap:6px;
+    border-radius:24px 24px 0 0; border:1px solid var(--line); border-bottom:0; box-shadow:0 -6px 24px rgba(0,0,0,.12); }
+  .bnav button { height:46px; }
+  .bnav.dark { box-shadow:0 -6px 24px rgba(0,0,0,.4); }
+  .app.has-nav { padding-bottom:calc(76px + env(safe-area-inset-bottom)); }
+  body:has(.bnav) .toast { bottom:calc(84px + env(safe-area-inset-bottom)); }
+  .ibanner { bottom:calc(80px + env(safe-area-inset-bottom)); }
+  .rinfo { bottom:calc(84px + env(safe-area-inset-bottom)); }
+  .rside { bottom:calc(88px + env(safe-area-inset-bottom)); }
 </style>
 </head>
 <body>
@@ -2278,6 +2288,19 @@ async function openDecorate(postId) {
   };
   paint();
 }
+// iPhone 홈 화면 앱: 첫 실행 직후 화면 높이를 잘못 잡아 하단 고정 요소가 떠 보이는 현상 → 켜질 때·다시 보일 때 다시 계산
+(function fixViewport() {
+  const fix = () => {
+    document.documentElement.style.setProperty('--app-h', innerHeight + 'px');
+    if (scrollY === 0 && !document.querySelector('.reels')) { scrollTo(0, 1); scrollTo(0, 0); } // 레이아웃 강제 갱신
+  };
+  addEventListener('load', () => { fix(); setTimeout(fix, 300); setTimeout(fix, 1000); });
+  addEventListener('pageshow', () => setTimeout(fix, 50));
+  addEventListener('orientationchange', () => setTimeout(fix, 300));
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(fix, 50); });
+  visualViewport?.addEventListener('resize', () => document.documentElement.style.setProperty('--app-h', innerHeight + 'px'));
+})();
+
 // ---------- 주인장 액션 ----------
 const closeLayers = () => { closeSheet(); document.querySelector('.overlay')?.remove(); };
 const leaveRow = id => new Promise(r => {
