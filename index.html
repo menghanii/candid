@@ -577,7 +577,8 @@
   .cmp-done { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-height:100vh; padding:24px 24px calc(24px + env(safe-area-inset-bottom)); text-align:center; }
   .cmp-done h2 { font-family:var(--display); font-weight:800; font-size:40px; letter-spacing:-.05em; margin:4px 0; }
   .cmp-done p { color:var(--sub); line-height:1.6; margin:0 0 16px; }
-  .cmp-done .btn { width:100%; }
+  .cmp-done .btn { width:100%; flex:none; }
+  .cmp-done { max-width:420px; margin:0 auto; }
   .cmp-check { width:64px; height:64px; border-radius:50%; background:var(--accent); color:#fff; font-size:32px; font-weight:800; display:flex; align-items:center; justify-content:center; animation:pop .5s cubic-bezier(.2,1.6,.4,1); }
   /* ===== 여러 장 슬라이드 + 사진 위 스티커 ===== */
   .carwrap { position:relative; }
@@ -1908,7 +1909,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
     removeEventListener('popstate', onPop);
     el.innerHTML = `<div class="cmp-done">
       <div class="cmp-check">✓</div><h2>Sent<i class="pd">.</i></h2>
-      <p>${mode === 'question' ? `${name}님이 답하면 질문과 함께 피드에 올라가요.` : `${name}님이 승인하면 피드에 올라가요.`}<br>누가 보냈는지는 이름으로만 보여요.</p>
+      <p>${mode === 'question' ? `${name}님이 답하면 질문과 함께 피드에 올라가요.` : `${name}님이 승인하면 피드에 올라가요.`}<br>${who === 'anon' ? '🎭 익명으로 보냈어요' : `‘${esc(author)}’ 이름으로 보냈어요`}</p>
       <button class="btn primary block" id="more">${what} 하나 더 보내기</button>
       ${me && !S.isOwner && !myFollows.has(S.uid) ? `<button class="btn add block" id="fol">${name} 친구 추가 · 새 소식을 홈에서 보기</button>` : ''}
       ${S.isOwner ? '' : me ? '' : `<button class="btn block" id="mine">나도 받아볼래 — 내 피드 만들기</button>`}
