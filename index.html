@@ -683,7 +683,7 @@
   .trim-bar .tr::-webkit-slider-runnable-track { background:none; height:100%; }
   /* 릴스: 하트 위 피드 주인 프로필 (누르면 친구 피드로) */
   .rav { display:flex; flex-direction:column; align-items:center; gap:5px; margin-bottom:6px; color:#fff; text-decoration:none; font-size:11px; font-weight:700; filter:drop-shadow(0 1px 6px rgba(0,0,0,.35)); }
-  .rav .av.xs { width:46px; height:46px; box-shadow:0 0 0 2px #fff; }
+  .rav .av.xs { width:32px; height:32px; box-shadow:0 0 0 1.5px #fff; }
   .rav b { max-width:64px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .rav:active .av { transform:scale(.92); }
   .rfrom { margin-top:0; }
@@ -701,6 +701,25 @@
   .dsz[hidden] { display:none; }
   .dsz small { font-size:12px; font-weight:700; color:var(--sub); }
   .dsz input { flex:1; accent-color:var(--accent); }
+  /* 대기 피드 구역 */
+  .isec { display:flex; align-items:center; gap:8px; padding:18px 20px 4px; font-size:14px; }
+  .isec span { min-width:22px; padding:1px 8px; border-radius:999px; background:var(--soft); color:var(--sub); font-size:12px; font-weight:700; text-align:center; }
+  .row.hid { opacity:.85; }
+  .row.hid .thumb { filter:grayscale(.4); }
+  .empty.small { padding:20px 28px 24px; }
+  .empty.small h2 { font-size:22px; }
+  /* 릴스: 사진은 위, 글(from·메시지·시간)은 사진 아래 전용 영역 → 글이 사진을 가리지 않음 */
+  :root { --rtop:calc(56px + var(--st)); --rbot:calc(84px + 104px + env(safe-area-inset-bottom)); }
+  .rcar { align-items:center; padding:var(--rtop) 0 var(--rbot); }
+  .rcar .carwrap { width:100%; }
+  .rcar .stage { width:min(100%, calc((100dvh - var(--rtop) - var(--rbot)) * 0.8)); margin:0 auto; }
+  .rcar .stage > img, .rcar .stage > video { max-height:none; aspect-ratio:4/5; }
+  .rcar .car-n { top:8px; right:8px; }
+  .rcar .car-dots { bottom:-18px; }
+  .rinfo { bottom:calc(88px + env(safe-area-inset-bottom)); right:20px; }
+  .rinfo .rtext { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:16px; }
+  .reel::after { height:calc(var(--rbot) + 20px); background:linear-gradient(transparent, rgba(0,0,0,.55) 40%); }
+  .rside { bottom:calc(var(--rbot) + 8px); }
 </style>
 </head>
 <body>
@@ -1090,6 +1109,7 @@ async function renderProfile(uid, fresh) {
   S.uid = uid; S.prof = prof; S.isOwner = me?.id === uid; S.fetchedAt = Date.now();
   S.approved = posts.filter(p => p.status === 'approved');
   S.pending = posts.filter(p => p.status === 'pending');
+  S.hidden = posts.filter(p => p.status === 'hidden').sort((a, b) => new Date(b.hidden_at || 0) - new Date(a.hidden_at || 0)); // 주인이 피드에서 내린 것
   await loadPolls(S.approved).catch(() => {});
   await loadStickers(S.approved.filter(p => !isText(p)).map(p => p.id)).catch(() => {});
   if (!S.isOwner) S.tab = 'grid';
@@ -1180,7 +1200,24 @@ function renderBody() {
   const { isOwner, approved, pending, prof, uid } = S;
   if (S.tab === 'friends' && isOwner) return renderFriendsTab($b);
   if (S.tab === 'inbox') {
-    $b.innerHTML = pending.length
+    // 대기 피드 = ① 승인을 기다리는 피드 ② 되돌리기한 피드(내가 피드에서 내린 것, 나만 보임)
+    const hidden = S.hidden || [];
+    const thumbBtn = p => `<button class="thumb" onclick="openPost('${p.id}')" aria-label="크게 보기">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="${esc(p.author_name)}가 보낸 사진">`}</button>`;
+    const hiddenHTML = hidden.length ? `<div class="isec"><b>되돌리기한 피드</b><span>${hidden.length}</span></div>
+      <div class="note">내가 피드에서 내린 것들이에요. 나만 볼 수 있고, 언제든 다시 올릴 수 있어요.</div>
+      ${hidden.map(p => `
+        <div class="row hid">
+          ${thumbBtn(p)}
+          <div class="meta">
+            <div class="t">${esc(p.text) || '<span style="color:var(--sub)">코멘트 없음</span>'}</div>
+            <small>${esc(p.author_name)} · ${ago(p.hidden_at || p.created_at)} 내림</small>
+          </div>
+          <div class="ab">
+            <button class="btn primary" onclick="restorePost('${p.id}')">다시 올리기</button>
+            <button class="btn" onclick="removePost('${p.id}')">삭제</button>
+          </div>
+        </div>`).join('')}` : '';
+    $b.innerHTML = `<div class="isec"><b>승인을 기다리는 피드</b><span>${pending.length}</span></div>` + (pending.length
       ? `<div class="note">승인한 것만 피드에 올라가요. 거절해도 친구에게 알림이 가지 않아요.</div>
          ${pending.map(p => `
           <div class="row">
@@ -1195,7 +1232,7 @@ function renderBody() {
               <button class="btn" onclick="removePost('${p.id}')">거절</button>
             </div>
           </div>`).join('')}`
-      : `<div class="empty"><h2>All clear<i class="pd">.</i></h2><p>대기 중인 사진이 없어요.<br>친구가 사진을 보내면 여기에 모여요.</p></div>`;
+      : `<div class="empty small"><h2>All clear<i class="pd">.</i></h2><p>승인을 기다리는 게시물이 없어요.<br>친구가 보내면 여기에 모여요.</p></div>`) + hiddenHTML;
     return;
   }
   if (approved.length) {
@@ -1612,7 +1649,7 @@ const findAny = id => (S.approved && findPost(id)) || HOME.posts.find(x => x.id 
 })();
 
 // ---------- 게시물 상세 ----------
-const findPost = id => [...S.approved, ...S.pending].find(x => x.id === id);
+const findPost = id => [...S.approved, ...S.pending, ...(S.hidden || [])].find(x => x.id === id);
 
 function openPost(id) {
   const p = findPost(id);
@@ -1631,7 +1668,7 @@ function openPost(id) {
         <button class="pbtn" data-like="${p.id}" aria-label="좋아요" onclick="toggleLike('${p.id}')"><span>${I.heart}</span><b></b></button>
         <button class="pbtn" data-cmt="${p.id}" aria-label="댓글" onclick="openComments('${p.id}','${p.owner_id}')"><span>${I.comment}</span><b></b></button></div>` : ''}
       <div class="post-f">
-        ${p.status === 'pending' ? `받은 지 ${ago(p.created_at)} · 승인 대기 중` : `${ago(p.approved_at || p.created_at)} 피드에 올림`}
+        ${p.status === 'pending' ? `받은 지 ${ago(p.created_at)} · 승인 대기 중` : p.status === 'hidden' ? `${ago(p.hidden_at || p.created_at)} 피드에서 내림 · 나만 보여요` : `${ago(p.approved_at || p.created_at)} 피드에 올림`}
         <div class="sp"></div>
         ${me && p.status === 'approved' && !isText(p) ? `<button class="icon-btn" aria-label="스티커로 꾸미기" onclick="openDecorate('${p.id}')">${I.stickerIc}</button>` : ''}
         ${S.isOwner && p.status === 'approved' ? `<button class="icon-btn" aria-label="스토리 이미지 저장" onclick="makeStory('${p.id}')">${I.share}</button>` : ''}
@@ -1640,6 +1677,9 @@ function openPost(id) {
       ${S.isOwner && p.status === 'pending' ? `<div class="pending-acts">
         <button class="btn" onclick="removePost('${p.id}')">거절</button>
         ${p.media_type === 'question' ? `<button class="btn primary" onclick="openAnswer('${p.id}')">답하기</button>` : `<button class="btn primary" onclick="approve('${p.id}')">피드에 올리기</button>`}</div>` : ''}
+      ${S.isOwner && p.status === 'hidden' ? `<div class="pending-acts">
+        <button class="btn" onclick="removePost('${p.id}')">삭제</button>
+        <button class="btn primary" onclick="restorePost('${p.id}')">다시 올리기</button></div>` : ''}
     </article>`;
   ov.onclick = e => { if (e.target === ov || e.target.closest('[data-close]')) ov.remove(); };
   document.body.appendChild(ov);
@@ -1723,8 +1763,11 @@ function postMenu(id) {
   menu(`${p.media_type === 'question' ? `<button class="menu-item" onclick="openAnswer('${id}')">${p.answer ? '답 수정하기' : '답하기'}</button>` : ''}
         ${p.status === 'pending'
           ? (p.media_type === 'question' ? '' : `<button class="menu-item" onclick="approve('${id}')">승인하기</button>`)
+          : p.status === 'hidden' ? `<button class="menu-item" onclick="restorePost('${id}')">다시 올리기</button>`
           : `<button class="menu-item" onclick="makeStory('${id}')">스토리 이미지 저장</button>`}
-        <button class="menu-item danger" onclick="removePost('${id}')">${p.status === 'pending' ? '거절하기' : '피드에서 내리기'}</button>`);
+        ${p.status === 'approved'
+          ? `<button class="menu-item danger" onclick="hidePost('${id}')">피드에서 내리기</button>`
+          : `<button class="menu-item danger" onclick="removePost('${id}')">${p.status === 'pending' ? '거절하기' : '완전히 삭제'}</button>`}`);
 }
 
 // 업로드: 인스타·유튜브처럼 누르면 바로 사진첩이 열리고, 고르면 전체 화면 작성 화면
@@ -2459,16 +2502,38 @@ async function commitDelete(id) {
 }
 addEventListener('pagehide', () => [...pendingDeletes.keys()].forEach(commitDelete));
 
+// 피드에서 내리기: 삭제하지 않고 '되돌리기한 피드'로 보관(나만 보임)
+async function hidePost(id) {
+  const p = findPost(id); if (!p || p.status !== 'approved') return;
+  closeLayers();
+  const at = new Date().toISOString();
+  const { error } = await sb.from('posts').update({ status: 'hidden', hidden_at: at }).eq('id', id);
+  if (error) return toast(/check|constraint|23514/i.test(error.message + error.code) ? '아직 준비 중이에요(관리자: 11_hide.sql 실행 필요)' : kerr(error));
+  S.approved = S.approved.filter(x => x.id !== id);
+  Object.assign(p, { status: 'hidden', hidden_at: at }); (S.hidden = S.hidden || []).unshift(p);
+  paintProfile();
+  toast('피드에서 내렸어요 · 대기 피드에 보관돼요', { label: '되돌리기', fn: () => restorePost(id) });
+}
+// 다시 올리기: 원래 위치(처음 승인한 시간)로 복귀
+async function restorePost(id) {
+  const p = findPost(id); if (!p || p.status !== 'hidden') return;
+  closeLayers();
+  const { error } = await sb.from('posts').update({ status: 'approved', hidden_at: null }).eq('id', id);
+  if (error) return toast(kerr(error));
+  S.hidden = S.hidden.filter(x => x.id !== id);
+  Object.assign(p, { status: 'approved', hidden_at: null }); S.approved.push(p);
+  S.justApproved = id; paintProfile(); toast('다시 피드에 올렸어요');
+}
 async function removePost(id) {
   const p = findPost(id); if (!p) return;
   const wasPending = p.status === 'pending';
   closeLayers(); if (wasPending) await leaveRow(id);
-  const list = wasPending ? 'pending' : 'approved';
+  const list = wasPending ? 'pending' : p.status === 'hidden' ? 'hidden' : 'approved';
   const idx = S[list].indexOf(p);
   S[list] = S[list].filter(x => x.id !== id); paintProfile();
   const restore = () => { S[list].splice(idx, 0, p); paintProfile(); };
   pendingDeletes.set(id, { p, restore, timer: setTimeout(() => commitDelete(id), 5000) });
-  toast(wasPending ? '조용히 정리했어요' : '피드에서 내렸어요', { label: '되돌리기', fn: () => {
+  toast(wasPending ? '조용히 정리했어요' : '삭제했어요', { label: '되돌리기', fn: () => {
     const job = pendingDeletes.get(id); if (!job) return;
     clearTimeout(job.timer); pendingDeletes.delete(id); restore();
   } });
