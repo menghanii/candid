@@ -51,17 +51,26 @@ drop policy if exists "stickers read" on public.post_stickers;
 create policy "stickers read" on public.post_stickers for select
   using (exists (select 1 from public.posts p where p.id = post_id and p.status = 'approved'));
 
--- 붙이기: 로그인 + 가챠로 가진 스티커만 + 1인당 사진 1장에 5개, 사진 1장 전체 30개까지
+-- 붙이기: 로그인 + 조건 확인은 함수로(같은 테이블 재조회로 인한 무한 반복 방지)
+create or replace function public.can_add_sticker(p_post uuid, p_idx int, p_item text) returns boolean
+language sql stable security definer set search_path = '' as $
+  select
+    -- 피드에 올라간 사진·영상 게시물에만
+    exists (select 1 from public.posts p where p.id = p_post and p.status = 'approved' and p.media_type in ('image', 'video'))
+    -- 무료 스티커이거나, 가챠로 가진 스티커만
+    and exists (select 1 from public.items t where t.id = p_item and t.kind = 'sticker'
+                 and (coalesce((t.data->>'free')::boolean, false)
+                      or exists (select 1 from public.inventory i where i.user_id = auth.uid() and i.item_id = t.id)))
+    -- 사진 1장에 1인 10개, 전체 40개까지
+    and (select count(*) from public.post_stickers s where s.post_id = p_post and s.media_idx = p_idx and s.user_id = auth.uid()) < 10
+    and (select count(*) from public.post_stickers s where s.post_id = p_post and s.media_idx = p_idx) < 40
+$;
+revoke all on function public.can_add_sticker(uuid, int, text) from public, anon;
+grant execute on function public.can_add_sticker(uuid, int, text) to authenticated;
+
 drop policy if exists "stickers add own" on public.post_stickers;
 create policy "stickers add own" on public.post_stickers for insert to authenticated
-  with check (
-    user_id = auth.uid()
-    and exists (select 1 from public.posts p where p.id = post_id and p.status = 'approved' and p.media_type in ('image', 'video'))
-    and exists (select 1 from public.inventory i join public.items t on t.id = i.item_id
-                 where i.user_id = auth.uid() and i.item_id = post_stickers.item_id and t.kind = 'sticker')
-    and (select count(*) from public.post_stickers s where s.post_id = post_stickers.post_id and s.media_idx = post_stickers.media_idx and s.user_id = auth.uid()) < 5
-    and (select count(*) from public.post_stickers s where s.post_id = post_stickers.post_id and s.media_idx = post_stickers.media_idx) < 30
-  );
+  with check (user_id = auth.uid() and public.can_add_sticker(post_id, media_idx, item_id));
 
 -- 옮기기·크기: 자기 스티커만 (위치·크기 칸만 수정 가능)
 drop policy if exists "stickers move own" on public.post_stickers;
