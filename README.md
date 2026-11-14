@@ -3,14 +3,18 @@
 서버 없는 정적 웹앱 + Supabase(무료: DB · 소셜 로그인 · 사진 저장소).
 
 ```
-index.html   앱 전체 (인스타 스타일 UI)
-config.js    Supabase 접속 정보
-schema.sql   DB 테이블 + 권한(RLS) + 사진 버킷
+index.html     앱 전체 (UI + 로직)
+config.js      Supabase 접속 정보 + 푸시 공개키
+sw.js          서비스 워커 (푸시 알림 수신)
+manifest.json  홈 화면 앱 설정
+brand/         아이콘·OG 이미지
+sql/           DB 변경 SQL (번호 순서대로 실행)
+supabase/functions/notify-owner/  푸시 발송 서버 함수
 ```
 
 ## 1. Supabase 프로젝트 만들기 (5분)
 1. https://supabase.com 가입 → **New project** (Region: Northeast Asia (Seoul))
-2. **SQL Editor** → `schema.sql` 전체 붙여넣고 **Run**
+2. **SQL Editor** → `sql/` 폴더의 SQL을 **번호 순서대로** 하나씩 붙여넣고 **Run** (아래 표 참고)
 3. **Project Settings → API** 에서 `Project URL`, `anon public` 키를 `config.js` 에 입력
 
 ## 2. 로그인 켜기 (Authentication → Sign In / Providers)
@@ -46,7 +50,7 @@ python3 -m http.server 3000   # → http://localhost:3000
 
 배포 후 그 주소를 Supabase의 Site URL / Redirect URLs 에 꼭 추가.
 
-## 권한 구조 (schema.sql 의 RLS)
+## 권한 구조 (sql/01_schema.sql 의 RLS)
 | 누가 | 할 수 있는 것 |
 |---|---|
 | 누구나(비로그인 친구 포함) | 승인된 게시물 보기, `pending` 상태로만 게시물 던지기 |
@@ -58,9 +62,9 @@ python3 -m http.server 3000   # → http://localhost:3000
 - 새 게시물 알림(카톡/푸시) 없음
 
 ## 5. 푸시 알림 (친구가 사진을 보내면 주인장에게 알림)
-구성: `sw.js`(알림 수신) · `manifest.json`(홈 화면 앱) · `push.sql`(구독 테이블) · `supabase/functions/notify-owner`(발송)
+구성: `sw.js`(알림 수신) · `manifest.json`(홈 화면 앱) · `sql/02_push.sql`(구독 테이블) · `supabase/functions/notify-owner`(발송)
 
-1. **SQL Editor** 에서 `push.sql` 실행
+1. **SQL Editor** 에서 `sql/02_push.sql` 실행
 2. **Edge Functions → Deploy a new function → Via Editor**, 이름 `notify-owner`, `supabase/functions/notify-owner/index.ts` 붙여넣고 Deploy
    - 함수 설정에서 **Verify JWT** 끄기 (대신 `x-webhook-secret` 헤더로 검증)
 3. **Edge Functions → Secrets** 에 `secrets.local.env` 의 4개 값 등록 (이 파일은 git 에 올리지 않음)
@@ -70,4 +74,19 @@ python3 -m http.server 3000   # → http://localhost:3000
 5. 앱에서 🔔 → 알림 켜기 (iPhone 은 Safari 공유 → 홈 화면에 추가 후 홈 화면 아이콘으로 열어야 함)
 
 ## 6. 프로필 설정 (이름/사진 직접 선택)
-SQL Editor 에서 `profile.sql` 실행. 첫 로그인 시 프로필 설정 화면이 뜨고, 이후 메뉴 → 프로필 편집 또는 내 프로필 사진을 눌러 변경.
+SQL Editor 에서 `sql/03_profile.sql` 실행. 첫 로그인 시 프로필 설정 화면이 뜨고, 이후 메뉴 → 프로필 편집 또는 내 프로필 사진을 눌러 변경.
+
+## SQL 목록 (`sql/`, 번호 순서대로 실행 · 여러 번 실행해도 안전)
+| 파일 | 내용 |
+|---|---|
+| `01_schema.sql` | 기본 테이블(profiles, posts), 권한(RLS), 사진 저장소 |
+| `02_push.sql` | 푸시 알림 구독 테이블 |
+| `03_profile.sql` | 프로필 설정(온보딩), 프로필 사진 저장소 |
+| `04_bio.sql` | 프로필 메시지 |
+| `05_social.sql` | 친구(follows), 좋아요, 댓글, 동영상·썸네일 |
+| `06_interact.sql` | 투표·질문 게시물, 투표 테이블 |
+| `07_handle.sql` | 아이디(@handle) |
+| `demo/seed.sql` | (선택) 데모 친구 4명 + 게시물 |
+| `demo/cleanup.sql` | (선택) 데모 친구 전부 삭제 |
+
+새 SQL을 추가할 때는 다음 번호(`08_...sql`)로 만듭니다.

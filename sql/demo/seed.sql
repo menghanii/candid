@@ -1,6 +1,6 @@
 -- candid. 데모 친구 4명 + 게시물 14개(영상 1개) + 좋아요·댓글
 -- SQL Editor 에 붙여넣고 Run. 여러 번 실행해도 안전(같은 데이터는 건너뜀).
--- 지우려면 demo_cleanup.sql 실행.
+-- 지우려면 sql/demo/cleanup.sql 실행.
 -- 사진: Unsplash(무료 라이선스), 영상: MDN CC0 샘플
 
 -- 1) 가짜 계정 (로그인 불가, 이메일 도메인 .invalid 로 구분)
