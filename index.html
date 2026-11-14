@@ -1374,7 +1374,7 @@ async function renderHome(fresh) {
 function fillFriend(uid) {
   const o = HOME.owners?.get(uid); if (!o) return go(`${feedUrl(uid)}&m=0`);
   Object.assign(S, { uid, prof: o, isOwner: me?.id === uid });
-  openCompose(0, false, 'media', true);
+  openCompose(0, false, 'media');
 }
 function paintHome({ posts, owners }) {
   HOME.posts = posts; HOME.owners = owners;
@@ -1690,7 +1690,7 @@ function postMenu(id) {
 
 // 업로드: 인스타·유튜브처럼 누르면 바로 사진첩이 열리고, 고르면 전체 화면 작성 화면
 // mi/asked: 공유 링크(&m=)로 부탁받은 내용(안내 문구용), mode: media | poll | question, pick: 열자마자 사진첩 열기
-function openCompose(mi = 0, asked = false, mode = 'media', pick = true) {
+function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
   let media = null;
   let saved = ''; try { saved = localStorage.getItem('candid_author') || ''; } catch {}
   const nick = (myProf?.name || saved).slice(0, 12);
@@ -1855,7 +1855,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = true) {
       <button class="btn block" style="border:0;background:none;color:var(--sub)" id="done">닫기</button></div>`;
     const done = () => { el.remove(); if (history.state?.compose) history.back(); };
     $('#done').onclick = done;
-    $('#more').onclick = () => { el.remove(); openCompose(0, false, mode, mode === 'media'); };
+    $('#more').onclick = () => { el.remove(); openCompose(0, false, mode); };
     const fol = $('#fol'); if (fol) fol.onclick = () => { toggleFollow(S.uid); fol.remove(); };
     const mine = $('#mine'); if (mine) mine.onclick = () => { try { localStorage.setItem('candid_ref', JSON.stringify({ uid: S.uid, name: S.prof.name })); } catch {} location.href = location.pathname; };
   };
