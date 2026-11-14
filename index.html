@@ -569,6 +569,15 @@ async function boot() {
   try {
     await withTimeout((async () => {
       me = (await sb.auth.getSession()).data.session?.user || null;
+      // 카카오·Google 로그인에서 막 돌아온 경우: 로그인 처리가 끝날 때까지 기다림(첫 화면이 잠깐 보이는 깜빡임 방지)
+      const fromOAuth = /[#&?](access_token|code|error_description)=/.test(location.href) || sessionStorage.getItem('candid_oauth') === '1';
+      try { sessionStorage.removeItem('candid_oauth'); } catch {}
+      if (!me && fromOAuth && !DEMO) {
+        me = await new Promise(res => {
+          const t = setTimeout(() => res(null), 6000);
+          const { data } = sb.auth.onAuthStateChange((ev, s) => { if (s?.user) { clearTimeout(t); data.subscription.unsubscribe(); res(s.user); } });
+        });
+      }
       // 이 기기에서 지난번에 쓴 로그인 방법(카카오/Google) 기억 — 다른 방법으로 들어와 새 계정이 생기는 실수 방지
       try { PREV_LOGIN = localStorage.getItem('candid_last_login'); } catch {}
       const prov = me?.app_metadata?.provider;
@@ -771,7 +780,7 @@ let PREV_LOGIN = null;
 const PROVIDER_NAME = { kakao: '카카오', google: 'Google' };
 function login(provider) {
   if (inApp && !DEMO) return openExternal(); // 인앱에선 Google이 차단되고 세션도 외부 브라우저로 안 넘어감
-  try { localStorage.setItem('candid_last_login', provider); } catch {}
+  try { localStorage.setItem('candid_last_login', provider); sessionStorage.setItem('candid_oauth', '1'); } catch {}
   sb.auth.signInWithOAuth({ provider, options: { redirectTo: location.origin + location.pathname } });
 }
 async function logout() { await sb.auth.signOut(); location.href = location.pathname; }
