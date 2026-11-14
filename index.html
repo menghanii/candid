@@ -2143,7 +2143,7 @@ async function openPush() {
         <div class="idea"><span class="k">3</span><span class="it">홈 화면의 candid. 아이콘으로 열어요</span></div>
         <div class="idea"><span class="k">4</span><span class="it">한 번 더 로그인하고 🔔을 눌러요</span></div>
       </div>`,
-    'in-app': '<p class="hint">카톡·인스타 안의 브라우저에서는 알림을 켤 수 없어요. Safari나 Chrome에서 열어 주세요.</p><button class="btn primary block" onclick="closeSheet();openExternal()">외부 브라우저로 열기</button>',
+    'in-app': '<p class="hint">카톡·인스타 안의 브라우저에서는 알림을 켤 수 없어요. Safari나 Chrome에서 열어 주세요.</p><button class="btn primary block" onclick="closeSheet();openExternal(installUrl())">외부 브라우저로 열기</button>',
     unsupported: '<p class="hint">이 브라우저는 알림을 지원하지 않아요. 크롬이나 사파리 최신 버전에서 열어 주세요.</p>',
     denied: '<p class="hint">알림이 차단돼 있어요. 브라우저의 사이트 설정에서 candid. 알림을 허용한 뒤 다시 눌러 주세요.</p>',
     off: '<p class="hint">친구가 사진을 보내면 바로 알려드릴게요.</p><button class="btn primary block" id="pushOn">알림 켜기</button>',
@@ -2212,7 +2212,7 @@ async function startInstall() {
     if (outcome !== 'accepted') toast('나중에 메뉴 → 앱으로 설치에서 다시 할 수 있어요');
     return;
   }
-  if (kind === 'inapp') return openExternal();
+  if (kind === 'inapp') return openExternal(installUrl()); // 지금 보던 친구 피드가 아니라 설치 안내로
   if (kind === 'ios') {
     sheet(`<h3>Add to Home<i class="pd">.</i></h3>
       <p class="hint">홈 화면에 추가하면 앱처럼 열리고, 친구가 사진을 보내면 알림도 받을 수 있어요.</p>
