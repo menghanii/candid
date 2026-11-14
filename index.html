@@ -386,6 +386,8 @@
   .stat-btn.on span { color:var(--fg); }
   .fhead { display:flex; align-items:center; gap:8px; padding:12px 16px 4px; font-size:15px; }
   .fhead button { width:36px; height:36px; border:0; border-radius:50%; background:var(--soft); color:var(--fg); font-size:16px; }
+  .toast { white-space:normal; width:max-content; max-width:calc(100vw - 32px); text-align:center; }
+  .rtop-pill { white-space:nowrap; }
   .rtop-pill { position:fixed; left:50%; top:calc(60px + env(safe-area-inset-top)); z-index:13; transform:translateX(-50%); padding:8px 14px; border:0; border-radius:999px; background:rgba(255,255,255,.92); color:#000; font-size:12px; font-weight:700; box-shadow:0 4px 16px rgba(0,0,0,.3); transition:opacity .2s; }
   .rtop-pill.hide { opacity:0; pointer-events:none; }
   /* 반응 속도: 더블탭 확대 대기 제거, 무거운 배경 블러 제거, 화면 밖 릴스는 그리지 않음 */
@@ -471,7 +473,6 @@
   .ibanner .ix svg { width:18px; height:18px; }
   .ishare { display:inline-flex; vertical-align:-4px; color:var(--accent); }
   /* iPhone: 하단 가운데 공유 버튼을 가리키는 화살표 */
-  body.ios-hint::after { content:"↓"; position:fixed; left:50%; bottom:calc(4px + env(safe-area-inset-bottom)); z-index:60; transform:translateX(-50%); font-size:34px; font-weight:800; color:var(--accent); animation:bob .9s ease-in-out infinite; pointer-events:none; }
   @keyframes bob { 50% { transform:translate(-50%, 8px); } }
   .lk-ic { flex:none; width:40px; height:40px; display:flex; align-items:center; justify-content:center; border-radius:50%; }
   .lk-ic.kakao { background:#FEE500; } .lk-ic.google { background:#fff; border:1px solid var(--line); }
@@ -599,6 +600,10 @@
   .cmp-empty b { color:var(--fg); font-size:15px; }
   .cmp-empty small { font-size:12px; }
   .cmp-media.busy .cmp-empty b { animation:twinkle 1s ease-in-out infinite; }
+  /* 사진 칸: 카톡 안 브라우저처럼 화면이 짧으면 비어 있을 때 작게(입력칸이 가려지지 않게) */
+  .cmp-media { max-height:min(58vh, 58dvh); }
+  .cmp-media:not(.has) { aspect-ratio:auto; height:min(40vh, 40dvh, 360px); min-height:180px; }
+  @media (max-height:700px) { .cmp-body { padding-bottom:calc(84px + env(safe-area-inset-bottom)); } }
   .cmp-cap { display:block; width:100%; margin:14px 0 0; padding:4px 2px; border:0; background:none; color:var(--fg); font:inherit; font-size:16px; line-height:1.5; resize:none; outline:none; }
   .cmp-cap.big { font-size:20px; font-weight:700; letter-spacing:-.02em; margin:8px 0 14px; }
   .cmp-cap::placeholder { color:var(--sub); font-weight:400; }
@@ -608,7 +613,8 @@
   .cmp-row input { flex:1; min-width:0; border:0; background:none; color:var(--fg); font:inherit; font-size:16px; text-align:right; outline:none; }
   .cmp-note { color:var(--sub); font-size:12px; margin:10px 2px 0; line-height:1.5; }
   .cmp-modes { position:fixed; left:50%; bottom:calc(14px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:3; display:flex; gap:2px; padding:4px; border-radius:999px; background:rgba(28,28,30,.92); box-shadow:0 8px 24px rgba(0,0,0,.3); }
-  .cmp-modes button { padding:10px 16px; border:0; border-radius:999px; background:none; color:#aeaeb2; font-size:13px; font-weight:700; }
+  .cmp-modes { width:max-content; max-width:calc(100vw - 24px); white-space:nowrap; }
+  .cmp-modes button { flex:none; padding:10px 16px; border:0; border-radius:999px; background:none; color:#aeaeb2; font-size:13px; font-weight:700; }
   .cmp-modes button.on { background:#fff; color:#000; }
   .cmp-done { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-height:100vh; padding:24px 24px calc(24px + env(safe-area-inset-bottom)); text-align:center; }
   .cmp-done h2 { font-family:var(--display); font-weight:800; font-size:40px; letter-spacing:-.05em; margin:4px 0; }
@@ -2188,10 +2194,11 @@ function canInstall() {
   if (isIOS) return 'ios';
   return null;
 }
-// 로그인 사용자에게 하단 배너 (닫으면 7일간 안 뜸)
+// 하단 '앱으로 쓰기' 배너 (닫으면 7일간 안 뜸)
 function maybeShowInstall() {
   const kind = canInstall();
-  if (!kind || !me || document.querySelector('.ibanner')) return;
+  // 로그인 안 한 친구(카톡 링크로 들어옴)에게도 보여줌. 단 사진 보내는 중에는 가리지 않게
+  if (!kind || document.querySelector('.ibanner, .composer, .cmp-done')) return;
   let until = 0; try { until = +localStorage.getItem('candid_install_snooze') || 0; } catch {}
   if (Date.now() < until) return;
   const b = document.createElement('div'); b.className = 'ibanner';
@@ -2213,18 +2220,7 @@ async function startInstall() {
     return;
   }
   if (kind === 'inapp') return openExternal(installUrl()); // 지금 보던 친구 피드가 아니라 설치 안내로
-  if (kind === 'ios') {
-    sheet(`<h3>Add to Home<i class="pd">.</i></h3>
-      <p class="hint">홈 화면에 추가하면 앱처럼 열리고, 친구가 사진을 보내면 알림도 받을 수 있어요.</p>
-      <div class="ideas">
-        <div class="idea"><span class="k">1</span><span class="it">Safari 공유 버튼 <b class="ishare">${I.iosShare}</b>을 눌러요</span></div>
-        <div class="idea"><span class="k">2</span><span class="it">목록을 내려 <b>'홈 화면에 추가'</b>를 눌러요</span></div>
-        <div class="idea"><span class="k">3</span><span class="it">오른쪽 위 <b>'추가'</b>를 누르고, 홈 화면의 candid. 아이콘으로 열어요</span></div>
-      </div>
-      <p class="hint" style="font-size:12px">공유 버튼은 보통 화면 아래쪽 가운데에 있어요. 안 보이면 화면을 살짝 위로 올려 보세요.</p>`);
-    document.body.classList.add('ios-hint'); setTimeout(() => document.body.classList.remove('ios-hint'), 8000); // 하단 가운데를 가리키는 화살표
-    return;
-  }
+  if (kind === 'ios') return showInstallGuide(); // 공유 버튼 위치를 화살표로 가리키는 전체 화면 안내
   toast(installed() ? '이미 앱으로 쓰고 있어요' : '브라우저 메뉴에서 "앱 설치" 또는 "홈 화면에 추가"를 눌러 주세요');
 }
 // ---------- 가입 직후 홈 화면 추가 ----------
