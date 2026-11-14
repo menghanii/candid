@@ -687,6 +687,20 @@
   .rav b { max-width:64px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .rav:active .av { transform:scale(.92); }
   .rfrom { margin-top:0; }
+  /* 무료 스티커: 이모지 + 미니 아이템(그림) */
+  .pst svg { display:block; height:1.4em; width:auto; overflow:visible; }
+  .dtray { display:block; max-height:36vh; overflow-y:auto; padding:6px 16px calc(16px + env(safe-area-inset-bottom)); }
+  .dsec { margin:10px 2px 8px; font-size:11px; font-weight:800; color:var(--sub); letter-spacing:.06em; }
+  .dgrid { display:grid; grid-template-columns:repeat(6, 1fr); gap:8px; }
+  .dts { width:100%; height:auto; aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:14px; border:1px solid var(--line); background:var(--card); font-size:28px; padding:6px; }
+  .dts svg { width:100%; height:100%; }
+  .dts.mini { background:color-mix(in srgb, var(--accent) 6%, var(--card)); }
+  /* 크기 슬라이더 */
+  .dtools { align-items:center; }
+  .dsz { display:flex; align-items:center; gap:10px; flex:1; max-width:280px; padding:6px 14px; border-radius:999px; border:1px solid var(--line); background:var(--card); }
+  .dsz[hidden] { display:none; }
+  .dsz small { font-size:12px; font-weight:700; color:var(--sub); }
+  .dsz input { flex:1; accent-color:var(--accent); }
 </style>
 </head>
 <body>
@@ -1093,7 +1107,7 @@ function paintProfile() {
   const pending = S.pending;
   const friends = new Set(approved.map(p => p.author_name)).size;
   const y = scrollY;
-  const dc = deco(prof), rf = ringFx(dc.frame), nf = nameFx(dc.name); // 가챠로 장착한 꾸미기
+  const dc = GACHA_ON ? deco(prof) : { stickers: [] }, rf = ringFx(dc.frame), nf = nameFx(dc.name); // 가챠로 장착한 꾸미기(꺼져 있으면 없음)
 
   $app.innerHTML = `
     <header class="top">
@@ -1126,7 +1140,7 @@ function paintProfile() {
     <div class="actions">
       ${isOwner
         ? `<button class="btn primary" onclick="shareFeed()">친구에게 피드 부탁하기</button>
-           <button class="btn gbtn${TICKETS > 0 ? ' has' : ''}" id="gbtn" onclick="openGacha()" aria-label="뽑기권으로 꾸미기 아이템 뽑기"${TICKETS == null ? ' hidden' : ''}>🎁 <b data-tickets>${TICKETS ?? ''}</b></button>`
+           ${GACHA_ON ? '' : '<!--'}<button class="btn gbtn${TICKETS > 0 ? ' has' : ''}" id="gbtn" onclick="openGacha()" aria-label="뽑기권으로 꾸미기 아이템 뽑기"${TICKETS == null ? ' hidden' : ''}>🎁 <b data-tickets>${TICKETS ?? ''}</b></button>${GACHA_ON ? '' : '-->'}`
         : me
           // 로그인한 친구: 친구 추가만. 보내기는 하단 바 ⊕ 로
           ? `<button class="btn ${myFollows.has(uid) ? '' : 'add'}" onclick="toggleFollow('${uid}', this)">${myFollows.has(uid) ? '친구 ✓' : '친구 추가'}</button>`
@@ -1143,7 +1157,7 @@ function paintProfile() {
   $app.classList.toggle('has-nav', !!me);
   renderBody();
   scrollTo(0, y);
-  if (isOwner) refreshTickets();
+  if (isOwner && GACHA_ON) refreshTickets();
 }
 
 function setTab(t) { S.tab = t; paintProfile(); }
@@ -1696,8 +1710,7 @@ const menu = items => sheet(`<div class="menu">${items}</div><div class="menu"><
 
 function openMenu() {
   menu(`<button class="menu-item" onclick="closeSheet();renderSetup(false)">프로필 편집</button>
-        <button class="menu-item" onclick="closeSheet();openCloset()">🎨 꾸미기</button>
-        <button class="menu-item" onclick="closeSheet();openGacha()">🎁 뽑기</button>
+        ${GACHA_ON ? '<button class="menu-item" onclick="closeSheet();openCloset()">🎨 꾸미기</button><button class="menu-item" onclick="closeSheet();openGacha()">🎁 뽑기</button>' : ''}
         <button class="menu-item" onclick="closeSheet();setTab('friends')">친구 목록</button>
         <button class="menu-item" onclick="closeSheet();shareFeed()">내 피드 링크 공유</button>
         ${!DEMO ? '<button class="menu-item" onclick="openLinks()">🔗 로그인 방법 연결</button>' : ''}
@@ -2081,7 +2094,14 @@ async function openLinks() {
 // @@CATALOG-BEGIN (tools/items.js 에서 자동 생성 — 직접 고치지 말 것)
 const ITEM_CATALOG = [{"id":"frame_mint","kind":"frame","name":"민트 링","rarity":"common","data":{"bg":"#3ee8b5"}},{"id":"frame_peach","kind":"frame","name":"피치 링","rarity":"common","data":{"bg":"#ffb199"}},{"id":"frame_mono","kind":"frame","name":"체커 링","rarity":"common","data":{"bg":"repeating-conic-gradient(#fff 0 15deg,#111 0 30deg)"}},{"id":"frame_sunset","kind":"frame","name":"선셋","rarity":"rare","data":{"bg":"linear-gradient(135deg,#ff7e5f,#feb47b)"}},{"id":"frame_ocean","kind":"frame","name":"오션","rarity":"rare","data":{"bg":"linear-gradient(135deg,#2b50ff,#00d2ff)"}},{"id":"frame_neon","kind":"frame","name":"네온","rarity":"epic","data":{"bg":"#39ff14","glow":"#39ff14"}},{"id":"frame_rainbow","kind":"frame","name":"레인보우","rarity":"epic","data":{"bg":"conic-gradient(#ff3b30,#ff9500,#ffcc00,#34c759,#00c7be,#2b50ff,#af52de,#ff3b30)","spin":true}},{"id":"frame_aurora","kind":"frame","name":"오로라","rarity":"legendary","data":{"bg":"conic-gradient(#00ffa3,#03e1ff,#dc1fff,#ff6ec7,#00ffa3)","spin":true,"glow":"#dc1fff"}},{"id":"theme_sky","kind":"theme","name":"하늘","rarity":"common","data":{"bg":"linear-gradient(160deg,#a1c4fd,#c2e9fb)"}},{"id":"theme_peach","kind":"theme","name":"복숭아","rarity":"common","data":{"bg":"linear-gradient(160deg,#ffecd2,#fcb69f)"}},{"id":"theme_mint","kind":"theme","name":"풀잎","rarity":"common","data":{"bg":"linear-gradient(160deg,#d4fc79,#96e6a1)"}},{"id":"theme_night","kind":"theme","name":"밤하늘","rarity":"rare","data":{"bg":"linear-gradient(160deg,#0f2027,#203a43,#2c5364)","stars":true}},{"id":"theme_berry","kind":"theme","name":"베리","rarity":"rare","data":{"bg":"linear-gradient(160deg,#8e2de2,#4a00e0)"}},{"id":"theme_film","kind":"theme","name":"필름","rarity":"epic","data":{"bg":"linear-gradient(160deg,#1c1c1c,#3a3a3a)","film":true}},{"id":"theme_galaxy","kind":"theme","name":"갤럭시","rarity":"legendary","data":{"bg":"radial-gradient(circle at 20% 30%,#ff6ec7 0,transparent 38%),radial-gradient(circle at 80% 20%,#2b50ff 0,transparent 42%),radial-gradient(circle at 60% 95%,#00ffa3 0,transparent 38%),#0b0b2a","stars":true}},{"id":"sticker_daisy","kind":"sticker","name":"데이지","rarity":"common","data":{"e":"🌼"}},{"id":"sticker_star","kind":"sticker","name":"별","rarity":"common","data":{"e":"⭐"}},{"id":"sticker_clover","kind":"sticker","name":"네잎클로버","rarity":"common","data":{"e":"🍀"}},{"id":"sticker_camera","kind":"sticker","name":"카메라","rarity":"common","data":{"e":"📸"}},{"id":"sticker_cat","kind":"sticker","name":"고양이","rarity":"rare","data":{"e":"🐱"}},{"id":"sticker_berry","kind":"sticker","name":"딸기","rarity":"rare","data":{"e":"🍓"}},{"id":"sticker_unicorn","kind":"sticker","name":"유니콘","rarity":"epic","data":{"e":"🦄"}},{"id":"sticker_fire","kind":"sticker","name":"불꽃","rarity":"epic","data":{"e":"🔥"}},{"id":"sticker_crown","kind":"sticker","name":"왕관","rarity":"legendary","data":{"e":"👑"}},{"id":"name_blue","kind":"name","name":"블루 네임","rarity":"common","data":{"color":"#2b50ff"}},{"id":"name_sunset","kind":"name","name":"선셋 네임","rarity":"rare","data":{"grad":"linear-gradient(90deg,#ff7e5f,#feb47b)"}},{"id":"name_glow","kind":"name","name":"글로우 네임","rarity":"epic","data":{"glow":"#5c7cff"}},{"id":"name_holo","kind":"name","name":"홀로그램 네임","rarity":"legendary","data":{"grad":"linear-gradient(90deg,#00ffa3,#03e1ff,#dc1fff,#ff6ec7,#00ffa3)","anim":true}}];
 // @@CATALOG-END
+// @@FREE-BEGIN (tools/stickers.js 에서 자동 생성 — 직접 고치지 말 것)
+const FREE_STICKERS = [{"id":"e_01","kind":"sticker","name":"😂","rarity":"common","data":{"e":"😂","free":true}},{"id":"e_02","kind":"sticker","name":"😍","rarity":"common","data":{"e":"😍","free":true}},{"id":"e_03","kind":"sticker","name":"🥹","rarity":"common","data":{"e":"🥹","free":true}},{"id":"e_04","kind":"sticker","name":"😎","rarity":"common","data":{"e":"😎","free":true}},{"id":"e_05","kind":"sticker","name":"🤣","rarity":"common","data":{"e":"🤣","free":true}},{"id":"e_06","kind":"sticker","name":"😭","rarity":"common","data":{"e":"😭","free":true}},{"id":"e_07","kind":"sticker","name":"🥳","rarity":"common","data":{"e":"🥳","free":true}},{"id":"e_08","kind":"sticker","name":"😳","rarity":"common","data":{"e":"😳","free":true}},{"id":"e_09","kind":"sticker","name":"🤪","rarity":"common","data":{"e":"🤪","free":true}},{"id":"e_10","kind":"sticker","name":"😘","rarity":"common","data":{"e":"😘","free":true}},{"id":"e_11","kind":"sticker","name":"👍","rarity":"common","data":{"e":"👍","free":true}},{"id":"e_12","kind":"sticker","name":"👏","rarity":"common","data":{"e":"👏","free":true}},{"id":"e_13","kind":"sticker","name":"🙌","rarity":"common","data":{"e":"🙌","free":true}},{"id":"e_14","kind":"sticker","name":"💯","rarity":"common","data":{"e":"💯","free":true}},{"id":"e_15","kind":"sticker","name":"🔥","rarity":"common","data":{"e":"🔥","free":true}},{"id":"e_16","kind":"sticker","name":"✨","rarity":"common","data":{"e":"✨","free":true}},{"id":"e_17","kind":"sticker","name":"💖","rarity":"common","data":{"e":"💖","free":true}},{"id":"e_18","kind":"sticker","name":"⭐","rarity":"common","data":{"e":"⭐","free":true}},{"id":"e_19","kind":"sticker","name":"🌈","rarity":"common","data":{"e":"🌈","free":true}},{"id":"e_20","kind":"sticker","name":"🍀","rarity":"common","data":{"e":"🍀","free":true}},{"id":"e_21","kind":"sticker","name":"🎉","rarity":"common","data":{"e":"🎉","free":true}},{"id":"e_22","kind":"sticker","name":"🎂","rarity":"common","data":{"e":"🎂","free":true}},{"id":"e_23","kind":"sticker","name":"🐶","rarity":"common","data":{"e":"🐶","free":true}},{"id":"e_24","kind":"sticker","name":"🐱","rarity":"common","data":{"e":"🐱","free":true}},{"id":"m_kkk","kind":"sticker","name":"말풍선 ㅋㅋㅋ","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 120 78\"><path d=\"M14 4h92a12 12 0 0 1 12 12v32a12 12 0 0 1-12 12H44L26 74l4-14H14A12 12 0 0 1 2 48V16A12 12 0 0 1 14 4z\" fill=\"#fff\" stroke=\"#111\" stroke-width=\"3\"/><text x=\"60\" y=\"44\" text-anchor=\"middle\" font-family=\"Pretendard,Apple SD Gothic Neo,sans-serif\" font-weight=\"900\" font-size=\"30\" fill=\"#111\">ㅋㅋㅋ</text></svg>","free":true,"mini":true}},{"id":"m_legend","kind":"sticker","name":"레전드","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 130 54\"><g transform=\"rotate(-6 65 27)\"><rect x=\"6\" y=\"8\" width=\"118\" height=\"38\" rx=\"8\" fill=\"#ffd60a\" stroke=\"#111\" stroke-width=\"3\"/><text x=\"65\" y=\"36\" text-anchor=\"middle\" font-family=\"Pretendard,Apple SD Gothic Neo,sans-serif\" font-weight=\"900\" font-size=\"24\" fill=\"#111\">레전드</text></g></svg>","free":true,"mini":true}},{"id":"m_insaeng","kind":"sticker","name":"인생샷 도장","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 100 100\"><g transform=\"rotate(-12 50 50)\" fill=\"none\" stroke=\"#ff3b30\"><circle cx=\"50\" cy=\"50\" r=\"44\" stroke-width=\"5\"/><circle cx=\"50\" cy=\"50\" r=\"35\" stroke-width=\"2\"/><text x=\"50\" y=\"58\" text-anchor=\"middle\" font-family=\"Pretendard,Apple SD Gothic Neo,sans-serif\" font-weight=\"900\" font-size=\"22\" fill=\"#ff3b30\" stroke=\"none\">인생샷</text></g></svg>","free":true,"mini":true}},{"id":"m_heart","kind":"sticker","name":"하트","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 100 90\"><path d=\"M50 86S6 58 6 28A22 22 0 0 1 50 16a22 22 0 0 1 44 12c0 30-44 58-44 58z\" fill=\"#ff4d8d\" stroke=\"#fff\" stroke-width=\"4\"/><ellipse cx=\"30\" cy=\"30\" rx=\"8\" ry=\"5\" fill=\"#fff\" opacity=\".7\" transform=\"rotate(-30 30 30)\"/></svg>","free":true,"mini":true}},{"id":"m_sparkle","kind":"sticker","name":"반짝이","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 100 100\"><g fill=\"#ffd60a\" stroke=\"#fff\" stroke-width=\"2\"><path d=\"M40 8l7 23 23 7-23 7-7 23-7-23-23-7 23-7z\"/><path d=\"M76 52l4 12 12 4-12 4-4 12-4-12-12-4 12-4z\"/><path d=\"M22 70l3 8 8 3-8 3-3 8-3-8-8-3 8-3z\"/></g></svg>","free":true,"mini":true}},{"id":"m_mustache","kind":"sticker","name":"콧수염","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 120 44\"><path d=\"M60 14c-6-10-22-14-34-6S8 30 2 26c4 12 22 18 36 12s18-12 22-16c4 4 8 10 22 16s32 0 36-12c-6 4-12-10-24-18S66 4 60 14z\" fill=\"#1c1c1e\"/></svg>","free":true,"mini":true}},{"id":"m_glasses","kind":"sticker","name":"선글라스","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 130 50\"><path d=\"M4 12h122\" stroke=\"#111\" stroke-width=\"5\" stroke-linecap=\"round\"/><path d=\"M10 12h46v8c0 14-8 24-23 24S10 34 10 20z\" fill=\"#111\"/><path d=\"M74 12h46v8c0 14-8 24-23 24S74 34 74 20z\" fill=\"#111\"/><path d=\"M18 18l10 10M82 18l10 10\" stroke=\"#fff\" stroke-width=\"3\" stroke-linecap=\"round\" opacity=\".55\"/></svg>","free":true,"mini":true}},{"id":"m_blush","kind":"sticker","name":"볼터치","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 140 40\"><g fill=\"#ff6b9d\" opacity=\".75\"><ellipse cx=\"22\" cy=\"20\" rx=\"20\" ry=\"13\"/><ellipse cx=\"118\" cy=\"20\" rx=\"20\" ry=\"13\"/></g><g stroke=\"#fff\" stroke-width=\"2.5\" stroke-linecap=\"round\" opacity=\".8\"><path d=\"M12 16l4 8M20 14l4 8M28 16l4 8M108 16l4 8M116 14l4 8M124 16l4 8\"/></g></svg>","free":true,"mini":true}},{"id":"m_me","kind":"sticker","name":"\"나\" 화살표","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 110 80\"><text x=\"8\" y=\"34\" font-family=\"Pretendard,Apple SD Gothic Neo,sans-serif\" font-weight=\"900\" font-size=\"30\" fill=\"#2b50ff\" stroke=\"#fff\" stroke-width=\"5\" paint-order=\"stroke\">나</text><path d=\"M44 22c22-2 40 10 48 36\" fill=\"none\" stroke=\"#fff\" stroke-width=\"9\" stroke-linecap=\"round\"/><path d=\"M44 22c22-2 40 10 48 36\" fill=\"none\" stroke=\"#2b50ff\" stroke-width=\"5\" stroke-linecap=\"round\"/><path d=\"M80 54l13 10 4-16\" fill=\"none\" stroke=\"#2b50ff\" stroke-width=\"5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>","free":true,"mini":true}},{"id":"m_crown","kind":"sticker","name":"왕관","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 110 80\"><path d=\"M8 26l22 18 25-34 25 34 22-18-8 46H16z\" fill=\"#ffc300\" stroke=\"#b8860b\" stroke-width=\"3\" stroke-linejoin=\"round\"/><circle cx=\"55\" cy=\"10\" r=\"6\" fill=\"#ff3b30\"/><circle cx=\"8\" cy=\"26\" r=\"5\" fill=\"#2b50ff\"/><circle cx=\"102\" cy=\"26\" r=\"5\" fill=\"#2b50ff\"/><rect x=\"18\" y=\"62\" width=\"74\" height=\"8\" rx=\"2\" fill=\"#b8860b\"/></svg>","free":true,"mini":true}}];
+// @@FREE-END
 const ITEM = Object.fromEntries(ITEM_CATALOG.map(i => [i.id, i]));
+FREE_STICKERS.forEach(i => { ITEM[i.id] = i; });
+// 가챠·내 피드 꾸미기: 지금은 꺼 둠(코드·DB는 그대로 → true 로 바꾸면 다시 켜짐)
+const GACHA_ON = false;
+const glyph = it => it ? (it.data.svg || it.data.e || '') : ''; // 스티커 모양(이모지 또는 미니 아이템 그림)
 const RARITY = { common: { label: '일반', color: '#8e8e93' }, rare: { label: '레어', color: '#2b50ff' }, epic: { label: '에픽', color: '#af52de' }, legendary: { label: '전설', color: '#ff9f0a' } };
 const KIND_LABEL = { frame: '프레임', theme: '커버', sticker: '스티커', name: '네임' };
 let TICKETS = null;
@@ -2225,7 +2245,7 @@ async function loadStickers(ids) {
   data.forEach(r => STK.get(r.post_id)?.push(r));
 }
 const stickerLayer = (postId, idx) => `<div class="stk-layer" data-sl="${postId}:${idx}">${(STK.get(postId) || []).filter(r => r.media_idx === idx)
-  .map(r => `<span class="pst" style="left:${r.x * 100}%;top:${r.y * 100}%;--s:${r.scale}">${ITEM[r.item_id]?.data.e || ''}</span>`).join('')}</div>`;
+  .map(r => `<span class="pst" style="left:${r.x * 100}%;top:${r.y * 100}%;--s:${r.scale}">${glyph(ITEM[r.item_id])}</span>`).join('')}</div>`;
 function refreshStickerLayers(postId) {
   document.querySelectorAll(`[data-sl^="${postId}:"]`).forEach(el => { el.outerHTML = stickerLayer(postId, +el.dataset.sl.split(':')[1]); });
 }
@@ -2272,7 +2292,7 @@ async function openDecorate(postId) {
   const el = pageOverlay('decor', `
     <header class="pov-h cmp-h"><button class="icon-btn" data-x aria-label="닫기">${I.close}</button><b>스티커 꾸미기</b><button class="cmp-send" id="dsave">저장</button></header>
     <div class="dwrap"><div class="stage dstage" id="dstage"><img src="${photoUrl(m.k === 'video' ? (m.t || m.p) : m.p)}" alt="" draggable="false"><div class="dlayer" id="dlayer"></div></div></div>
-    <div class="dtools" id="dtools" hidden><button data-a="-">작게</button><button data-a="+">크게</button><button data-a="x" class="danger">떼기</button></div>
+    <div class="dtools" id="dtools" hidden><span class="dsz" id="dsz"><small>크기</small><input type="range" id="dsize" min="0.4" max="3" step="0.05" aria-label="스티커 크기"></span><button data-a="x" class="danger">떼기</button></div>
     <p class="hint dhint" id="dhint"></p>
     <div class="dtray" id="dtray"><p class="hint">불러오는 중…</p></div>`);
   const $ = s => el.querySelector(s);
@@ -2287,24 +2307,28 @@ async function openDecorate(postId) {
   const orig = new Map(rows.filter(r => r.user_id === me.id).map(r => [r.id, { ...r }]));
   let mine = [...orig.values()].map(r => ({ ...r }));
   const removed = new Set(); let sel = null;
-  const myStickers = (inv.data || []).map(r => ITEM[r.item_id]).filter(i => i?.kind === 'sticker');
+  // 무료 스티커(이모지 + 미니 아이템) — 가챠가 켜져 있으면 뽑은 스티커도 함께
+  const owned = GACHA_ON ? (inv.data || []).map(r => ITEM[r.item_id]).filter(i => i?.kind === 'sticker' && !i.data.free) : [];
+  const MAX_MINE = 10;
 
   const paint = () => {
     $('#dlayer').innerHTML =
-      others.filter(r => !removed.has(r.id)).map(r => `<span class="pst other${isOwnerPost ? ' tap' : ''}${sel === r.id ? ' sel' : ''}" data-id="${r.id}" style="left:${r.x * 100}%;top:${r.y * 100}%;--s:${r.scale}">${ITEM[r.item_id]?.data.e || ''}</span>`).join('') +
-      mine.map(r => `<span class="pst mine${sel === r.id ? ' sel' : ''}" data-id="${r.id}" style="left:${r.x * 100}%;top:${r.y * 100}%;--s:${r.scale}">${ITEM[r.item_id]?.data.e || ''}</span>`).join('');
+      others.filter(r => !removed.has(r.id)).map(r => `<span class="pst other${isOwnerPost ? ' tap' : ''}${sel === r.id ? ' sel' : ''}" data-id="${r.id}" style="left:${r.x * 100}%;top:${r.y * 100}%;--s:${r.scale}">${glyph(ITEM[r.item_id])}</span>`).join('') +
+      mine.map(r => `<span class="pst mine${sel === r.id ? ' sel' : ''}" data-id="${r.id}" style="left:${r.x * 100}%;top:${r.y * 100}%;--s:${r.scale}">${glyph(ITEM[r.item_id])}</span>`).join('');
     const selMine = mine.find(r => r.id === sel), selOther = others.find(r => r.id === sel);
     $('#dtools').hidden = !(selMine || selOther);
-    $('#dtools').querySelectorAll('[data-a="-"],[data-a="+"]').forEach(b => b.hidden = !selMine);
-    $('#dhint').textContent = `내 스티커 ${mine.length}/5 · 끌어서 옮기고, 눌러서 크기 조절${isOwnerPost ? ' · 내 피드라 친구 스티커도 눌러서 뗄 수 있어요' : ''}`;
+    $('#dsz').hidden = !selMine;
+    if (selMine) $('#dsize').value = selMine.scale;
+    $('#dhint').textContent = `내 스티커 ${mine.length}/${MAX_MINE} · 끌어서 옮기고, 두 손가락으로 크기 조절${isOwnerPost ? ' · 내 피드라 친구 스티커도 눌러서 뗄 수 있어요' : ''}`;
   };
-  // 트레이: 내가 가진 스티커
-  $('#dtray').innerHTML = myStickers.length
-    ? myStickers.map(i => `<button class="dts" data-item="${i.id}" style="--rc:${RARITY[i.rarity].color}" aria-label="${esc(i.name)} 붙이기">${i.data.e}</button>`).join('')
-    : `<div class="dempty">아직 스티커가 없어요. 🎁 뽑기에서 스티커를 모아 보세요!<button class="btn primary" id="dgacha">🎁 뽑기</button></div>`;
-  $('#dgacha')?.addEventListener('click', () => openGacha());
+  // 트레이: 미니 아이템 + 기본 이모지 (+ 가챠 스티커)
+  const tile = i => `<button class="dts${i.data.mini ? ' mini' : ''}" data-item="${i.id}" aria-label="${esc(i.name)} 붙이기">${glyph(i)}</button>`;
+  $('#dtray').innerHTML =
+    `<div class="dsec">미니 아이템</div><div class="dgrid">${FREE_STICKERS.filter(i => i.data.mini).map(tile).join('')}</div>` +
+    (owned.length ? `<div class="dsec">내가 뽑은 스티커</div><div class="dgrid">${owned.map(tile).join('')}</div>` : '') +
+    `<div class="dsec">이모지</div><div class="dgrid">${FREE_STICKERS.filter(i => !i.data.mini).map(tile).join('')}</div>`;
   $('#dtray').querySelectorAll('[data-item]').forEach(b => b.onclick = () => {
-    if (mine.length >= 5) return toast('한 사진에 내 스티커는 5개까지예요');
+    if (mine.length >= MAX_MINE) return toast(`한 사진에 내 스티커는 ${MAX_MINE}개까지예요`);
     const r = { id: 'tmp' + Math.random().toString(36).slice(2), item_id: b.dataset.item, x: 0.5, y: 0.5, scale: 1, tmp: true };
     mine.push(r); sel = r.id; paint();
   });
@@ -2312,7 +2336,8 @@ async function openDecorate(postId) {
   const stage = $('#dstage');
   let drag = null;
   stage.addEventListener('pointerdown', e => {
-    const s = e.target.closest('.pst'); if (!s) { sel = null; return paint(); }
+    if (pts.size > 1) return; // 두 손가락(크기 조절) 중에는 선택 유지
+    const s = e.target.closest('.pst'); if (!s) { tapEmpty = true; return; } // 빈 곳은 '탭'으로 끝날 때만 선택 해제
     const id = s.dataset.id;
     if (s.classList.contains('other')) { if (isOwnerPost) { sel = id; paint(); } return; }
     sel = id; paint();
@@ -2329,12 +2354,35 @@ async function openDecorate(postId) {
   const end = () => { drag = null; };
   stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
   $('#dtools').onclick = e => {
-    const a = e.target.dataset.a; if (!a || !sel) return;
+    const a = e.target.dataset.a; if (a !== 'x' || !sel) return;
     const r = mine.find(x => x.id === sel);
-    if (a === 'x') { if (r) { mine = mine.filter(x => x !== r); if (!r.tmp) removed.add(r.id); } else removed.add(sel); sel = null; }
-    else if (r) r.scale = Math.min(3, Math.max(0.4, +(r.scale + (a === '+' ? 0.25 : -0.25)).toFixed(2)));
-    paint();
+    if (r) { mine = mine.filter(x => x !== r); if (!r.tmp) removed.add(r.id); } else removed.add(sel);
+    sel = null; paint();
   };
+  // 크기 직접 조절 ① 슬라이더
+  const setScale = (r, s) => {
+    r.scale = Math.min(3, Math.max(0.4, Math.round(s * 100) / 100));
+    const span = stage.querySelector(`.pst[data-id="${r.id}"]`); if (span) span.style.setProperty('--s', r.scale);
+  };
+  $('#dsize').oninput = e => { const r = mine.find(x => x.id === sel); if (r) setScale(r, +e.target.value); };
+  // 크기 직접 조절 ② 두 손가락으로 벌리기·좁히기(선택한 내 스티커)
+  const pts = new Map(); let pinch = null, tapEmpty = false, pinched = false;
+  const dist = () => { const [a, b] = [...pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+  stage.addEventListener('pointerdown', e => {
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const r = mine.find(x => x.id === sel);
+    if (pts.size === 2 && r) { drag = null; pinched = true; pinch = { r, d0: dist(), s0: r.scale }; }
+  }, true);
+  stage.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && pts.size === 2) { setScale(pinch.r, pinch.s0 * dist() / pinch.d0); $('#dsize').value = pinch.r.scale; }
+  }, true);
+  const lift = e => {
+    pts.delete(e.pointerId); if (pts.size < 2) pinch = null;
+    if (pts.size === 0) { if (tapEmpty && !pinched) { sel = null; paint(); } tapEmpty = false; pinched = false; }
+  };
+  stage.addEventListener('pointerup', lift, true); stage.addEventListener('pointercancel', lift, true);
   const changed = () => removed.size || mine.some(r => r.tmp || (orig.get(r.id) && ['x', 'y', 'scale'].some(k => orig.get(r.id)[k] !== r[k])));
   $('[data-x]').onclick = () => { if (!changed() || confirm('저장하지 않은 꾸미기가 사라져요. 닫을까요?')) el.remove(); };
   // 저장: 내 것만 추가·수정·삭제(+주인은 남의 것 삭제) → 서로 덮어쓰지 않음
@@ -2391,7 +2439,7 @@ async function approve(id) {
   Object.assign(p, { status: 'approved', approved_at: at }); S.approved.push(p);
   S.justApproved = id; paintProfile();
   navigator.vibrate?.(8);
-  setTimeout(() => refreshTickets(true), 400); // 승인하면 뽑기권 +1 → 🎁 버튼이 톡 튐
+  if (GACHA_ON) setTimeout(() => refreshTickets(true), 400); // 승인하면 뽑기권 +1 → 🎁 버튼이 톡 튐
   toast(`${p.author_name}의 사진을 피드에 올렸어요`, { label: '되돌리기', fn: async () => {
     const { error } = await sb.from('posts').update({ status: 'pending', approved_at: null }).eq('id', id);
     if (error) return toast(kerr(error));
