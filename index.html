@@ -436,6 +436,29 @@
   .acct-check .btn { display:block; margin-top:10px; padding:9px 14px; font-size:13px; }
   .acct-check.warn { background:color-mix(in srgb, #ff9f0a 14%, var(--soft)); border:1px solid color-mix(in srgb, #ff9f0a 40%, transparent); }
   /* 앱 설치 배너 */
+  /* 홈 화면 앱 첫 실행 로그인 */
+  .landing .app1 { align-items:flex-start; }
+  .landing .app1-ic { width:76px; height:76px; border-radius:20px; margin-bottom:22px; box-shadow:0 8px 24px rgba(0,0,0,.3); }
+  .fine.linkish { display:block; width:100%; background:none; border:0; color:var(--sub); text-decoration:underline; text-underline-offset:3px; margin-top:4px; }
+  /* 전체 화면 설치 안내 */
+  .iguide { position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; justify-content:center; padding:calc(56px + env(safe-area-inset-top)) 28px calc(96px + env(safe-area-inset-bottom)); background:rgba(0,0,0,.95); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); color:#fff; animation:fade .2s; }
+  .iguide .ig-x { position:absolute; top:calc(10px + env(safe-area-inset-top)); right:10px; padding:10px; border:0; background:none; color:#fff; }
+  .iguide .ig-ic { width:68px; height:68px; border-radius:18px; margin-bottom:18px; }
+  .iguide h2 { margin:0 0 8px; font-family:var(--display); font-size:30px; font-weight:800; letter-spacing:-.04em; }
+  .iguide > p { margin:0 0 24px; color:rgba(255,255,255,.72); font-size:14px; line-height:1.55; }
+  .iguide ol { display:grid; gap:14px; margin:0 0 26px; padding:0; list-style:none; }
+  .iguide li { display:flex; align-items:center; gap:12px; font-size:15px; line-height:1.5; }
+  .iguide li .k { flex:none; display:grid; place-items:center; width:26px; height:26px; border-radius:50%; background:var(--accent); font-size:13px; font-weight:800; }
+  .iguide .ib { display:inline-flex; align-items:center; vertical-align:middle; padding:2px 7px; border-radius:8px; background:rgba(255,255,255,.16); }
+  .iguide .btn { flex:none; width:100%; height:54px; border-radius:999px; font-size:16px; }
+  .iguide .ig-sub { margin:12px 0 0; color:rgba(255,255,255,.6); font-size:12px; text-align:center; }
+  .iguide .ig-arrow { position:fixed; bottom:calc(8px + env(safe-area-inset-bottom)); color:var(--accent); animation:igb 1s ease-in-out infinite; }
+  .iguide .ig-arrow.center { left:calc(50% - 20px); }
+  .iguide .ig-arrow.right { right:18px; }
+  .iguide .ig-arrow.top { top:calc(4px + env(safe-area-inset-top)); bottom:auto; right:52px; rotate:180deg; }
+  @keyframes igb { 50% { translate:0 10px; } }
+  .iguide .ig-arrow.top { animation-name:igbt; }
+  @keyframes igbt { 50% { translate:0 -10px; } }
   .ibanner { position:fixed; left:50%; bottom:calc(86px + env(safe-area-inset-bottom)); z-index:25; transform:translateX(-50%); width:calc(100% - 24px); max-width:440px; display:flex; align-items:center; gap:12px; padding:12px 10px 12px 12px; border-radius:20px; background:var(--card); border:1px solid var(--line); box-shadow:0 10px 30px rgba(0,0,0,.25); animation:ibIn .35s cubic-bezier(.32,.72,0,1); }
   body:not(:has(.bnav)) .ibanner { bottom:calc(16px + env(safe-area-inset-bottom)); }
   @keyframes ibIn { from { transform:translate(-50%, 30px); opacity:0; } }
@@ -844,8 +867,8 @@ function renderError(retry) {
 const UA = navigator.userAgent;
 const inApp = /KAKAOTALK|Instagram|FBAN|FBAV|Line\/|NAVER\(inapp|DaumApps|everytimeApp|Threads/i.test(UA);
 const inKakao = /KAKAOTALK/i.test(UA);
-function openExternal() {
-  if (inKakao) { location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(location.href); return; }
+function openExternal(url = location.href) {
+  if (inKakao) { location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(url); return; }
   sheet(`<h3>Open in browser<i class="pd">.</i></h3>
     <p class="hint">이 앱 안의 브라우저에서는 로그인과 알림이 막혀 있어요.</p>
     <div class="ideas">
@@ -853,10 +876,11 @@ function openExternal() {
       <div class="idea"><span class="k">2</span><span class="it"><b>'외부 브라우저로 열기'</b>(Safari/Chrome)를 눌러요</span></div>
     </div>
     <button class="btn primary block" id="cp">링크 복사해서 직접 열기</button>`).querySelector('#cp').onclick = async () => {
-      try { await navigator.clipboard.writeText(location.href); toast('링크를 복사했어요. Safari/Chrome에 붙여넣어 주세요'); } catch { prompt('이 링크를 복사해 주세요', location.href); }
+      try { await navigator.clipboard.writeText(url); toast('링크를 복사했어요. Safari/Chrome에 붙여넣어 주세요'); } catch { prompt('이 링크를 복사해 주세요', url); }
     };
 }
-const inAppBanner = () => inApp ? `<div class="inapp"><div style="flex:1"><b>여기선 로그인이 안 될 수 있어요</b>Safari나 Chrome에서 열면 바로 돼요.</div><button class="btn" onclick="openExternal()">외부 브라우저</button></div>` : '';
+// 카톡 안에서는 카카오 로그인이 그 자리에서 되므로 배너 대신 작은 안내만
+const inAppBanner = () => inKakao ? '' : inApp ? `<div class="inapp"><div style="flex:1"><b>여기선 로그인이 안 될 수 있어요</b>Safari나 Chrome에서 열면 바로 돼요.</div><button class="btn" onclick="openExternal()">외부 브라우저</button></div>` : '';
 function ago(iso) {
   const s = (Date.now() - new Date(iso)) / 1000;
   if (s < 60) return '방금 전'; if (s < 3600) return `${s / 60 | 0}분 전`;
@@ -905,8 +929,12 @@ async function boot() {
     })(), 10000);
   } catch { return renderError(boot); }
   if (me && myProf && !myProf.onboarded) return renderSetup(true); // 첫 로그인: 프로필 설정
+  // 카톡에서 '홈 화면에 추가하기'로 넘어온 경우(?install=1): 주소에서 지우고 설치 안내를 바로
+  const wantInstall = new URLSearchParams(location.search).has('install');
+  if (wantInstall) { const u = new URL(location.href); u.searchParams.delete('install'); history.replaceState(history.state, '', u.pathname + u.search); }
   route();
-  setTimeout(maybeShowInstall, 2500); // 화면이 뜬 뒤 조금 있다가 설치 권유
+  if (wantInstall && !inApp) setTimeout(showInstallGuide, 400);
+  else setTimeout(maybeShowInstall, 2500); // 화면이 뜬 뒤 조금 있다가 설치 권유
 }
 boot();
 
@@ -1065,6 +1093,7 @@ function renderSetup(first) {
   $('#skip').onclick = async () => {
     if (first) { await sb.from('profiles').update({ onboarded: true }).eq('id', me.id); myProf.onboarded = true; }
     route();
+    if (first) afterSignup();
   };
   $('#done').onclick = async e => {
     e.target.disabled = true; e.target.textContent = '저장 중…';
@@ -1085,6 +1114,7 @@ function renderSetup(first) {
       Object.assign(myProf, patch);
       toast(first ? '환영해요!' : '프로필을 저장했어요');
       route();
+      if (first) afterSignup();
     } catch (err) { e.target.disabled = false; e.target.textContent = first ? '시작하기' : '저장'; if (err.message !== 'dup') toast(kerr(err)); }
   };
 }
@@ -1093,7 +1123,9 @@ function renderSetup(first) {
 let PREV_LOGIN = null;
 const PROVIDER_NAME = { kakao: '카카오', google: 'Google' };
 function login(provider) {
-  if (inApp && !DEMO) return openExternal(); // 인앱에선 Google이 차단되고 세션도 외부 브라우저로 안 넘어감
+  // 카톡 안의 카카오 로그인: 이미 카톡에 로그인돼 있어 동의 한 번이면 끝 → 그 자리에서 진행
+  // 그 외 인앱(인스타 등)·Google: 인앱에서 막히므로 외부 브라우저로
+  if (inApp && !DEMO && !(inKakao && provider === 'kakao')) return openExternal();
   try { localStorage.setItem('candid_last_login', provider); sessionStorage.setItem('candid_oauth', '1'); } catch {}
   sb.auth.signInWithOAuth({ provider, options: { redirectTo: location.origin + location.pathname } });
 }
@@ -1101,10 +1133,16 @@ async function logout() { await sb.auth.signOut(); location.href = location.path
 
 function renderLanding() {
   document.documentElement.classList.add('noscroll'); // 첫 화면은 스크롤 없이 한 화면에 고정
-  const p = cfg.PROVIDERS || ['kakao', 'google'];
+  const all = cfg.PROVIDERS || ['kakao', 'google'];
+  const p = inKakao && all.includes('kakao') ? ['kakao'] : all; // 카톡 안: 카카오만(Google은 인앱에서 막힘)
+  // 홈 화면 앱 첫 실행: 브라우저와 로그인이 따로라 소개 대신 로그인만
+  const appFirst = isStandalone && !DEMO;
   $app.innerHTML = `
     <div class="landing">
       <span class="logo">${LOGO}</span>
+      ${appFirst ? `<div class="hero app1"><img class="app1-ic" src="brand/icon-180.png" alt="">
+        <h1>거의 다 됐어요<em>!</em></h1>
+        <p class="tagline">홈 화면 앱은 브라우저와 로그인이 따로예요.<br>여기서 <b style="color:var(--fg)">한 번만</b> 다시 로그인해 주세요.</p></div>` : `
       <div class="hero">
         <div class="collage">
           <div class="snap"><div class="ph"></div><span class="mt">제일 웃긴 사진</span><p>이 표정 레전드</p><small>— 지수</small></div>
@@ -1113,7 +1151,7 @@ function renderLanding() {
         </div>
         <h1>Your feed,<br><em>by your friends.</em></h1>
         <p class="tagline">내가 고른 사진 말고, 친구들이 본 진짜 나.<br>친구가 올리고, 내가 고르는 피드.</p>
-      </div>
+      </div>`}
       ${inAppBanner()}
       ${(() => {
         // 지난번에 쓴 로그인 방법을 맨 위로 올리고 배지 표시
@@ -1126,7 +1164,8 @@ function renderLanding() {
         const order = last && p.includes(last) ? [last, ...p.filter(k => k !== last)] : p;
         return order.filter(k => btn[k]).map(k => btn[k]).join('');
       })()}
-      <p class="fine">친구는 로그인 없이 사진을 보낼 수 있어요.<br>내가 승인한 사진만 피드에 올라갑니다.</p>
+      ${inKakao && all.includes('google') ? `<button class="fine linkish" onclick="openExternal()">Google로 하려면 Safari·Chrome에서 열기</button>` : ''}
+      ${appFirst ? '' : '<p class="fine">친구는 로그인 없이 사진을 보낼 수 있어요.<br>내가 승인한 사진만 피드에 올라갑니다.</p>'}
     </div>`;
 }
 
@@ -2188,6 +2227,61 @@ async function startInstall() {
   }
   toast(installed() ? '이미 앱으로 쓰고 있어요' : '브라우저 메뉴에서 "앱 설치" 또는 "홈 화면에 추가"를 눌러 주세요');
 }
+// ---------- 가입 직후 홈 화면 추가 ----------
+// 카톡 안에서 가입 → 버튼 하나로 Safari·Chrome 을 열고(?install=1) 거기서 큰 설치 안내
+const installUrl = () => `${location.origin}${location.pathname}?install=1`;
+function afterSignup() {
+  if (DEMO || installed()) return;
+  if (inApp) return setTimeout(() => {
+    sheet(`<h3>Add to Home<i class="pd">.</i></h3>
+      <p class="hint">가입 완료! 홈 화면에 추가하면 앱처럼 바로 열리고, 친구가 사진을 보내면 알림도 와요.</p>
+      <button class="btn primary block" id="goext">📲 홈 화면에 추가하기</button>
+      <p class="hint" style="font-size:12px;text-align:center;margin-top:10px">${isIOS ? 'Safari' : 'Chrome'}가 열리면 안내를 따라 주세요</p>`)
+      .querySelector('#goext').onclick = () => { closeSheet(); openExternal(installUrl()); };
+  }, 700);
+  setTimeout(showInstallGuide, 900);
+}
+// 전체 화면 설치 안내: Android 는 '설치' 버튼 한 번, iPhone 은 공유 버튼 위치를 화살표로
+function showInstallGuide() {
+  if (installed() || inApp || document.querySelector('.iguide')) return;
+  const iosVer = +((UA.match(/OS (\d+)_/) || [])[1] || 0);
+  const chromeIOS = /CriOS/i.test(UA);
+  const android = /android/i.test(UA);
+  if (!isIOS && !android) return; // 데스크톱은 하단 배너·메뉴로 충분
+  const el = document.createElement('div'); el.className = 'iguide'; el.setAttribute('role', 'dialog');
+  const step = (n, html) => `<li><span class="k">${n}</span><span>${html}</span></li>`;
+  const sh = `<b class="ib">${I.iosShare}</b>`;
+  let steps, arrow = '';
+  if (android) {
+    steps = step(1, '아래 <b>앱 설치</b> 버튼을 눌러요') + step(2, '홈 화면의 <b>candid.</b> 아이콘으로 열어요') + step(3, '카카오로 <b>한 번만</b> 로그인하면 끝!');
+  } else if (chromeIOS) {
+    steps = step(1, `주소창 오른쪽 공유 ${sh} 를 눌러요`) + step(2, '<b>홈 화면에 추가</b>를 눌러요') + step(3, '홈 화면의 <b>candid.</b>을 열고 카카오로 <b>한 번만</b> 로그인');
+    arrow = 'top';
+  } else if (iosVer >= 26) {
+    steps = step(1, '오른쪽 아래 <b class="ib">⋯</b> 를 눌러요') + step(2, `<b>공유</b> ${sh} → <b>홈 화면에 추가</b>`) + step(3, '<b>추가</b>를 누르고, 홈 화면의 <b>candid.</b>을 열어 카카오로 <b>한 번만</b> 로그인');
+    arrow = 'right';
+  } else {
+    steps = step(1, `아래 가운데 공유 ${sh} 를 눌러요`) + step(2, '목록을 내려 <b>홈 화면에 추가</b>') + step(3, '<b>추가</b>를 누르고, 홈 화면의 <b>candid.</b>을 열어 카카오로 <b>한 번만</b> 로그인');
+    arrow = 'center';
+  }
+  el.innerHTML = `<button class="ig-x" aria-label="닫기">${I.close}</button>
+    <img class="ig-ic" src="brand/icon-180.png" alt="">
+    <h2>홈 화면에 추가하기</h2>
+    <p>앱처럼 바로 열리고, 친구가 사진을 보내면 알림이 와요.</p>
+    <ol>${steps}</ol>
+    ${android ? `<button class="btn primary block" id="iginst"${installEvt ? '' : ' disabled'}>${installEvt ? '앱 설치' : '설치 준비 중…'}</button>
+      <p class="ig-sub" id="igalt"${installEvt ? ' hidden' : ''}>버튼이 계속 안 눌리면 오른쪽 위 <b>⋮</b> → <b>앱 설치</b> 또는 <b>홈 화면에 추가</b></p>` : ''}
+    ${arrow ? `<div class="ig-arrow ${arrow}" aria-hidden="true"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v15M5 12l7 7 7-7"/></svg></div>` : ''}`;
+  el.querySelector('.ig-x').onclick = () => el.remove();
+  document.body.appendChild(el);
+  if (android) {
+    const btn = el.querySelector('#iginst');
+    const arm = () => { btn.disabled = false; btn.textContent = '앱 설치'; el.querySelector('#igalt').hidden = true; };
+    if (!installEvt) addEventListener('beforeinstallprompt', () => setTimeout(arm), { once: true });
+    btn.onclick = async () => { if (!installEvt) return; el.remove(); await startInstall(); };
+  }
+}
+
 // ---------- 로그인 방법 연결 (카카오 + Google 을 한 계정에) ----------
 // 연결해 두면 둘 중 아무거나로 로그인해도 같은 계정. Supabase Auth 설정에서 Manual linking 을 켜야 동작
 async function openLinks() {
