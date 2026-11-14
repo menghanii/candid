@@ -34,7 +34,7 @@ on conflict (id) do update set name = excluded.name, data = excluded.data, activ
 
 -- 2) 스티커 붙이기 권한: 무료 스티커는 누구나(로그인), 그 외는 가진 것만. 조건 확인은 함수로(무한 반복 방지)
 create or replace function public.can_add_sticker(p_post uuid, p_idx int, p_item text) returns boolean
-language sql stable security definer set search_path = '' as $
+language sql stable security definer set search_path = '' as $$
   select
     -- 피드에 올라간 사진·영상 게시물에만
     exists (select 1 from public.posts p where p.id = p_post and p.status = 'approved' and p.media_type in ('image', 'video'))
@@ -45,7 +45,7 @@ language sql stable security definer set search_path = '' as $
     -- 사진 1장에 1인 10개, 전체 40개까지
     and (select count(*) from public.post_stickers s where s.post_id = p_post and s.media_idx = p_idx and s.user_id = auth.uid()) < 10
     and (select count(*) from public.post_stickers s where s.post_id = p_post and s.media_idx = p_idx) < 40
-$;
+$$;
 revoke all on function public.can_add_sticker(uuid, int, text) from public, anon;
 grant execute on function public.can_add_sticker(uuid, int, text) to authenticated;
 
