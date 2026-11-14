@@ -579,6 +579,54 @@
   .cmp-done p { color:var(--sub); line-height:1.6; margin:0 0 16px; }
   .cmp-done .btn { width:100%; }
   .cmp-check { width:64px; height:64px; border-radius:50%; background:var(--accent); color:#fff; font-size:32px; font-weight:800; display:flex; align-items:center; justify-content:center; animation:pop .5s cubic-bezier(.2,1.6,.4,1); }
+  /* ===== 여러 장 슬라이드 + 사진 위 스티커 ===== */
+  .carwrap { position:relative; }
+  .car { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; overscroll-behavior-x:contain; }
+  .car::-webkit-scrollbar { display:none; }
+  .slide { flex:0 0 100%; scroll-snap-align:center; scroll-snap-stop:always; }
+  .stage { position:relative; container-type:inline-size; overflow:hidden; }
+  .stage > img, .stage > video { display:block; width:100%; aspect-ratio:4/5; object-fit:cover; background:var(--soft); }
+  .car-n { position:absolute; top:12px; right:12px; padding:4px 10px; border-radius:999px; background:rgba(0,0,0,.55); color:#fff; font-size:12px; font-weight:700; z-index:2; }
+  .car-dots { position:absolute; left:0; right:0; bottom:10px; display:flex; justify-content:center; gap:5px; z-index:2; pointer-events:none; }
+  .car-dots i { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.5); transition:background .2s, transform .2s; }
+  .car-dots i.on { background:#fff; transform:scale(1.2); }
+  .stk-layer { position:absolute; inset:0; pointer-events:none; z-index:1; }
+  .pst { position:absolute; transform:translate(-50%,-50%); font-size:calc(var(--s, 1) * 13cqw); line-height:1; filter:drop-shadow(0 2px 4px rgba(0,0,0,.3)); user-select:none; -webkit-user-select:none; }
+  .grid button { container-type:inline-size; }
+  .grid .stk-layer .pst { font-size:calc(var(--s, 1) * 13cqw); }
+  /* 상세 화면 */
+  .post-media .stage > img, .post-media .stage > video { aspect-ratio:4/5; }
+  /* 릴스: 4:5 사진 영역을 가운데에, 스티커 위치가 그리드·상세와 똑같이 보이도록 */
+  .rcar { position:absolute; inset:0; display:flex; align-items:center; }
+  .rcar .carwrap { width:100%; }
+  .rcar .stage > img, .rcar .stage > video { max-height:calc(100dvh - 180px); background:transparent; }
+  .rcar .car-n { top:-34px; }
+  /* 작성 화면 여러 장 미리보기 */
+  .cmp-media .carwrap { width:100%; height:100%; }
+  .cmp-media .car, .cmp-media .slide, .cmp-media .stage { height:100%; }
+  .cmp-media .stage > img, .cmp-media .stage > video { height:100%; aspect-ratio:auto; object-fit:contain; background:#000; }
+  /* 스티커 꾸미기 편집기 */
+  .decor { display:flex; flex-direction:column; }
+  .decor > * { width:100%; }
+  .dwrap { padding:4px 16px 0; }
+  .dstage { border-radius:16px; touch-action:none; }
+  .dstage > img { pointer-events:none; -webkit-user-drag:none; }
+  .dlayer { position:absolute; inset:0; z-index:1; }
+  .dlayer .pst { pointer-events:auto; cursor:grab; transition:filter .15s; }
+  .dlayer .pst.other { opacity:.9; cursor:default; }
+  .dlayer .pst.other.tap { cursor:pointer; }
+  .dlayer .pst.sel { filter:drop-shadow(0 0 0 #fff) drop-shadow(0 0 6px var(--accent)) drop-shadow(0 0 2px var(--accent)); }
+  .dlayer .pst.mine:active { cursor:grabbing; }
+  .dtools { display:flex; justify-content:center; gap:8px; padding:12px 16px 0; }
+  .dtools[hidden] { display:none; }
+  .dtools button { padding:9px 16px; border-radius:999px; border:1px solid var(--line); background:var(--card); font-weight:700; font-size:13px; }
+  .dtools button.danger { color:var(--danger); }
+  .dtools button[hidden] { display:none; }
+  .dhint { padding:10px 20px 0; text-align:center; font-size:12px; }
+  .dtray { display:flex; gap:10px; overflow-x:auto; padding:14px 16px calc(16px + env(safe-area-inset-bottom)); scrollbar-width:none; }
+  .dts { flex:none; width:58px; height:58px; border-radius:16px; border:1.5px solid color-mix(in srgb, var(--rc) 50%, var(--line)); background:var(--card); font-size:32px; line-height:1; }
+  .dts:active { transform:scale(.9); }
+  .dempty { width:100%; display:flex; flex-direction:column; align-items:center; gap:10px; padding:8px; color:var(--sub); font-size:13px; text-align:center; }
 </style>
 </head>
 <body>
@@ -599,6 +647,8 @@ const I = {
   more: sv('<circle cx="5" cy="12" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="19" cy="12" r=".6"/>', 22, 2.4),
   close: sv('<path d="M18 6 6 18M6 6l12 12"/>'),
   search: sv('<circle cx="11" cy="11" r="7"/><path d="m20.5 20.5-4.2-4.2"/>'),
+  multi: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 3h11a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M4 7v12a2 2 0 0 0 2 2h12" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+  stickerIc: sv('<path d="M15.5 3H6a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h7.5L21 13.5V6a3 3 0 0 0-3-3h-2.5z"/><path d="M21 13.5h-4.5a3 3 0 0 0-3 3V21"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/><path d="M8.5 14.5c1.5 1.3 4 1.3 5.5 0"/>'),
   iosShare: sv('<path d="M12 3v12M8 7l4-4 4 4"/><path d="M7 10H5.5A1.5 1.5 0 0 0 4 11.5v8A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5v-8a1.5 1.5 0 0 0-1.5-1.5H17"/>', 18, 1.9),
   reelsNav: sv('<rect x="4" y="2.5" width="16" height="19" rx="4"/><path d="M10 9v6l5-3z" fill="currentColor"/>', 26, 1.9),
   usersNav: sv('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18.5 14.8c1.7.8 2.8 2.5 3 5.2"/>', 26, 1.9),
@@ -966,6 +1016,7 @@ async function renderProfile(uid, fresh) {
   S.approved = posts.filter(p => p.status === 'approved');
   S.pending = posts.filter(p => p.status === 'pending');
   await loadPolls(S.approved).catch(() => {});
+  await loadStickers(S.approved.filter(p => !isText(p)).map(p => p.id)).catch(() => {});
   if (!S.isOwner) S.tab = 'grid';
   CACHE.prof.set(uid, { prof, isOwner: S.isOwner, approved: S.approved, pending: S.pending, sig });
   paintProfile();
@@ -1073,7 +1124,7 @@ function renderBody() {
     return;
   }
   if (approved.length) {
-    $b.innerHTML = `<div class="grid">${approved.map(p => `<button onclick="openPost('${p.id}')" class="${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${esc(p.author_name)}가 보낸 ${esc(p.mission)}${p.text ? ': ' + esc(p.text) : ''}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">`}${isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}<span class="from">${p.text && !isText(p) ? `<q>“${esc(p.text)}”</q>` : ''}from<i class="pd">.</i> ${esc(p.author_name)}</span></button>`).join('')}</div>`;
+    $b.innerHTML = `<div class="grid">${approved.map(p => `<button onclick="openPost('${p.id}')" class="${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${esc(p.author_name)}가 보낸 ${esc(p.mission)}${p.text ? ': ' + esc(p.text) : ''}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">${stickerLayer(p.id, 0)}`}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}<span class="from">${p.text && !isText(p) ? `<q>“${esc(p.text)}”</q>` : ''}from<i class="pd">.</i> ${esc(p.author_name)}</span></button>`).join('')}</div>`;
     S.justApproved = null;
     return;
   }
@@ -1254,6 +1305,7 @@ async function fetchHome() {
   const o = await sb.from('profiles').select('*').in('id', ids);
   await loadSocial(r.data.map(p => p.id));
   await loadPolls(r.data).catch(() => {});
+  await loadStickers(r.data.filter(p => !isText(p)).map(p => p.id)).catch(() => {});
   return { posts: r.data, owners: new Map((o.data || []).map(p => [p.id, p])) };
 }
 // 홈: 저장해 둔 릴스를 바로 보여주고 뒤에서 갱신. fresh=true(당겨서 새로고침)면 새로 받아 다시 그림
@@ -1290,10 +1342,8 @@ function paintHome({ posts, owners }) {
     const o = owners.get(p.owner_id) || { name: '친구' }, s = SOC.get(p.id);
     return `<section class="reel" data-id="${p.id}">
       ${isText(p) ? `<div class="rbg rbg-${p.media_type}"></div><div class="rmedia rtc">${textCard(p)}</div>` : `<div class="rbg" style="background-image:url('${thumbUrl(p)}')"></div>`}
-      ${isText(p) ? '' : isVideo(p)
-        ? `<video class="rmedia" src="${photoUrl(p.image_path)}" poster="${thumbUrl(p)}" muted playsinline loop preload="none"></video>
-           <button class="rmute" aria-label="소리 켜기/끄기">${muted ? I.mute : I.sound}</button>`
-        : `<img class="rmedia" src="${photoUrl(p.image_path)}" alt="${esc(p.author_name)}가 보낸 사진" loading="lazy">`}
+      ${isText(p) ? '' : `<div class="rmedia rcar">${mediaCarousel(p, 'reel')}</div>
+        ${mediaOf(p).some(m => m.k === 'video') ? `<button class="rmute" aria-label="소리 켜기/끄기">${muted ? I.mute : I.sound}</button>` : ''}`}
       <div class="rburst">${I.heartOn}</div>
       <div class="rinfo">
         <a class="rowner" href="${feedUrl(p.owner_id)}">${avatar(o, 'xs')}<b>${esc(o.name)}</b><span>의 피드</span></a>
@@ -1326,9 +1376,11 @@ function paintHome({ posts, owners }) {
   // 화면에 보이는 영상만 재생
   const io = new IntersectionObserver(es => es.forEach(e => {
     if (e.isIntersecting) { try { localStorage.setItem('candid_reel', e.target.dataset.id); } catch {} } // 마지막으로 본 릴스 기억
-    const v = e.target.querySelector('video'); if (!v) return;
-    if (e.isIntersecting) { v.preload = 'auto'; v.muted = muted; v.play().catch(() => {}); } else v.pause();
+    if (!e.isIntersecting) return e.target.querySelectorAll('video').forEach(v => v.pause());
+    const v = currentVideo(e.target); if (!v) return; // 여러 장이면 지금 보이는 장의 영상만
+    v.preload = 'auto'; v.muted = muted; v.play().catch(() => {});
   }), { threshold: 0.6 });
+  initCarousels(document.getElementById('reels'), () => true);
   document.querySelectorAll('.reel[data-id]').forEach(r => {
     io.observe(r);
     // 두 번 탭: 좋아요 + 하트 / 한 번 탭(영상): 소리 켜기·끄기
@@ -1485,9 +1537,7 @@ function openPost(id) {
         <div class="who"><b>${esc(p.author_name)}<span style="font-weight:400;color:var(--sub)">님이 보냄</span></b>${p.mission ? `<span class="mchip">${esc(p.mission)}</span>` : ''}</div>
         <button class="icon-btn" data-close aria-label="닫기">${I.close}</button>
       </div>
-      ${isText(p) ? textCard(p) : isVideo(p)
-        ? `<video class="post-img" src="${photoUrl(p.image_path)}" poster="${thumbUrl(p)}" controls playsinline autoplay muted loop></video>`
-        : `<img class="post-img" src="${photoUrl(p.image_path)}" alt="${esc(p.author_name)}가 보낸 사진">`}
+      ${isText(p) ? textCard(p) : `<div class="post-media">${mediaCarousel(p, 'post')}</div>`}
       ${p.text && !isText(p) ? `<div class="post-c"><div class="quote">${esc(p.text)}</div></div>` : ''}
       ${p.status === 'approved' ? `<div class="psoc">
         <button class="pbtn" data-like="${p.id}" aria-label="좋아요" onclick="toggleLike('${p.id}')"><span>${I.heart}</span><b></b></button>
@@ -1495,6 +1545,7 @@ function openPost(id) {
       <div class="post-f">
         ${p.status === 'pending' ? `받은 지 ${ago(p.created_at)} · 승인 대기 중` : `${ago(p.approved_at || p.created_at)} 피드에 올림`}
         <div class="sp"></div>
+        ${me && p.status === 'approved' && !isText(p) ? `<button class="icon-btn" aria-label="스티커로 꾸미기" onclick="openDecorate('${p.id}')">${I.stickerIc}</button>` : ''}
         ${S.isOwner && p.status === 'approved' ? `<button class="icon-btn" aria-label="스토리 이미지 저장" onclick="makeStory('${p.id}')">${I.share}</button>` : ''}
         ${S.isOwner ? `<button class="icon-btn" aria-label="더보기" onclick="postMenu('${p.id}')">${I.more}</button>` : ''}
       </div>
@@ -1505,6 +1556,9 @@ function openPost(id) {
   ov.onclick = e => { if (e.target === ov || e.target.closest('[data-close]')) ov.remove(); };
   document.body.appendChild(ov);
   if (p.status === 'approved') loadSocial([p.id]).then(() => paintSoc(p.id)).catch(() => {});
+  if (p.status === 'approved' && !isText(p)) loadStickers([p.id]).then(() => refreshStickerLayers(p.id)).catch(() => {});
+  initCarousels(ov, () => true);
+  ov.querySelector('video')?.play().catch(() => {});
 }
 
 // ---------- 바텀시트 ----------
@@ -1598,7 +1652,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = true) {
     <div class="cmp-body">
       ${asked ? `<div class="asked">${name}님이 <b>'${esc(MISSIONS[mi])}'</b>을(를) 부탁했어요</div>` : ''}
       <section data-sec="media">
-        <label class="cmp-media" id="pick"><span class="cmp-empty">${I.camera}<b>사진·영상 선택</b><small>영상은 10초까지</small></span><input type="file" accept="image/*,video/*" id="file" hidden></label>
+        <label class="cmp-media" id="pick"><span class="cmp-empty">${I.camera}<b>사진·영상 선택</b><small>여러 장 가능(최대 10장) · 영상은 10초까지</small></span><input type="file" accept="image/*,video/*" id="file" multiple hidden></label>
         <textarea class="cmp-cap" id="text" maxlength="80" rows="2" placeholder="한마디 남기기… (예: 이 표정 레전드)"></textarea>
       </section>
       <section data-sec="poll">
@@ -1653,19 +1707,33 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = true) {
   $('#addopt').onclick = () => { addOpt(); refresh(); };
   $('#pq').oninput = refresh; $('#qq').oninput = refresh;
 
+  // 여러 장 선택(최대 10장): 한 장씩 준비하고, 2장 이상이면 좌우로 넘기는 미리보기
   $file.onchange = async () => {
-    const f = $file.files[0]; if (!f) return;
+    let files = [...$file.files]; if (!files.length) return;
+    if (files.length > 10) { files = files.slice(0, 10); toast('한 번에 10장까지 보낼 수 있어요. 앞 10장만 골랐어요'); }
     const pk = $('#pick');
-    pk.classList.add('busy'); pk.querySelector('.cmp-empty').innerHTML = `<b>${f.type.startsWith('video/') ? '영상' : '사진'} 준비 중…</b>`;
+    pk.classList.remove('has'); pk.classList.add('busy');
+    pk.innerHTML = `<span class="cmp-empty"><b>준비 중…</b></span>`; pk.appendChild($file);
     $send.disabled = true;
-    try { media = f.type.startsWith('video/') ? await prepareVideoMeta(f) : await prepareImage(f); }
-    catch { media = null; pk.classList.remove('busy'); pk.querySelector('.cmp-empty').innerHTML = `${I.camera}<b>다시 선택해 주세요</b><small>이 파일은 열 수 없어요</small>`; return refresh(); }
-    pk.classList.remove('busy'); pk.classList.add('has');
-    pk.innerHTML = (media.kind === 'video'
-      ? `<video src="${media.previewUrl}" poster="${URL.createObjectURL(media.thumb)}" muted playsinline autoplay loop></video>
-         <span class="vbadge">${media.duration > MAX_VIDEO_SEC + 0.5 ? `앞 ${MAX_VIDEO_SEC}초만 올라가요` : `${Math.round(media.duration)}초`}</span>`
-      : `<img src="${media.previewUrl}" alt="고른 사진">`) + `<span class="repick">바꾸기</span>`;
+    const ready = [];
+    for (const [i, f] of files.entries()) {
+      pk.querySelector('.cmp-empty b').textContent = files.length > 1 ? `준비 중 (${i + 1}/${files.length})` : `${f.type.startsWith('video/') ? '영상' : '사진'} 준비 중…`;
+      try { ready.push(f.type.startsWith('video/') ? await prepareVideoMeta(f) : await prepareImage(f)); } catch {}
+    }
+    pk.classList.remove('busy');
+    if (!ready.length) { media = null; pk.querySelector('.cmp-empty').innerHTML = `${I.camera}<b>다시 선택해 주세요</b><small>이 파일은 열 수 없어요</small>`; return refresh(); }
+    if (ready.length < files.length) toast(`${files.length - ready.length}개는 열 수 없어서 뺐어요`);
+    media = ready;
+    const one = m => m.kind === 'video'
+      ? `<video src="${m.previewUrl}" poster="${URL.createObjectURL(m.thumb)}" muted playsinline autoplay loop></video>
+         <span class="vbadge">${m.duration > MAX_VIDEO_SEC + 0.5 ? `앞 ${MAX_VIDEO_SEC}초만 올라가요` : `${Math.round(m.duration)}초`}</span>`
+      : `<img src="${m.previewUrl}" alt="고른 사진">`;
+    pk.classList.add('has');
+    pk.innerHTML = media.length === 1 ? one(media[0]) + `<span class="repick">바꾸기</span>`
+      : `<div class="carwrap multi" data-idx="0"><div class="car" data-car>${media.map(m => `<div class="slide"><div class="stage">${one(m)}</div></div>`).join('')}</div>
+         <span class="car-n">1/${media.length}</span><div class="car-dots">${media.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div></div><span class="repick">다시 고르기</span>`;
     pk.appendChild($file);
+    initCarousels(pk, () => false);
     refresh();
   };
   setMode(mode);
@@ -1685,14 +1753,21 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = true) {
         status('보내는 중…');
         ins = await sb.from('posts').insert({ owner_id: S.uid, media_type: 'question', mission: '질문', text: $('#qq').value.trim(), author_name: author });
       } else {
-        let main = media.main;
-        if (media.kind === 'video') { status('영상 줄이는 중 0%'); main = await compressVideo(media, p => status(`영상 줄이는 중 ${Math.round(p * 100)}%`)); }
-        status('올리는 중…');
-        const id = crypto.randomUUID();
-        const path = `${S.uid}/${id}.${extOf(main)}`, tpath = `${S.uid}/${id}_t.${extOf(media.thumb)}`;
-        await Promise.all([uploadBlob(path, main), uploadBlob(tpath, media.thumb)]);
+        // 한 장씩 (영상은 줄인 뒤) 올리고 media 배열로 저장. 첫 장은 image_path 에도 넣어 예전 화면과 호환
+        const list = [], n = media.length;
+        for (const [i, m] of media.entries()) {
+          const tag = n > 1 ? ` (${i + 1}/${n})` : '';
+          let main = m.main;
+          if (m.kind === 'video') { status(`영상 줄이는 중${tag} 0%`); main = await compressVideo(m, p => status(`영상 줄이는 중${tag} ${Math.round(p * 100)}%`)); }
+          status(`올리는 중${tag}…`);
+          const id = crypto.randomUUID();
+          const path = `${S.uid}/${id}.${extOf(main)}`, tpath = `${S.uid}/${id}_t.${extOf(m.thumb)}`;
+          await Promise.all([uploadBlob(path, main), uploadBlob(tpath, m.thumb)]);
+          list.push({ p: path, t: tpath, k: m.kind });
+        }
         ins = await sb.from('posts').insert({
-          owner_id: S.uid, image_path: path, thumb_path: tpath, media_type: media.kind,
+          owner_id: S.uid, image_path: list[0].p, thumb_path: list[0].t, media_type: list[0].k,
+          ...(n > 1 ? { media: list } : {}), // 1장은 media 칸 없이 (09 SQL 실행 전에도 동작)
           mission: asked ? MISSIONS[mi] : null, text: $('#text').value.trim(), author_name: author,
         });
       }
@@ -2000,6 +2075,151 @@ async function openCloset(kind = 'frame') {
   el.querySelectorAll('.ctabs button').forEach(b => b.onclick = () => { kind = b.dataset.k; paint(); });
   paint(); refreshTickets();
 }
+// ---------- 여러 장 게시물 + 사진 위 스티커 ----------
+// media: [{p: 본문 경로, t: 썸네일 경로, k: 'image'|'video'}] — 예전 게시물(1장)은 image_path 로 대신
+const mediaOf = p => Array.isArray(p.media) && p.media.length ? p.media
+  : (p.image_path ? [{ p: p.image_path, t: p.thumb_path, k: p.media_type === 'video' ? 'video' : 'image' }] : []);
+const STK = new Map(); // postId → 스티커 행들
+async function loadStickers(ids) {
+  if (!ids.length) return;
+  const { data, error } = await sb.from('post_stickers').select('id, post_id, media_idx, user_id, item_id, x, y, scale').in('post_id', ids);
+  if (error) return; // 09 SQL 실행 전이면 조용히 무시
+  ids.forEach(id => STK.set(id, []));
+  data.forEach(r => STK.get(r.post_id)?.push(r));
+}
+const stickerLayer = (postId, idx) => `<div class="stk-layer" data-sl="${postId}:${idx}">${(STK.get(postId) || []).filter(r => r.media_idx === idx)
+  .map(r => `<span class="pst" style="left:${r.x * 100}%;top:${r.y * 100}%;--s:${r.scale}">${ITEM[r.item_id]?.data.e || ''}</span>`).join('')}</div>`;
+function refreshStickerLayers(postId) {
+  document.querySelectorAll(`[data-sl^="${postId}:"]`).forEach(el => { el.outerHTML = stickerLayer(postId, +el.dataset.sl.split(':')[1]); });
+}
+// 사진·영상 한 장
+function mediaEl(m, mode, alt) {
+  if (m.k === 'video') return mode === 'reel'
+    ? `<video src="${photoUrl(m.p)}" poster="${photoUrl(m.t || m.p)}" muted playsinline loop preload="none"></video>`
+    : `<video src="${photoUrl(m.p)}" poster="${photoUrl(m.t || m.p)}" controls playsinline muted loop></video>`;
+  return `<img src="${photoUrl(m.p)}" alt="${alt}" ${mode === 'reel' ? 'loading="lazy"' : ''}>`;
+}
+// 여러 장이면 좌우로 넘기는 슬라이드(인스타처럼 점 + 1/3)
+function mediaCarousel(p, mode) {
+  const items = mediaOf(p), alt = `${esc(p.author_name)}가 보낸 사진`;
+  if (items.length <= 1) return `<div class="carwrap" data-idx="0"><div class="stage">${items[0] ? mediaEl(items[0], mode, alt) : ''}${stickerLayer(p.id, 0)}</div></div>`;
+  return `<div class="carwrap multi" data-idx="0">
+    <div class="car" data-car>${items.map((m, i) => `<div class="slide"><div class="stage">${mediaEl(m, mode, alt)}${stickerLayer(p.id, i)}</div></div>`).join('')}</div>
+    <span class="car-n">1/${items.length}</span>
+    <div class="car-dots">${items.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div></div>`;
+}
+// 현재 보이는 장의 영상만 재생
+const currentVideo = scope => { const w = scope.querySelector('.carwrap'); if (!w) return null; const slides = w.querySelectorAll('.slide'); return (slides.length ? slides[+w.dataset.idx || 0] : w).querySelector('video'); };
+function initCarousels(root, autoplay) {
+  root.querySelectorAll('[data-car]').forEach(car => {
+    const w = car.closest('.carwrap');
+    let last = 0;
+    car.addEventListener('scroll', () => {
+      const i = Math.round(car.scrollLeft / car.clientWidth); if (i === last) return; last = i;
+      w.dataset.idx = i;
+      w.querySelector('.car-n').textContent = `${i + 1}/${car.children.length}`;
+      w.querySelectorAll('.car-dots i').forEach((d, j) => d.classList.toggle('on', j === i));
+      w.querySelectorAll('video').forEach(v => v.pause());
+      if (autoplay()) { const v = currentVideo(w.parentElement); if (v) { v.muted = muted; v.play().catch(() => {}); } }
+    }, { passive: true });
+  });
+}
+
+// 스티커 꾸미기 편집기: 가챠로 뽑은 스티커만, 내 스티커만 옮기기·떼기(주인은 남의 것도 떼기 가능), 승인 없음
+async function openDecorate(postId) {
+  if (!me) return toast('로그인하면 스티커로 꾸밀 수 있어요');
+  const p = findAny(postId); if (!p) return;
+  const idx = +(document.querySelector('.overlay .carwrap')?.dataset.idx || 0);
+  const m = mediaOf(p)[idx]; if (!m) return;
+  const isOwnerPost = p.owner_id === me.id;
+  const el = pageOverlay('decor', `
+    <header class="pov-h cmp-h"><button class="icon-btn" data-x aria-label="닫기">${I.close}</button><b>스티커 꾸미기</b><button class="cmp-send" id="dsave">저장</button></header>
+    <div class="dwrap"><div class="stage dstage" id="dstage"><img src="${photoUrl(m.k === 'video' ? (m.t || m.p) : m.p)}" alt="" draggable="false"><div class="dlayer" id="dlayer"></div></div></div>
+    <div class="dtools" id="dtools" hidden><button data-a="-">작게</button><button data-a="+">크게</button><button data-a="x" class="danger">떼기</button></div>
+    <p class="hint dhint" id="dhint"></p>
+    <div class="dtray" id="dtray"><p class="hint">불러오는 중…</p></div>`);
+  const $ = s => el.querySelector(s);
+  // 최신 상태 불러오기(그 사이 다른 친구가 붙인 것도 보이게)
+  const [st, inv] = await Promise.all([
+    sb.from('post_stickers').select('id, user_id, item_id, x, y, scale, media_idx').eq('post_id', postId),
+    sb.from('inventory').select('item_id').eq('user_id', me.id),
+  ]);
+  if (st.error) { el.remove(); return toast(/post_stickers|relation/i.test(st.error.message) ? '스티커 기능 준비 중이에요(관리자: 09 SQL 실행 필요)' : kerr(st.error)); }
+  const rows = st.data.filter(r => r.media_idx === idx);
+  const others = rows.filter(r => r.user_id !== me.id);
+  const orig = new Map(rows.filter(r => r.user_id === me.id).map(r => [r.id, { ...r }]));
+  let mine = [...orig.values()].map(r => ({ ...r }));
+  const removed = new Set(); let sel = null;
+  const myStickers = (inv.data || []).map(r => ITEM[r.item_id]).filter(i => i?.kind === 'sticker');
+
+  const paint = () => {
+    $('#dlayer').innerHTML =
+      others.filter(r => !removed.has(r.id)).map(r => `<span class="pst other${isOwnerPost ? ' tap' : ''}${sel === r.id ? ' sel' : ''}" data-id="${r.id}" style="left:${r.x * 100}%;top:${r.y * 100}%;--s:${r.scale}">${ITEM[r.item_id]?.data.e || ''}</span>`).join('') +
+      mine.map(r => `<span class="pst mine${sel === r.id ? ' sel' : ''}" data-id="${r.id}" style="left:${r.x * 100}%;top:${r.y * 100}%;--s:${r.scale}">${ITEM[r.item_id]?.data.e || ''}</span>`).join('');
+    const selMine = mine.find(r => r.id === sel), selOther = others.find(r => r.id === sel);
+    $('#dtools').hidden = !(selMine || selOther);
+    $('#dtools').querySelectorAll('[data-a="-"],[data-a="+"]').forEach(b => b.hidden = !selMine);
+    $('#dhint').textContent = `내 스티커 ${mine.length}/5 · 끌어서 옮기고, 눌러서 크기 조절${isOwnerPost ? ' · 내 피드라 친구 스티커도 눌러서 뗄 수 있어요' : ''}`;
+  };
+  // 트레이: 내가 가진 스티커
+  $('#dtray').innerHTML = myStickers.length
+    ? myStickers.map(i => `<button class="dts" data-item="${i.id}" style="--rc:${RARITY[i.rarity].color}" aria-label="${esc(i.name)} 붙이기">${i.data.e}</button>`).join('')
+    : `<div class="dempty">아직 스티커가 없어요. 🎁 뽑기에서 스티커를 모아 보세요!<button class="btn primary" id="dgacha">🎁 뽑기</button></div>`;
+  $('#dgacha')?.addEventListener('click', () => openGacha());
+  $('#dtray').querySelectorAll('[data-item]').forEach(b => b.onclick = () => {
+    if (mine.length >= 5) return toast('한 사진에 내 스티커는 5개까지예요');
+    const r = { id: 'tmp' + Math.random().toString(36).slice(2), item_id: b.dataset.item, x: 0.5, y: 0.5, scale: 1, tmp: true };
+    mine.push(r); sel = r.id; paint();
+  });
+  // 끌어서 옮기기 (내 스티커만), 탭하면 선택
+  const stage = $('#dstage');
+  let drag = null;
+  stage.addEventListener('pointerdown', e => {
+    const s = e.target.closest('.pst'); if (!s) { sel = null; return paint(); }
+    const id = s.dataset.id;
+    if (s.classList.contains('other')) { if (isOwnerPost) { sel = id; paint(); } return; }
+    sel = id; paint();
+    drag = { id, moved: false }; stage.setPointerCapture(e.pointerId); e.preventDefault();
+  });
+  stage.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const b = stage.getBoundingClientRect(), r = mine.find(x => x.id === drag.id); if (!r) return;
+    r.x = Math.min(0.97, Math.max(0.03, (e.clientX - b.left) / b.width));
+    r.y = Math.min(0.97, Math.max(0.03, (e.clientY - b.top) / b.height));
+    drag.moved = true;
+    const span = stage.querySelector(`.pst[data-id="${drag.id}"]`); if (span) { span.style.left = r.x * 100 + '%'; span.style.top = r.y * 100 + '%'; }
+  });
+  const end = () => { drag = null; };
+  stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
+  $('#dtools').onclick = e => {
+    const a = e.target.dataset.a; if (!a || !sel) return;
+    const r = mine.find(x => x.id === sel);
+    if (a === 'x') { if (r) { mine = mine.filter(x => x !== r); if (!r.tmp) removed.add(r.id); } else removed.add(sel); sel = null; }
+    else if (r) r.scale = Math.min(3, Math.max(0.4, +(r.scale + (a === '+' ? 0.25 : -0.25)).toFixed(2)));
+    paint();
+  };
+  const changed = () => removed.size || mine.some(r => r.tmp || (orig.get(r.id) && ['x', 'y', 'scale'].some(k => orig.get(r.id)[k] !== r[k])));
+  $('[data-x]').onclick = () => { if (!changed() || confirm('저장하지 않은 꾸미기가 사라져요. 닫을까요?')) el.remove(); };
+  // 저장: 내 것만 추가·수정·삭제(+주인은 남의 것 삭제) → 서로 덮어쓰지 않음
+  $('#dsave').onclick = async () => {
+    const btn = $('#dsave'); btn.disabled = true; btn.textContent = '저장 중…';
+    try {
+      if (removed.size) { const { error } = await sb.from('post_stickers').delete().in('id', [...removed]); if (error) throw error; }
+      const adds = mine.filter(r => r.tmp).map(r => ({ post_id: postId, media_idx: idx, user_id: me.id, item_id: r.item_id, x: r.x, y: r.y, scale: r.scale }));
+      if (adds.length) { const { error } = await sb.from('post_stickers').insert(adds); if (error) throw error; }
+      for (const r of mine.filter(r => !r.tmp && ['x', 'y', 'scale'].some(k => orig.get(r.id)?.[k] !== r[k]))) {
+        const { error } = await sb.from('post_stickers').update({ x: r.x, y: r.y, scale: r.scale, updated_at: new Date().toISOString() }).eq('id', r.id);
+        if (error) throw error;
+      }
+      await loadStickers([postId]); refreshStickerLayers(postId);
+      el.remove(); toast('꾸몄어요 ✨');
+    } catch (err) {
+      btn.disabled = false; btn.textContent = '저장';
+      toast(/row-level|42501/i.test(err.message) ? '스티커를 붙일 수 없어요(개수 제한이거나 가진 스티커가 아니에요)' : kerr(err));
+    }
+  };
+  paint();
+}
 // ---------- 주인장 액션 ----------
 const closeLayers = () => { closeSheet(); document.querySelector('.overlay')?.remove(); };
 const leaveRow = id => new Promise(r => {
@@ -2035,7 +2255,7 @@ async function commitDelete(id) {
   pendingDeletes.delete(id); clearTimeout(job.timer);
   const { error } = await sb.from('posts').delete().eq('id', id);
   if (error) { toast(kerr(error)); return job.restore(); }
-  sb.storage.from('photos').remove([job.p.image_path, job.p.thumb_path].filter(Boolean));
+  sb.storage.from('photos').remove(mediaOf(job.p).flatMap(m => [m.p, m.t]).filter(x => x && !/^https?:/.test(x)));
 }
 addEventListener('pagehide', () => [...pendingDeletes.keys()].forEach(commitDelete));
 
@@ -2140,6 +2360,13 @@ function demoClient() {
     { id: 'q2', owner_id: 'f2', author_name: '하린', mission: '질문', media_type: 'question', text: '우리 처음 만난 날 기억나?', answer: '당연하지 ㅋㅋ 신입생 OT에서 네가 길 잃어서 내가 데려다줌', status: 'approved', created_at: t(1.6), approved_at: t(1.5) },
     { id: 'q3', owner_id: 'demo', author_name: '지수', mission: '질문', media_type: 'question', text: '요즘 제일 빠져 있는 거 뭐야?', status: 'pending', created_at: t(0.2), approved_at: null },
   );
+  // 여러 장 게시물·스티커 데모: 지수 피드에 3장짜리 게시물, 내 스티커 몇 개, 이미 붙은 친구 스티커
+  db.posts.push({ id: 'm1', owner_id: 'f1', author_name: '하린', mission: null, text: '제주도 3박 4일 요약', media_type: 'image',
+    media: [1, 5, 8].map(i => ({ p: art(i), t: art(i), k: 'image' })), image_path: art(1), thumb_path: art(1), status: 'approved', created_at: t(0.5), approved_at: t(0.45) });
+  if (!db.inventory || !db.inventory.length) db.inventory = ['sticker_star', 'sticker_cat', 'sticker_crown', 'sticker_fire'].map(item_id => ({ user_id: 'demo', item_id, count: 1 }));
+  if (!db.post_stickers) db.post_stickers = [
+    { id: 's1', post_id: 'm1', media_idx: 0, user_id: 'f2', item_id: 'sticker_fire', x: 0.78, y: 0.7, scale: 1 },
+    { id: 's2', post_id: 'a0', media_idx: 0, user_id: 'f1', item_id: 'sticker_crown', x: 0.3, y: 0.25, scale: 1.2 }];
   db.posts = db.posts.filter((p, i, a) => a.findIndex(x => x.id === p.id) === i);
   const persist = () => ss.set('demo_db2', JSON.stringify(db));
   const loggedIn = () => ss.get('demo_login') === '1';
@@ -2150,6 +2377,9 @@ function demoClient() {
     const run = () => {
       db[table] = db[table] || [];
       let rows = db[table].filter(r => filters.every(([k, v, how]) => how === 'in' ? v.includes(r[k]) : how === 're' ? v.test(r[k] || '') : how === 'or' ? v.some(([c, re]) => re.test(r[c] || '')) : r[k] === v));
+      if (op === 'insert' && Array.isArray(payload)) { // 여러 개 한 번에 추가
+        const all = payload; for (const p of all) { payload = p; run(); } return { data: null, error: null };
+      }
       if (op === 'insert') {
         const row = { id: 'x' + Math.random().toString(36).slice(2), created_at: new Date().toISOString(), ...payload };
         if (table === 'posts') Object.assign(row, { status: 'pending', approved_at: null, ...payload });
