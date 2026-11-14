@@ -1,4 +1,6 @@
-// candid. 푸시 알림 — posts 에 새 행이 들어오면(DB 웹훅) 주인장에게 웹 푸시 발송
+// candid. 푸시 알림 — DB 웹훅으로 호출되어 피드 주인에게 웹 푸시 발송
+//  - posts INSERT: 친구가 사진·투표·질문을 보냄
+//  - post_stickers INSERT: 친구가 내 사진을 스티커로 꾸밈 (한 번 저장에 여러 개면 알림 1번)
 // 필요한 Secrets: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, WEBHOOK_SECRET, SITE_URL
 import webpush from 'npm:web-push@3.6.7';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
@@ -30,23 +32,45 @@ Deno.serve(async (req) => {
   }
   const body = await req.json().catch(() => null);
   const id = body?.record?.id;
-  if (body?.type !== 'INSERT' || body?.table !== 'posts' || !id) return new Response('ignored');
+  if (body?.type !== 'INSERT' || !id) return new Response('ignored');
+  const fresh = (iso: string) => Date.now() - new Date(iso).getTime() <= 5 * 60_000;
 
-  // 페이로드를 믿지 않고 DB에서 다시 확인: 존재하고, 대기 중이고, 방금 들어온 것만
-  const { data: post } = await sb!.from('posts')
-    .select('id, owner_id, author_name, mission, status, created_at').eq('id', id).maybeSingle();
-  if (!post || post.status !== 'pending' || Date.now() - new Date(post.created_at).getTime() > 5 * 60_000) {
-    return new Response('skip');
+  let ownerId = '', payload = '';
+  if (body.table === 'posts') {
+    // 페이로드를 믿지 않고 DB에서 다시 확인: 존재하고, 대기 중이고, 방금 들어온 것만
+    const { data: post } = await sb!.from('posts')
+      .select('id, owner_id, author_name, mission, status, created_at').eq('id', id).maybeSingle();
+    if (!post || post.status !== 'pending' || !fresh(post.created_at)) return new Response('skip');
+    ownerId = post.owner_id;
+    payload = JSON.stringify({
+      title: '누군가 너에게 사진을 보냈어 👀',
+      body: `${post.author_name}님이 '${post.mission ?? '사진'}'을(를) 보냈어요. 대기 피드에서 확인해 보세요.`,
+      url: `${SITE}?u=${post.owner_id}&tab=inbox`,
+    });
+  } else if (body.table === 'post_stickers') {
+    const { data: st } = await sb!.from('post_stickers').select('id, post_id, user_id, created_at').eq('id', id).maybeSingle();
+    if (!st || !fresh(st.created_at)) return new Response('skip');
+    const { data: post } = await sb!.from('posts').select('id, owner_id, status').eq('id', st.post_id).maybeSingle();
+    if (!post || post.status !== 'approved' || post.owner_id === st.user_id) return new Response('skip'); // 내가 내 사진 꾸민 건 알림 없음
+    // 같은 사람이 같은 게시물에 1분 안에 붙인 스티커 중 가장 앞의 것 하나에만 알림(한 번 저장 = 알림 1번)
+    const { data: batch } = await sb!.from('post_stickers').select('id')
+      .eq('post_id', st.post_id).eq('user_id', st.user_id)
+      .gte('created_at', new Date(new Date(st.created_at).getTime() - 60_000).toISOString())
+      .order('id', { ascending: true }).limit(1);
+    if (batch?.[0] && batch[0].id !== st.id) return new Response('skip (batched)');
+    const { data: who } = await sb!.from('profiles').select('name').eq('id', st.user_id).maybeSingle();
+    ownerId = post.owner_id;
+    payload = JSON.stringify({
+      title: '누가 내 사진을 꾸몄어요 ✨',
+      body: `${who?.name ?? '친구'}님이 내 사진에 스티커를 붙였어요. 확인해 보세요.`,
+      url: `${SITE}?u=${post.owner_id}`,
+    });
+  } else {
+    return new Response('ignored');
   }
 
-  const { data: subs, error } = await sb!.from('push_subscriptions').select('*').eq('user_id', post.owner_id);
+  const { data: subs, error } = await sb!.from('push_subscriptions').select('*').eq('user_id', ownerId);
   if (error) { console.error(error); return new Response('db error', { status: 500 }); }
-
-  const payload = JSON.stringify({
-    title: '누군가 너에게 사진을 보냈어 👀',
-    body: `${post.author_name}님이 '${post.mission ?? '사진'}'을(를) 보냈어요. 대기 피드에서 확인해 보세요.`,
-    url: `${SITE}?u=${post.owner_id}&tab=inbox`,
-  });
 
   let sent = 0;
   await Promise.all((subs ?? []).map(async (s) => {

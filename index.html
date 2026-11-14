@@ -215,7 +215,16 @@
   .mchip { display:inline-block; padding:3px 9px; border-radius:999px; background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); font-size:11px; font-weight:700; }
   .msg-box { width:100%; min-height:84px; resize:none; line-height:1.5; font-size:15px; }
   .spin { display:flex; justify-content:center; padding:120px 0; }
-  .authwait { min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; padding:24px; text-align:center; }
+  /* 시작 화면: 로고를 화면 정가운데 한 자리에 두고(로그인 중 화면도 같은 자리), 첫 화면이 그려지면 부드럽게 사라짐 */
+  .splash { position:fixed; inset:0; z-index:70; display:flex; align-items:center; justify-content:center; background:var(--bg); transition:opacity .35s ease; }
+  .splash .logo, .authwait .logo { font-size:40px; color:var(--fg); }
+  .splash.out { opacity:0; pointer-events:none; }
+  .splash .logo { animation:splashIn .5s ease both; }
+  @keyframes splashIn { from { opacity:0; transform:scale(.96); } }
+  .app.enter > * { animation:appIn .35s ease both; }
+  @keyframes appIn { from { opacity:0; } }
+  .authwait { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:24px; text-align:center; background:var(--bg); }
+  .authwait .aw-sub { position:absolute; left:0; right:0; top:calc(50% + 40px); display:flex; flex-direction:column; align-items:center; gap:14px; }
   .authwait p { margin:0; color:var(--sub); font-size:14px; }
   .aw-dots { display:flex; gap:6px; }
   .aw-dots i { width:8px; height:8px; border-radius:50%; background:var(--accent); animation:awb 1s ease-in-out infinite; }
@@ -390,8 +399,21 @@
   /* 통계의 친구: 눌러서 친구 목록 */
   .stat-btn { flex:1; padding:6px 0; border:0; background:none; color:inherit; font:inherit; }
   .stat-btn b { display:block; font-family:var(--display); font-weight:700; font-size:22px; letter-spacing:-.02em; line-height:1; margin-bottom:4px; }
-  .stat-btn span { font-size:11px; color:var(--sub); text-decoration:underline; text-underline-offset:3px; text-decoration-color:var(--line); }
+  .stat-btn span { font-size:11px; color:var(--sub); }
   .stat-btn.on span { color:var(--fg); }
+  .notis .pov-h b { flex:1; font-family:var(--sans); font-size:17px; letter-spacing:-.02em; }
+  .nlist { padding:4px 0 24px; }
+  .nrow { display:flex; width:100%; align-items:center; gap:12px; padding:12px 16px; border:0; background:none; color:inherit; font:inherit; text-align:left; }
+  .nrow.new { background:color-mix(in srgb, var(--accent) 9%, transparent); }
+  .nrow .ntx { flex:1; min-width:0; font-size:14px; line-height:1.45; word-break:keep-all; }
+  .nrow .ntx small { display:block; margin-top:2px; color:var(--sub); font-size:12px; }
+  .nthumb { flex:none; width:44px; height:44px; border-radius:8px; object-fit:cover; background:var(--soft); }
+  .nfol { flex:none; width:auto; padding:7px 12px; font-size:13px; }
+  .pflist { max-height:52vh; overflow:auto; margin:0 -4px; }
+  .pfrow { display:flex; width:100%; align-items:center; gap:12px; padding:10px 4px; border:0; background:none; color:inherit; text-align:left; font:inherit; }
+  .pfrow > span { flex:1; min-width:0; display:flex; flex-direction:column; }
+  .pfrow small { color:var(--sub); font-size:12px; }
+  .pf-go { flex:none; font-style:normal; font-size:13px; font-weight:700; color:var(--accent); }
   .fhead { display:flex; align-items:center; gap:8px; padding:12px 16px 4px; font-size:15px; }
   .fhead button { width:36px; height:36px; border:0; border-radius:50%; background:var(--soft); color:var(--fg); font-size:16px; }
   .toast { white-space:normal; width:max-content; max-width:calc(100vw - 32px); text-align:center; }
@@ -813,7 +835,8 @@
 </style>
 </head>
 <body>
-<div class="app" id="app"><div class="spin"><span class="logo">candid<i>.</i></span></div></div>
+<div class="app" id="app"></div>
+<div class="splash" id="splash" aria-hidden="true"><span class="logo">candid<i>.</i></span></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
@@ -928,6 +951,13 @@ const https = u => u ? String(u).replace(/^http:\/\//, 'https://') : u;
 // ---------- 설정 확인 ----------
 const cfg = window.FG_CONFIG || {};
 const DEMO = !cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY;
+// 시작 화면 걷어내기: #app 에 첫 화면이 그려지면(로그인 중 화면 포함) 페이드아웃
+(() => {
+  const sp = document.getElementById('splash'), app = document.getElementById('app');
+  const hide = () => { if (!sp || sp.classList.contains('out')) return; app.classList.add('enter'); sp.classList.add('out'); setTimeout(() => { sp.remove(); app.classList.remove('enter'); }, 450); };
+  new MutationObserver((_, ob) => { if (app.children.length) { ob.disconnect(); requestAnimationFrame(hide); } }).observe(app, { childList: true });
+  setTimeout(hide, 12000); // 안전장치
+})();
 const sb = DEMO ? demoClient() : (window.supabase ? supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY) : null);
 const photoUrl = path => /^https?:/.test(path) ? path : sb.storage.from('photos').getPublicUrl(path).data.publicUrl; // 외부 주소(데모 친구 사진)는 그대로
 const feedUrl = id => `${location.origin}${location.pathname}?u=${id}`;
@@ -1166,8 +1196,8 @@ function login(provider) {
 // 로그인 중 화면: 버튼을 누른 뒤·로그인에서 돌아오는 동안 첫 화면(로그인 버튼)이 다시 비치지 않게
 function showAuthWait(msg = '로그인하는 중…') {
   document.documentElement.classList.remove('noscroll');
-  $app.innerHTML = `<div class="authwait"><span class="logo">${LOGO}</span><div class="aw-dots"><i></i><i></i><i></i></div><p>${esc(msg)}</p>
-    <button class="aw-cancel" onclick="cancelAuthWait()">취소</button></div>`;
+  $app.innerHTML = `<div class="authwait"><span class="logo">${LOGO}</span><div class="aw-sub"><div class="aw-dots"><i></i><i></i><i></i></div><p>${esc(msg)}</p>
+    <button class="aw-cancel" onclick="cancelAuthWait()">취소</button></div></div>`;
   setTimeout(() => document.querySelector('.aw-cancel')?.classList.add('show'), 4000); // 오래 걸리면 취소 버튼
 }
 function cancelAuthWait() { try { sessionStorage.removeItem('candid_oauth'); } catch {} route(); }
@@ -1275,7 +1305,7 @@ function paintProfile() {
       <div class="sp"></div>
       ${me ? `<button class="icon-btn" aria-label="친구 검색" onclick="openSearch()">${I.search}</button>` : ''}
       ${isOwner
-        ? `<button class="icon-btn" aria-label="새 소식${pending.length ? `, 승인할 게시물 ${pending.length}개` : ''}" onclick="openInbox()">${I.bell}${pending.length ? '<span class="dot red"></span>' : ''}</button>
+        ? `<button class="icon-btn" id="notibtn" aria-label="알림" onclick="openNotis()">${I.bell}<span class="dot red" id="notidot"${NOTI.unread ? '' : ' hidden'}></span></button>
            <button class="icon-btn" aria-label="메뉴" onclick="openMenu()">${I.menu}</button>`
         : ''}
     </header>
@@ -1318,6 +1348,7 @@ function paintProfile() {
   $app.classList.toggle('has-nav', !!me);
   renderBody();
   scrollTo(0, y);
+  if (isOwner) refreshNotiDot();
   if (isOwner && GACHA_ON) refreshTickets();
 }
 
@@ -1434,10 +1465,10 @@ function openCreate() {
     const post = cur && HOME.posts.find(p => p.id === cur.dataset.id);
     if (post && post.owner_id !== me.id) return fillFriend(post.owner_id);
   }
+  // ⊕ = 항상 친구에게 보내기: 친구 피드에선 그 친구에게, 그 외에는 친구 고르기
   const onFriendFeed = !document.querySelector('.reels') && S.uid && S.prof && !S.isOwner;
   if (onFriendFeed) return openCompose();
-  if (S.isOwner && !document.querySelector('.reels')) return shareFeed();
-  go(feedUrl(me.id)); setTimeout(shareFeed, 80);
+  pickFriendToSend();
 }
 
 // 내 피드 > 친구 탭: 친구 목록 화면
@@ -1597,7 +1628,7 @@ async function renderHome(fresh) {
     }).catch(() => {});
     return;
   }
-  if (!CACHE.home) $app.innerHTML = `<div class="reels"><div class="spin" style="padding-top:45vh"><span class="logo" style="color:#fff">${LOGO}</span></div></div>${navBar('reels')}`;
+  if (!CACHE.home && !document.querySelector('#splash:not(.out)')) $app.innerHTML = `<div class="authwait"><span class="logo">${LOGO}</span></div>${navBar('reels')}`; // 시작 화면과 같은 자리의 로고
   try { CACHE.home = await fetchHome(); } catch { return CACHE.home ? undefined : renderError(renderHome); }
   if (pageKey() !== myKey) return;
   paintHome(CACHE.home);
@@ -1605,8 +1636,37 @@ async function renderHome(fresh) {
 // 릴스에서 바로 그 친구 피드 채워주기: 페이지 이동 없이 작성 화면 + 사진첩
 function fillFriend(uid) {
   const o = HOME.owners?.get(uid); if (!o) return go(`${feedUrl(uid)}&m=0`);
-  Object.assign(S, { uid, prof: o, isOwner: me?.id === uid });
+  composeTo(o);
+}
+// 지금 화면(내 피드 등)을 떠나지 않고 특정 친구에게 보내기: 작성 화면이 닫히면 원래 화면 상태로 되돌림
+function composeTo(prof) {
+  const keep = { uid: S.uid, prof: S.prof, isOwner: S.isOwner };
+  Object.assign(S, { uid: prof.id, prof, isOwner: false });
   openCompose(0, false, 'media');
+  new MutationObserver((_, ob) => {
+    if (document.querySelector('.composer')) return; // '하나 더 보내기'로 다시 열린 경우 유지
+    ob.disconnect(); Object.assign(S, keep);
+  }).observe(document.body, { childList: true });
+}
+// 하단 ⊕ (내 피드 등): 어떤 친구에게 보낼지 고르기
+async function pickFriendToSend() {
+  const w = sheet(`<h3>Send to<i class="pd">.</i></h3><p class="hint">누구의 피드를 채워줄까요?</p>
+    <input class="field" id="pfq" placeholder="친구 이름·아이디로 찾기" autocomplete="off" style="margin-bottom:6px">
+    <div id="pfl" class="flist pflist"><p class="hint">불러오는 중…</p></div>
+    <div class="sheet-foot"><button class="btn block" onclick="closeSheet();setTimeout(openInvite,250)">💌 앱에 친구 초대하기</button></div>`);
+  const $l = w.querySelector('#pfl'), $q = w.querySelector('#pfq');
+  const ids = [...myFollows];
+  if (!ids.length) { $q.hidden = true; $l.innerHTML = `<p class="hint" style="padding:12px 0">아직 친구가 없어요. 친구를 찾아 추가하면 여기서 바로 보낼 수 있어요.</p><button class="btn primary block" onclick="closeSheet();setTimeout(openSearch,250)">친구 찾기</button>`; return; }
+  const { data, error } = await sb.from('profiles').select('id, name, handle, avatar_url, bio').in('id', ids);
+  if (error) return $l.innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
+  const list = (data || []).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  const paint = () => {
+    const t = $q.value.trim().toLowerCase().replace(/^@/, '');
+    const rows = list.filter(p => !t || p.name.toLowerCase().includes(t) || (p.handle || '').includes(t));
+    $l.innerHTML = rows.length ? rows.map(p => `<button class="frow pfrow" data-id="${p.id}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b><small>${p.handle ? `@${esc(p.handle)}` : ''}</small></span><i class="pf-go">보내기</i></button>`).join('') : '<p class="hint" style="padding:12px 0">찾는 친구가 없어요</p>';
+    $l.querySelectorAll('[data-id]').forEach(b => b.onclick = () => { const p = list.find(x => x.id === b.dataset.id); closeSheet(); setTimeout(() => composeTo(p), 200); });
+  };
+  $q.oninput = paint; paint();
 }
 function paintHome({ posts, owners }) {
   HOME.posts = posts; HOME.owners = owners;
@@ -1646,7 +1706,8 @@ function paintHome({ posts, owners }) {
       <button class="btn primary block" onclick="openFriends()">친구 피드에 사진 보내기</button></div></section></div>${navBar('reels')}`;
 
   // 마지막으로 본 릴스부터 이어서 보기 (+ 위로 새 게시물이 있으면 '최신으로' 버튼)
-  let last = null; try { last = localStorage.getItem('candid_reel'); } catch {}
+  // 앱을 새로 켜면 최신부터, 같은 세션 안에서 돌아올 때만 이어서(sessionStorage)
+  let last = null; try { last = sessionStorage.getItem('candid_reel'); } catch {}
   const lastEl = last && document.querySelector(`.reel[data-id="${last}"]`);
   const $reels = document.getElementById('reels');
   $reels.classList.toggle('hide-stk', HIDE_STK);
@@ -1659,7 +1720,7 @@ function paintHome({ posts, owners }) {
   }
   // 화면에 보이는 영상만 재생
   const io = new IntersectionObserver(es => es.forEach(e => {
-    if (e.isIntersecting) { try { localStorage.setItem('candid_reel', e.target.dataset.id); } catch {} } // 마지막으로 본 릴스 기억
+    if (e.isIntersecting) { try { sessionStorage.setItem('candid_reel', e.target.dataset.id); } catch {} } // 이번 세션에서 마지막으로 본 릴스
     if (!e.isIntersecting) return e.target.querySelectorAll('video').forEach(v => v.pause());
     const v = currentVideo(e.target); if (!v) return; // 여러 장이면 지금 보이는 장의 영상만
     v.preload = 'auto'; v.muted = muted; v.play().catch(() => {});
@@ -2270,6 +2331,93 @@ async function startInstall() {
   if (kind === 'ios') return showInstallGuide(); // 공유 버튼 위치를 화살표로 가리키는 전체 화면 안내
   toast(installed() ? '이미 앱으로 쓰고 있어요' : '브라우저 메뉴에서 "앱 설치" 또는 "홈 화면에 추가"를 눌러 주세요');
 }
+// ---------- 알림 (종 아이콘) ----------
+// 따로 저장하는 테이블 없이 모아서 보여줌: 받은 게시물(승인 대기)·좋아요·댓글·스티커 꾸미기·나를 친구 추가. 최근 30일
+const NOTI = { at: 0, items: null, unread: 0 };
+const notiKey = () => `candid_noti_seen_${me?.id}`;
+const notiSeen = () => { try { return +localStorage.getItem(notiKey()) || 0; } catch { return 0; } };
+async function fetchNotis(force) {
+  if (!me) return [];
+  if (!force && NOTI.items && Date.now() - NOTI.at < 30000) return NOTI.items;
+  const since = new Date(Date.now() - 30 * 864e5).toISOString();
+  const { data: posts, error } = await sb.from('posts').select('id, status, author_name, author_id, mission, media_type, image_path, thumb_path, media, text, created_at').eq('owner_id', me.id).order('created_at', { ascending: false }).limit(100);
+  if (error) throw error;
+  const byId = new Map(posts.map(p => [p.id, p]));
+  const ids = posts.filter(p => p.status === 'approved').map(p => p.id);
+  const q = (t, cols) => ids.length ? sb.from(t).select(cols).in('post_id', ids).neq('user_id', me.id).gte('created_at', since).order('created_at', { ascending: false }).limit(100) : Promise.resolve({ data: [] });
+  const [lk, cm, st, fl] = await Promise.all([
+    q('likes', 'post_id, user_id, created_at'),
+    q('comments', 'post_id, user_id, body, created_at'),
+    q('post_stickers', 'post_id, user_id, created_at'),
+    sb.from('follows').select('follower_id, created_at').eq('followee_id', me.id).gte('created_at', since).order('created_at', { ascending: false }).limit(50),
+  ]);
+  const items = [];
+  posts.filter(p => p.status === 'pending' && p.created_at >= since).forEach(p => items.push({ k: 'post', at: p.created_at, uid: p.author_id, name: p.author_name, post: p }));
+  (lk.data || []).forEach(r => items.push({ k: 'like', at: r.created_at, uid: r.user_id, post: byId.get(r.post_id) }));
+  (cm.data || []).forEach(r => items.push({ k: 'comment', at: r.created_at, uid: r.user_id, post: byId.get(r.post_id), body: r.body }));
+  // 스티커: 같은 사람이 같은 사진에 10분 안에 붙인 건 하나로
+  const grp = new Map();
+  (st.data || []).forEach(r => {
+    const key = r.user_id + r.post_id, g = grp.get(key), t = new Date(r.created_at).getTime();
+    if (g && g.first - t < 6e5) { g.n++; g.first = t; return; }
+    const it = { k: 'sticker', at: r.created_at, uid: r.user_id, post: byId.get(r.post_id), n: 1, first: t };
+    grp.set(key, it); items.push(it);
+  });
+  (fl.data || []).forEach(r => items.push({ k: 'follow', at: r.created_at, uid: r.follower_id }));
+  const uids = [...new Set(items.map(i => i.uid).filter(Boolean))];
+  const profs = new Map();
+  if (uids.length) { const { data } = await sb.from('profiles').select('id, name, handle, avatar_url').in('id', uids); (data || []).forEach(p => profs.set(p.id, p)); }
+  items.forEach(i => { i.prof = i.uid ? profs.get(i.uid) : null; i.name = i.prof?.name || i.name || '친구'; });
+  items.sort((a, b) => new Date(b.at) - new Date(a.at));
+  NOTI.items = items.slice(0, 60); NOTI.at = Date.now();
+  const seen = notiSeen();
+  NOTI.unread = NOTI.items.filter(i => new Date(i.at).getTime() > seen).length;
+  return NOTI.items;
+}
+async function refreshNotiDot() {
+  try { await fetchNotis(); } catch { return; }
+  const d = document.getElementById('notidot'); if (d) d.hidden = !NOTI.unread;
+  document.getElementById('notibtn')?.setAttribute('aria-label', NOTI.unread ? `알림, 새 알림 ${NOTI.unread}개` : '알림');
+}
+function notiText(i) {
+  const n = `<b>${esc(i.name)}</b>님이`;
+  const what = p => p?.media_type === 'poll' ? '투표' : p?.media_type === 'question' ? '질문' : p?.media_type === 'video' ? '영상' : '사진';
+  switch (i.k) {
+    case 'post': return `${n} ${what(i.post)}을(를) 보냈어요. 승인을 기다리고 있어요`;
+    case 'like': return `${n} 내 게시물을 좋아해요`;
+    case 'comment': return `${n} 댓글을 남겼어요: “${esc(i.body.length > 40 ? i.body.slice(0, 40) + '…' : i.body)}”`;
+    case 'sticker': return `${n} 내 ${what(i.post)}을(를) 꾸몄어요 ✨${i.n > 1 ? ` (스티커 ${i.n}개)` : ''}`;
+    case 'follow': return `${n} 나를 친구로 추가했어요`;
+  }
+}
+async function openNotis() {
+  const el = pageOverlay('notis', `<header class="pov-h"><button class="icon-btn" data-x aria-label="닫기">${I.close}</button><b>알림</b></header>
+    <div class="nlist" id="nl"><p class="hint" style="padding:24px 20px">불러오는 중…</p></div>`);
+  el.querySelector('[data-x]').onclick = () => el.remove();
+  let items; try { items = await fetchNotis(true); } catch (e) { return el.querySelector('#nl').innerHTML = `<p class="hint" style="padding:24px 20px">${esc(kerr(e))}</p>`; }
+  if (!el.isConnected) return;
+  const seen = notiSeen();
+  try { localStorage.setItem(notiKey(), Date.now()); } catch {}
+  NOTI.unread = 0; const d = document.getElementById('notidot'); if (d) d.hidden = true;
+  const $l = el.querySelector('#nl');
+  if (!items.length) return $l.innerHTML = `<div class="empty"><h2>All <em>quiet.</em></h2><p>친구가 사진을 보내거나, 좋아요·댓글·꾸미기를 하면 여기 떠요.</p></div>`;
+  $l.innerHTML = items.map((i, x) => {
+    const p = i.post, thumb = p && !isText(p) && mediaOf(p).length ? `<img class="nthumb" src="${thumbUrl(p)}" alt="" loading="lazy">` : '';
+    const av = i.prof ? avatar(i.prof, 'xs') : `<div class="av xs">${esc((i.name || '?').slice(0, 1))}</div>`;
+    const fol = i.k === 'follow' && !myFollows.has(i.uid) ? `<button class="btn add nfol" data-fol="${i.uid}">맞친구</button>` : '';
+    return `<button class="nrow${new Date(i.at).getTime() > seen ? ' new' : ''}" data-i="${x}">${av}<span class="ntx">${notiText(i)}<small>${ago(i.at)}</small></span>${fol || thumb}</button>`;
+  }).join('');
+  $l.querySelectorAll('[data-fol]').forEach(b => b.onclick = e => { e.stopPropagation(); toggleFollow(b.dataset.fol); b.remove(); });
+  $l.querySelectorAll('.nrow').forEach(b => b.onclick = () => {
+    const i = items[+b.dataset.i];
+    if (i.k === 'follow') { el.remove(); return go(feedUrl(i.uid)); }
+    if (i.k === 'post') { el.remove(); return openInbox(); }
+    if (!i.post || !findPost(i.post.id)) return toast('지금은 볼 수 없는 게시물이에요');
+    el.remove(); openPost(i.post.id);
+    if (i.k === 'comment') setTimeout(() => { const c = document.querySelector('.overlay .pbtn[data-cmt]'); if (c) focusPostComments(c); }, 300);
+  });
+}
+
 // ---------- 앱 초대 ----------
 // 초대 링크 ?invite=아이디(또는 id): 받은 사람은 '앱 설치하고 시작하기' 한 번 → 설치 안내, 가입하면 초대한 친구와 자동으로 친구
 const INVITE = (() => {
@@ -3001,7 +3149,7 @@ function demoClient() {
     let op = 'select', payload, single = false, order = null, lim = 0; const filters = [];
     const run = () => {
       db[table] = db[table] || [];
-      let rows = db[table].filter(r => filters.every(([k, v, how]) => how === 'in' ? v.includes(r[k]) : how === 're' ? v.test(r[k] || '') : how === 'or' ? v.some(([c, re]) => re.test(r[c] || '')) : r[k] === v));
+      let rows = db[table].filter(r => filters.every(([k, v, how]) => how === 'in' ? v.includes(r[k]) : how === 'neq' ? r[k] !== v : how === 'gte' ? (r[k] || '') >= v : how === 're' ? v.test(r[k] || '') : how === 'or' ? v.some(([c, re]) => re.test(r[c] || '')) : r[k] === v));
       if (op === 'insert' && Array.isArray(payload)) { // 여러 개 한 번에 추가
         const all = payload; for (const p of all) { payload = p; run(); } return { data: null, error: null };
       }
@@ -3023,7 +3171,7 @@ function demoClient() {
       return { data: single ? rows[0] || null : rows, error: null };
     };
     const b = {
-      select: () => b, eq: (k, v) => (filters.push([k, v]), b), in: (k, arr) => (filters.push([k, arr, 'in']), b),
+      select: () => b, eq: (k, v) => (filters.push([k, v]), b), neq: (k, v) => (filters.push([k, v, 'neq']), b), gte: (k, v) => (filters.push([k, v, 'gte']), b), in: (k, arr) => (filters.push([k, arr, 'in']), b),
       ilike: (k, pat) => (filters.push([k, new RegExp(pat.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/%/g, '.*'), 'i'), 're']), b),
       // or('name.ilike.%x%,handle.ilike.%x%') 흉내: 조건 중 하나라도 맞으면 통과
       or: expr => (filters.push([null, expr.split(',').map(c => { const [k, , p] = c.split('.'); return [k, new RegExp(p.replace(/%/g, '.*'), 'i')]; }), 'or']), b),
