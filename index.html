@@ -627,6 +627,37 @@
   .dts { flex:none; width:58px; height:58px; border-radius:16px; border:1.5px solid color-mix(in srgb, var(--rc) 50%, var(--line)); background:var(--card); font-size:32px; line-height:1; }
   .dts:active { transform:scale(.9); }
   .dempty { width:100%; display:flex; flex-direction:column; align-items:center; gap:10px; padding:8px; color:var(--sub); font-size:13px; text-align:center; }
+  /* 상단 안전 영역: 홈 화면 앱은 상태바 아래까지 화면이 깔리므로 모든 화면에 상태바 높이 + 여유를 줌 */
+  :root { --st: max(env(safe-area-inset-top), 0px); --sb: env(safe-area-inset-bottom); }
+  .top { height:calc(60px + var(--st)); padding-top:calc(var(--st) + 4px); }
+  .pov-h { height:calc(60px + var(--st)); padding-top:calc(var(--st) + 4px); }
+  .rtop { padding-top:calc(var(--st) + 14px); }
+  .ptr { top:calc(64px + var(--st)); }
+  .rtop-pill { top:calc(64px + var(--st)); }
+  .rmute { top:calc(70px + var(--st)); }
+  .app, .landing { min-height:100dvh; }
+  /* 게시물 상세 팝업: 상태바·홈 바에 가리지 않게 */
+  .overlay { padding:calc(var(--st) + 8px) 0 calc(var(--sb) + 8px); align-items:center; }
+  .post { max-height:calc(100dvh - var(--st) - var(--sb) - 16px); }
+  @media (max-width:480px) { .post { border-radius:18px; width:calc(100% - 16px); } }
+  /* 시트: 위로 너무 올라가 상태바를 덮지 않게 */
+  .sheet { max-height:calc(100dvh - var(--st) - 24px); }
+  .sheet-wrap.from-top .sheet { padding-top:calc(var(--st) + 14px); }
+  /* 업로드: 한 줄 코멘트 */
+  .cmp-cap.one { height:auto; padding:14px 2px; border-bottom:1px solid var(--line); }
+  /* 보내는 사람: 이름 / 익명 선택 */
+  .cmp-who { margin-top:18px; }
+  .cmp-who .label { margin-bottom:8px; }
+  .cmp-seg { display:flex; gap:4px; padding:4px; border-radius:14px; background:var(--soft); }
+  .cmp-seg button { flex:1; padding:10px 0; border:0; border-radius:10px; background:none; color:var(--sub); font-size:13px; font-weight:700; }
+  .cmp-seg button.on { background:var(--card); color:var(--fg); box-shadow:0 1px 4px rgba(0,0,0,.12); }
+  .cmp-whoval { margin-top:10px; }
+  .cmp-whoval .field { margin:0; }
+  .who-card { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:14px; border:1px solid var(--line); }
+  .who-card b { display:block; font-size:15px; }
+  .who-card small { display:block; color:var(--sub); font-size:12px; }
+  .who-card .av.xs { width:36px; height:36px; }
+  .who-ic { width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:var(--soft); font-size:20px; flex:none; }
 </style>
 </head>
 <body>
@@ -1659,7 +1690,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = true) {
       ${asked ? `<div class="asked">${name}님이 <b>'${esc(MISSIONS[mi])}'</b>을(를) 부탁했어요</div>` : ''}
       <section data-sec="media">
         <label class="cmp-media" id="pick"><span class="cmp-empty">${I.camera}<b>사진·영상 선택</b><small>여러 장 가능(최대 10장) · 영상은 10초까지</small></span><input type="file" accept="image/*,video/*" id="file" multiple hidden></label>
-        <textarea class="cmp-cap" id="text" maxlength="80" rows="2" placeholder="한마디 남기기… (예: 이 표정 레전드)"></textarea>
+        <input class="cmp-cap one" id="text" maxlength="80" placeholder="한마디 남기기… (예: 이 표정 레전드)" autocomplete="off" enterkeyhint="done">
       </section>
       <section data-sec="poll">
         <textarea class="cmp-cap big" id="pq" maxlength="80" rows="2" placeholder="무엇을 물어볼까요? (예: ${name} 다음 머리 스타일은?)"></textarea>
@@ -1671,7 +1702,11 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = true) {
         <textarea class="cmp-cap big" id="qq" maxlength="120" rows="3" placeholder="${name}님에게 궁금한 것 (예: 우리 처음 만난 날 기억나?)"></textarea>
         <p class="cmp-note">답은 ${name}님만 할 수 있고, 답하면 질문과 함께 피드에 올라가요.</p>
       </section>
-      <label class="cmp-row"><span>보내는 사람</span><input id="author" maxlength="12" placeholder="익명의 친구" value="${esc(nick)}" autocomplete="off"></label>
+      <div class="cmp-who">
+        <div class="label">보내는 사람</div>
+        <div class="cmp-seg" role="radiogroup"><button data-who="name" role="radio">이름으로 보내기</button><button data-who="anon" role="radio">🎭 익명으로 보내기</button></div>
+        <div class="cmp-whoval" id="whoval"></div>
+      </div>
       <p class="cmp-note">${name}님이 승인하면 피드에 올라가요 · 로그인 없이 보낼 수 있어요</p>
     </div>
     <nav class="cmp-modes" role="tablist"><button data-mode="media" role="tab">사진·영상</button><button data-mode="poll" role="tab">투표</button><button data-mode="question" role="tab">질문</button></nav>`);
@@ -1742,11 +1777,28 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = true) {
     initCarousels(pk, () => false);
     refresh();
   };
+  // 보내는 사람 선택 버튼
+  let who = 'name';
+  const setWho = w => {
+    const typedNow = $('#author')?.value;
+    who = w;
+    el.querySelectorAll('.cmp-seg button').forEach(b => { b.classList.toggle('on', b.dataset.who === w); b.setAttribute('aria-checked', b.dataset.who === w); });
+    $('#whoval').innerHTML = w === 'anon'
+      ? `<div class="who-card"><span class="who-ic">🎭</span><span><b>익명의 친구</b><small>누가 보냈는지 ${name}님도 알 수 없어요</small></span></div>`
+      : me
+        ? `<div class="who-card">${avatar(myProf, 'xs')}<span><b>${esc(myProf?.name || '')}</b><small>${myProf?.handle ? '@' + esc(myProf.handle) + ' · ' : ''}내 프로필 이름으로 보내요</small></span></div>`
+        : `<input class="field" id="author" maxlength="12" placeholder="내 이름 (예: 지수)" value="${esc(typedNow ?? nick)}" autocomplete="off">`;
+  };
+  el.querySelectorAll('.cmp-seg button').forEach(b => b.onclick = () => setWho(b.dataset.who));
+  setWho('name');
   setMode(mode);
   if (mode === 'media' && pick) $file.click(); // 누르자마자 사진첩 (버튼 터치 안에서만 열 수 있음)
 
   $send.onclick = async () => {
-    const author = $('#author').value.trim() || '익명의 친구';
+    // 보내는 사람: 이름(로그인=내 프로필 / 비로그인=입력한 이름) 또는 익명(로그인이어도 내 계정 정보를 남기지 않음)
+    const typed = $('#author')?.value.trim() || '';
+    const author = who === 'anon' ? '익명의 친구' : me ? (myProf?.name || '친구').slice(0, 12) : (typed || '익명의 친구');
+    const by = who === 'anon' ? { author_name: '익명의 친구', author_id: null } : { ...by };
     $send.disabled = true;
     const status = t => { $send.textContent = t; };
     let ins;
@@ -1754,10 +1806,10 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = true) {
       if (mode === 'poll') {
         status('보내는 중…');
         const opts = [...el.querySelectorAll('#opts input')].map(i => i.value.trim()).filter(Boolean);
-        ins = await sb.from('posts').insert({ owner_id: S.uid, media_type: 'poll', mission: '투표', text: $('#pq').value.trim(), poll_options: opts, author_name: author });
+        ins = await sb.from('posts').insert({ owner_id: S.uid, media_type: 'poll', mission: '투표', text: $('#pq').value.trim(), poll_options: opts, ...by });
       } else if (mode === 'question') {
         status('보내는 중…');
-        ins = await sb.from('posts').insert({ owner_id: S.uid, media_type: 'question', mission: '질문', text: $('#qq').value.trim(), author_name: author });
+        ins = await sb.from('posts').insert({ owner_id: S.uid, media_type: 'question', mission: '질문', text: $('#qq').value.trim(), ...by });
       } else {
         // 한 장씩 (영상은 줄인 뒤) 올리고 media 배열로 저장. 첫 장은 image_path 에도 넣어 예전 화면과 호환
         const list = [], n = media.length;
@@ -1774,12 +1826,12 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = true) {
         ins = await sb.from('posts').insert({
           owner_id: S.uid, image_path: list[0].p, thumb_path: list[0].t, media_type: list[0].k,
           ...(n > 1 ? { media: list } : {}), // 1장은 media 칸 없이 (09 SQL 실행 전에도 동작)
-          mission: asked ? MISSIONS[mi] : null, text: $('#text').value.trim(), author_name: author,
+          mission: asked ? MISSIONS[mi] : null, text: $('#text').value.trim(), ...by,
         });
       }
     } catch (err) { ins = { error: err }; }
     if (ins.error) { $send.disabled = false; status('다시 보내기'); return toast(/줄일 수 없어요/.test(ins.error.message) ? ins.error.message : kerr(ins.error)); }
-    try { if (author !== '익명의 친구' && !me) localStorage.setItem('candid_author', author); } catch {}
+    try { if (!me && who === 'name' && typed) localStorage.setItem('candid_author', typed); } catch {}
     media = null; el.querySelectorAll('textarea, #opts input').forEach(i => i.value = '');
     const what = mode === 'poll' ? '투표' : mode === 'question' ? '질문' : '사진·영상';
     removeEventListener('popstate', onPop);
