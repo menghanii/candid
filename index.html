@@ -545,6 +545,40 @@
   .ctile.lock { opacity:.55; }
   .ctile .q { font-family:var(--display); font-size:34px; font-weight:800; color:var(--rc); }
   @media (prefers-reduced-motion: reduce) { .ring.fx.spin::before, .name.fxn.holo, .cover.stars::after, .capsule.shake { animation:none; } }
+  /* 업로드 작성 화면 (전체 화면, 인스타·유튜브 스타일) */
+  .composer { display:flex; flex-direction:column; padding-bottom:0; }
+  .composer > * { width:100%; }
+  .composer > .cmp-modes { width:auto; }
+  .cmp-h { justify-content:space-between; }
+  .cmp-h b { text-align:center; font-family:var(--sans); font-size:16px; font-weight:700; letter-spacing:-.02em; }
+  .cmp-send { border:0; background:none; color:var(--accent); font-size:16px; font-weight:800; padding:8px 6px; min-width:56px; text-align:right; }
+  .cmp-send:disabled { color:var(--sub); opacity:.6; }
+  .cmp-body { flex:1; width:100%; padding:4px 16px 120px; }
+  .cmp-body .asked { margin:0 0 12px; }
+  [data-sec][hidden] { display:none; }
+  .cmp-media { position:relative; display:flex; align-items:center; justify-content:center; width:100%; aspect-ratio:4/5; max-height:58vh; border-radius:18px; overflow:hidden; background:var(--soft); cursor:pointer; }
+  .cmp-media.has { background:#000; }
+  .cmp-media img, .cmp-media video { width:100%; height:100%; object-fit:contain; }
+  .cmp-empty { display:flex; flex-direction:column; align-items:center; gap:8px; color:var(--sub); }
+  .cmp-empty b { color:var(--fg); font-size:15px; }
+  .cmp-empty small { font-size:12px; }
+  .cmp-media.busy .cmp-empty b { animation:twinkle 1s ease-in-out infinite; }
+  .cmp-cap { display:block; width:100%; margin:14px 0 0; padding:4px 2px; border:0; background:none; color:var(--fg); font:inherit; font-size:16px; line-height:1.5; resize:none; outline:none; }
+  .cmp-cap.big { font-size:20px; font-weight:700; letter-spacing:-.02em; margin:8px 0 14px; }
+  .cmp-cap::placeholder { color:var(--sub); font-weight:400; }
+  .cmp-add { display:block; width:100%; padding:12px; border:1.5px dashed var(--line); border-radius:14px; background:none; color:var(--sub); font-weight:600; margin-bottom:10px; }
+  .cmp-row { display:flex; align-items:center; gap:12px; margin-top:16px; padding:14px 2px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+  .cmp-row span { flex:none; color:var(--sub); font-size:14px; }
+  .cmp-row input { flex:1; min-width:0; border:0; background:none; color:var(--fg); font:inherit; font-size:16px; text-align:right; outline:none; }
+  .cmp-note { color:var(--sub); font-size:12px; margin:10px 2px 0; line-height:1.5; }
+  .cmp-modes { position:fixed; left:50%; bottom:calc(14px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:3; display:flex; gap:2px; padding:4px; border-radius:999px; background:rgba(28,28,30,.92); box-shadow:0 8px 24px rgba(0,0,0,.3); }
+  .cmp-modes button { padding:10px 16px; border:0; border-radius:999px; background:none; color:#aeaeb2; font-size:13px; font-weight:700; }
+  .cmp-modes button.on { background:#fff; color:#000; }
+  .cmp-done { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-height:100vh; padding:24px 24px calc(24px + env(safe-area-inset-bottom)); text-align:center; }
+  .cmp-done h2 { font-family:var(--display); font-weight:800; font-size:40px; letter-spacing:-.05em; margin:4px 0; }
+  .cmp-done p { color:var(--sub); line-height:1.6; margin:0 0 16px; }
+  .cmp-done .btn { width:100%; }
+  .cmp-check { width:64px; height:64px; border-radius:50%; background:var(--accent); color:#fff; font-size:32px; font-weight:800; display:flex; align-items:center; justify-content:center; animation:pop .5s cubic-bezier(.2,1.6,.4,1); }
 </style>
 </head>
 <body>
@@ -937,7 +971,7 @@ async function renderProfile(uid, fresh) {
   paintProfile();
   // 공유 링크(?m=미션번호)로 들어온 친구: 사진 보내기 시트를 바로 열어줌 (한 번만)
   const m = new URLSearchParams(location.search).get('m');
-  if (!S.isOwner && m !== null && !S.autoOpened) { S.autoOpened = true; openCompose(Math.max(0, Math.min(MISSIONS.length - 1, +m || 0)), true); }
+  if (!S.isOwner && m !== null && !S.autoOpened) { S.autoOpened = true; openCompose(Math.max(0, Math.min(MISSIONS.length - 1, +m || 0)), true, 'media', false); }
 }
 
 // 받아둔 데이터(S)로 화면만 다시 그림 — 탭 전환·승인·거절 때 네트워크 요청 없음
@@ -1026,7 +1060,7 @@ function renderBody() {
           <div class="row">
             <button class="thumb" onclick="openPost('${p.id}')" aria-label="크게 보기">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="${esc(p.author_name)}가 보낸 ${esc(p.mission)}">`}</button>
             <div class="meta">
-              <span class="mtag">${esc(p.mission)}</span>
+              ${p.mission ? `<span class="mtag">${esc(p.mission)}</span>` : ''}
               <div class="t">${esc(p.text) || '<span style="color:var(--sub)">코멘트 없음</span>'}</div>
               <small>${esc(p.author_name)} · ${ago(p.created_at)}</small>
             </div>
@@ -1263,7 +1297,7 @@ function paintHome({ posts, owners }) {
       <div class="rburst">${I.heartOn}</div>
       <div class="rinfo">
         <a class="rowner" href="${feedUrl(p.owner_id)}">${avatar(o, 'xs')}<b>${esc(o.name)}</b><span>의 피드</span></a>
-        <div class="rfrom">from <b>${esc(p.author_name)}</b> <span class="mchip">${esc(p.mission)}</span></div>
+        <div class="rfrom">from <b>${esc(p.author_name)}</b> ${p.mission ? `<span class="mchip">${esc(p.mission)}</span>` : ''}</div>
         ${p.text && !isText(p) ? `<div class="rtext">“${esc(p.text)}”</div>` : ''}
         <small>${ago(p.approved_at)}</small>
       </div>
@@ -1448,7 +1482,7 @@ function openPost(id) {
     <article class="post">
       <div class="post-h">
         <div class="av sm">${esc(p.author_name.slice(0, 1))}</div>
-        <div class="who"><b>${esc(p.author_name)}<span style="font-weight:400;color:var(--sub)">님이 보냄</span></b><span class="mchip">${esc(p.mission)}</span></div>
+        <div class="who"><b>${esc(p.author_name)}<span style="font-weight:400;color:var(--sub)">님이 보냄</span></b>${p.mission ? `<span class="mchip">${esc(p.mission)}</span>` : ''}</div>
         <button class="icon-btn" data-close aria-label="닫기">${I.close}</button>
       </div>
       ${isText(p) ? textCard(p) : isVideo(p)
@@ -1552,157 +1586,134 @@ function postMenu(id) {
         <button class="menu-item danger" onclick="removePost('${id}')">${p.status === 'pending' ? '거절하기' : '피드에서 내리기'}</button>`);
 }
 
-// mi: 미리 선택할 미션 번호, asked: 주인장이 공유 링크로 부탁한 미션인지, mode: media | poll | question
-function openCompose(mi = 0, asked = false, mode = 'media') {
-  let mission = MISSIONS[mi] || MISSIONS[0], image = null;
+// 업로드: 인스타·유튜브처럼 누르면 바로 사진첩이 열리고, 고르면 전체 화면 작성 화면
+// mi/asked: 공유 링크(&m=)로 부탁받은 내용(안내 문구용), mode: media | poll | question, pick: 열자마자 사진첩 열기
+function openCompose(mi = 0, asked = false, mode = 'media', pick = true) {
+  let media = null;
   let saved = ''; try { saved = localStorage.getItem('candid_author') || ''; } catch {}
   const nick = (myProf?.name || saved).slice(0, 12);
   const name = esc(S.prof.name);
-  const w = sheet(`
-    <h3>For ${name}</h3>
-    <p class="hint">로그인 없이 10초면 끝. ${name}님이 승인하면 피드에 올라가요.</p>
-    <div class="seg" role="tablist">
-      <button data-mode="media" role="tab">📷 사진·영상</button><button data-mode="poll" role="tab">📊 투표</button><button data-mode="question" role="tab">💬 질문</button>
+  const el = pageOverlay('composer', `
+    <header class="pov-h cmp-h"><button class="icon-btn" data-x aria-label="닫기">${I.close}</button><b>${name}에게</b><button class="cmp-send" id="send" disabled>보내기</button></header>
+    <div class="cmp-body">
+      ${asked ? `<div class="asked">${name}님이 <b>'${esc(MISSIONS[mi])}'</b>을(를) 부탁했어요</div>` : ''}
+      <section data-sec="media">
+        <label class="cmp-media" id="pick"><span class="cmp-empty">${I.camera}<b>사진·영상 선택</b><small>영상은 10초까지</small></span><input type="file" accept="image/*,video/*" id="file" hidden></label>
+        <textarea class="cmp-cap" id="text" maxlength="80" rows="2" placeholder="한마디 남기기… (예: 이 표정 레전드)"></textarea>
+      </section>
+      <section data-sec="poll">
+        <textarea class="cmp-cap big" id="pq" maxlength="80" rows="2" placeholder="무엇을 물어볼까요? (예: ${name} 다음 머리 스타일은?)"></textarea>
+        <div id="opts"></div>
+        <button class="cmp-add" id="addopt">+ 선택지 추가</button>
+        <p class="cmp-note">${name}님은 투표할 수 없고, 다른 친구들이 투표해요.</p>
+      </section>
+      <section data-sec="question">
+        <textarea class="cmp-cap big" id="qq" maxlength="120" rows="3" placeholder="${name}님에게 궁금한 것 (예: 우리 처음 만난 날 기억나?)"></textarea>
+        <p class="cmp-note">답은 ${name}님만 할 수 있고, 답하면 질문과 함께 피드에 올라가요.</p>
+      </section>
+      <label class="cmp-row"><span>보내는 사람</span><input id="author" maxlength="12" placeholder="익명의 친구" value="${esc(nick)}" autocomplete="off"></label>
+      <p class="cmp-note">${name}님이 승인하면 피드에 올라가요 · 로그인 없이 보낼 수 있어요</p>
     </div>
-    <div data-sec="media">
-      ${asked ? `<div class="asked">${name}님이 <b>'${esc(mission)}'</b>을(를) 부탁했어요</div>` : ''}
-      <div class="label">MISSION</div>
-      <div class="chips" role="radiogroup">${MISSIONS.map(m => `<button class="chip ${m === mission ? 'on' : ''}" role="radio" aria-checked="${m === mission}" data-m="${m}">${m}</button>`).join('')}</div>
-      <label class="pick" id="pick">${I.camera}<span>사진·영상 선택</span><small style="font-size:11px">영상은 10초까지</small><input type="file" accept="image/*,video/*" id="file" hidden></label>
-      <input class="field" id="text" placeholder="한 줄 코멘트 (예: 이 표정 레전드)" maxlength="80">
-    </div>
-    <div data-sec="poll">
-      <p class="hint" style="margin-top:4px">${name}님 피드에 투표를 올려요. ${name}님은 투표할 수 없고, 다른 친구들이 투표해요.</p>
-      <input class="field" id="pq" maxlength="80" placeholder="예: ${name} 다음 머리 스타일은?">
-      <div id="opts"></div>
-      <button class="btn block" id="addopt" style="border-style:dashed">+ 선택지 추가</button>
-    </div>
-    <div data-sec="question">
-      <p class="hint" style="margin-top:4px">${name}님에게 궁금한 걸 물어보세요. 답은 ${name}님만 할 수 있고, 답하면 질문과 함께 피드에 올라가요.</p>
-      <textarea class="field msg-box" id="qq" maxlength="120" placeholder="예: 우리 처음 만난 날 기억나?"></textarea>
-    </div>
-    <input class="field" id="author" placeholder="보내는 사람 (비우면 익명의 친구)" maxlength="12" value="${esc(nick)}">
-    <div class="sheet-foot"><button class="btn primary block" id="send" disabled>사진을 먼저 골라주세요</button></div>`,
-    // 작성 중에 배경을 눌러 닫으려 하면 확인
-    () => !(image || [...w.querySelectorAll('#text, #pq, #qq, #opts input')].some(i => i.value.trim())) || confirm('작성 중인 내용이 사라져요. 닫을까요?'));
-  // 안드로이드 뒤로가기: 페이지를 떠나지 않고 시트만 닫기
+    <nav class="cmp-modes" role="tablist"><button data-mode="media" role="tab">사진·영상</button><button data-mode="poll" role="tab">투표</button><button data-mode="question" role="tab">질문</button></nav>`);
+  const $ = s => el.querySelector(s);
+  const $send = $('#send'), $file = $('#file');
+  const dirty = () => media || [...el.querySelectorAll('#text, #pq, #qq, #opts input')].some(i => i.value.trim());
+  // 닫기(✕ · 뒤로가기): 작성 중이면 확인
   history.pushState({ compose: 1 }, '');
-  const onPop = () => {
-    if (!document.body.contains(w)) return removeEventListener('popstate', onPop);
-    if (w._guard()) { removeEventListener('popstate', onPop); w.remove(); } else history.pushState({ compose: 1 }, '');
+  const close = (fromPop) => {
+    if (dirty() && !confirm('작성 중인 내용이 사라져요. 닫을까요?')) { if (fromPop) history.pushState({ compose: 1 }, ''); return; }
+    removeEventListener('popstate', onPop); el.remove();
+    if (!fromPop && history.state?.compose) history.back();
   };
+  const onPop = () => document.body.contains(el) ? close(true) : removeEventListener('popstate', onPop);
   addEventListener('popstate', onPop);
-  w._onClose = () => { removeEventListener('popstate', onPop); if (history.state?.compose) history.back(); };
+  $('[data-x]').onclick = () => close(false);
 
-  const $send = w.querySelector('#send'), $file = w.querySelector('#file');
-  // 모드별 보내기 버튼 상태
   const refresh = () => {
-    const opts = [...w.querySelectorAll('#opts input')].map(i => i.value.trim()).filter(Boolean);
-    const [ok, label] = mode === 'media' ? [!!image, image ? '보내기' : '사진을 먼저 골라주세요']
-      : mode === 'poll' ? [w.querySelector('#pq').value.trim().length >= 2 && opts.length >= 2, '투표 보내기']
-      : [w.querySelector('#qq').value.trim().length >= 2, '질문 보내기'];
-    $send.disabled = !ok; $send.textContent = ok || mode === 'media' ? label : mode === 'poll' ? '질문과 선택지 2개 이상 적어주세요' : '질문을 적어주세요';
+    const opts = [...el.querySelectorAll('#opts input')].map(i => i.value.trim()).filter(Boolean);
+    $send.disabled = !(mode === 'media' ? media : mode === 'poll' ? $('#pq').value.trim().length >= 2 && opts.length >= 2 : $('#qq').value.trim().length >= 2);
   };
   const setMode = m => {
     mode = m;
-    w.querySelectorAll('.seg button').forEach(b => { b.classList.toggle('on', b.dataset.mode === m); b.setAttribute('aria-selected', b.dataset.mode === m); });
-    w.querySelectorAll('[data-sec]').forEach(s => s.hidden = s.dataset.sec !== m);
+    el.querySelectorAll('.cmp-modes button').forEach(b => { b.classList.toggle('on', b.dataset.mode === m); b.setAttribute('aria-selected', b.dataset.mode === m); });
+    el.querySelectorAll('[data-sec]').forEach(s => s.hidden = s.dataset.sec !== m);
     refresh();
   };
-  w.querySelectorAll('.seg button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
-
-  // 투표 선택지 (2~5개)
+  el.querySelectorAll('.cmp-modes button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+  // 투표 선택지 2~5개
   const addOpt = () => {
-    const box = w.querySelector('#opts'), n = box.children.length;
-    if (n >= 5) return;
+    const box = $('#opts'), n = box.children.length; if (n >= 5) return;
     const d = document.createElement('div'); d.className = 'optrow';
     d.innerHTML = `<span>${n + 1}</span><input class="field" maxlength="30" placeholder="선택지 ${n + 1}">${n >= 2 ? '<button aria-label="선택지 삭제">✕</button>' : ''}`;
     d.querySelector('input').oninput = refresh;
-    const x = d.querySelector('button'); if (x) x.onclick = () => { d.remove(); [...box.children].forEach((r, i) => r.querySelector('span').textContent = i + 1); w.querySelector('#addopt').hidden = false; refresh(); };
-    box.appendChild(d);
-    w.querySelector('#addopt').hidden = box.children.length >= 5;
+    const x = d.querySelector('button'); if (x) x.onclick = () => { d.remove(); [...box.children].forEach((r, i) => r.querySelector('span').textContent = i + 1); $('#addopt').hidden = false; refresh(); };
+    box.appendChild(d); $('#addopt').hidden = box.children.length >= 5;
   };
   addOpt(); addOpt();
-  w.querySelector('#addopt').onclick = () => { addOpt(); w.querySelector('#opts input:last-of-type'); refresh(); };
-  w.querySelector('#pq').oninput = refresh; w.querySelector('#qq').oninput = refresh;
+  $('#addopt').onclick = () => { addOpt(); refresh(); };
+  $('#pq').oninput = refresh; $('#qq').oninput = refresh;
 
-  w.querySelector('.chips').scrollLeft = w.querySelector('.chip.on').offsetLeft - 20;
-  w.querySelectorAll('.chip').forEach(c => c.onclick = () => {
-    w.querySelectorAll('.chip').forEach(x => { x.classList.remove('on'); x.setAttribute('aria-checked', 'false'); });
-    c.classList.add('on'); c.setAttribute('aria-checked', 'true'); mission = c.dataset.m;
-  });
   $file.onchange = async () => {
     const f = $file.files[0]; if (!f) return;
-    const pick = w.querySelector('#pick');
-    $send.disabled = true; $send.textContent = '준비 중…';
-    try {
-      image = f.type.startsWith('video/') ? await prepareVideoMeta(f) : await prepareImage(f);
-    } catch { image = null; refresh(); return toast('이 파일은 열 수 없어요. 다른 사진이나 영상을 골라 주세요'); }
-    pick.innerHTML = image.kind === 'video'
-      ? `<video src="${image.previewUrl}" muted playsinline autoplay loop></video><span class="repick">다시 고르기</span>
-         <span class="vbadge">${image.duration > MAX_VIDEO_SEC + 0.5 ? `앞 ${MAX_VIDEO_SEC}초만 올라가요` : `${Math.round(image.duration)}초`}</span>`
-      : `<img src="${image.previewUrl}" alt="고른 사진"><span class="repick">다시 고르기</span>`;
-    pick.appendChild($file);
+    const pk = $('#pick');
+    pk.classList.add('busy'); pk.querySelector('.cmp-empty').innerHTML = `<b>${f.type.startsWith('video/') ? '영상' : '사진'} 준비 중…</b>`;
+    $send.disabled = true;
+    try { media = f.type.startsWith('video/') ? await prepareVideoMeta(f) : await prepareImage(f); }
+    catch { media = null; pk.classList.remove('busy'); pk.querySelector('.cmp-empty').innerHTML = `${I.camera}<b>다시 선택해 주세요</b><small>이 파일은 열 수 없어요</small>`; return refresh(); }
+    pk.classList.remove('busy'); pk.classList.add('has');
+    pk.innerHTML = (media.kind === 'video'
+      ? `<video src="${media.previewUrl}" poster="${URL.createObjectURL(media.thumb)}" muted playsinline autoplay loop></video>
+         <span class="vbadge">${media.duration > MAX_VIDEO_SEC + 0.5 ? `앞 ${MAX_VIDEO_SEC}초만 올라가요` : `${Math.round(media.duration)}초`}</span>`
+      : `<img src="${media.previewUrl}" alt="고른 사진">`) + `<span class="repick">바꾸기</span>`;
+    pk.appendChild($file);
     refresh();
   };
   setMode(mode);
+  if (mode === 'media' && pick) $file.click(); // 누르자마자 사진첩 (버튼 터치 안에서만 열 수 있음)
 
   $send.onclick = async () => {
-    const author = w.querySelector('#author').value.trim() || '익명의 친구';
+    const author = $('#author').value.trim() || '익명의 친구';
     $send.disabled = true;
+    const status = t => { $send.textContent = t; };
     let ins;
     try {
       if (mode === 'poll') {
-        $send.textContent = '보내는 중…';
-        const opts = [...w.querySelectorAll('#opts input')].map(i => i.value.trim()).filter(Boolean);
-        ins = await sb.from('posts').insert({ owner_id: S.uid, media_type: 'poll', mission: '투표', text: w.querySelector('#pq').value.trim(), poll_options: opts, author_name: author });
+        status('보내는 중…');
+        const opts = [...el.querySelectorAll('#opts input')].map(i => i.value.trim()).filter(Boolean);
+        ins = await sb.from('posts').insert({ owner_id: S.uid, media_type: 'poll', mission: '투표', text: $('#pq').value.trim(), poll_options: opts, author_name: author });
       } else if (mode === 'question') {
-        $send.textContent = '보내는 중…';
-        ins = await sb.from('posts').insert({ owner_id: S.uid, media_type: 'question', mission: '질문', text: w.querySelector('#qq').value.trim(), author_name: author });
+        status('보내는 중…');
+        ins = await sb.from('posts').insert({ owner_id: S.uid, media_type: 'question', mission: '질문', text: $('#qq').value.trim(), author_name: author });
       } else {
-        if (!image) return;
-        let main = image.main;
-        if (image.kind === 'video') {
-          $send.textContent = '영상 줄이는 중… 0%';
-          main = await compressVideo(image, p => { $send.textContent = `영상 줄이는 중… ${Math.round(p * 100)}%`; });
-        }
-        $send.textContent = image.kind === 'video' ? '영상 올리는 중…' : '사진 올리는 중…';
+        let main = media.main;
+        if (media.kind === 'video') { status('영상 줄이는 중 0%'); main = await compressVideo(media, p => status(`영상 줄이는 중 ${Math.round(p * 100)}%`)); }
+        status('올리는 중…');
         const id = crypto.randomUUID();
-        const path = `${S.uid}/${id}.${extOf(main)}`, tpath = `${S.uid}/${id}_t.${extOf(image.thumb)}`;
-        await Promise.all([uploadBlob(path, main), uploadBlob(tpath, image.thumb)]);
-        $send.textContent = '거의 다 됐어요…';
+        const path = `${S.uid}/${id}.${extOf(main)}`, tpath = `${S.uid}/${id}_t.${extOf(media.thumb)}`;
+        await Promise.all([uploadBlob(path, main), uploadBlob(tpath, media.thumb)]);
         ins = await sb.from('posts').insert({
-          owner_id: S.uid, image_path: path, thumb_path: tpath, media_type: image.kind, mission,
-          text: w.querySelector('#text').value.trim(), author_name: author,
+          owner_id: S.uid, image_path: path, thumb_path: tpath, media_type: media.kind,
+          mission: asked ? MISSIONS[mi] : null, text: $('#text').value.trim(), author_name: author,
         });
       }
     } catch (err) { ins = { error: err }; }
-    if (ins.error) { $send.disabled = false; $send.textContent = '다시 보내기'; return toast(/줄일 수 없어요/.test(ins.error.message) ? ins.error.message : kerr(ins.error)); }
+    if (ins.error) { $send.disabled = false; status('다시 보내기'); return toast(/줄일 수 없어요/.test(ins.error.message) ? ins.error.message : kerr(ins.error)); }
     try { if (author !== '익명의 친구' && !me) localStorage.setItem('candid_author', author); } catch {}
-    image = null; w.querySelectorAll('#text, #pq, #qq, #opts input').forEach(i => i.value = ''); // 이제 닫아도 확인 안 물음
-    const next = MISSIONS[(MISSIONS.indexOf(mission) + 1) % MISSIONS.length];
-    const what = mode === 'poll' ? '투표' : mode === 'question' ? '질문' : '사진';
-    w.querySelector('.sheet').innerHTML = `
-      <div class="grab"></div>
-      <div class="empty" style="padding:24px 0 8px"><h2>Sent<i class="pd">.</i></h2>
+    media = null; el.querySelectorAll('textarea, #opts input').forEach(i => i.value = '');
+    const what = mode === 'poll' ? '투표' : mode === 'question' ? '질문' : '사진·영상';
+    removeEventListener('popstate', onPop);
+    el.innerHTML = `<div class="cmp-done">
+      <div class="cmp-check">✓</div><h2>Sent<i class="pd">.</i></h2>
       <p>${mode === 'question' ? `${name}님이 답하면 질문과 함께 피드에 올라가요.` : `${name}님이 승인하면 피드에 올라가요.`}<br>누가 보냈는지는 이름으로만 보여요.</p>
-      <button class="btn primary block" id="more">${mode === 'media' ? `한 장 더 보내기 · ${esc(next)}` : `${what} 하나 더 보내기`}</button><div style="height:8px"></div>
-      ${me && !S.isOwner && !myFollows.has(S.uid) ? `<button class="btn add block" id="fol">${name} 친구 추가 · 새 소식을 홈에서 보기</button><div style="height:8px"></div>` : ''}
-      ${S.isOwner ? '' : me
-        ? `<a class="btn block" href="${feedUrl(me.id)}" style="display:block;text-decoration:none;text-align:center">내 피드로 가기</a><div style="height:8px"></div>`
-        : `<button class="btn block" id="mine">나도 받아볼래 — 내 피드 만들기</button><div style="height:8px"></div>`}
-      <button class="btn block" style="border:0;background:none;color:var(--sub)" onclick="closeSheet()">닫기</button></div>`;
-    const sentMode = mode;
-    w.querySelector('#more').onclick = () => {
-      removeEventListener('popstate', onPop); w._onClose = null; w.remove(); // 히스토리는 그대로 두고 시트만 교체
-      openCompose(sentMode === 'media' ? MISSIONS.indexOf(next) : 0, false, sentMode);
-    };
-    const fol = w.querySelector('#fol'); if (fol) fol.onclick = () => { toggleFollow(S.uid); fol.remove(); };
-    const mine = w.querySelector('#mine');
-    if (mine) mine.onclick = () => {
-      try { localStorage.setItem('candid_ref', JSON.stringify({ uid: S.uid, name: S.prof.name })); } catch {}
-      location.href = location.pathname;
-    };
+      <button class="btn primary block" id="more">${what} 하나 더 보내기</button>
+      ${me && !S.isOwner && !myFollows.has(S.uid) ? `<button class="btn add block" id="fol">${name} 친구 추가 · 새 소식을 홈에서 보기</button>` : ''}
+      ${S.isOwner ? '' : me ? '' : `<button class="btn block" id="mine">나도 받아볼래 — 내 피드 만들기</button>`}
+      <button class="btn block" style="border:0;background:none;color:var(--sub)" id="done">닫기</button></div>`;
+    const done = () => { el.remove(); if (history.state?.compose) history.back(); };
+    $('#done').onclick = done;
+    $('#more').onclick = () => { el.remove(); openCompose(0, false, mode, mode === 'media'); };
+    const fol = $('#fol'); if (fol) fol.onclick = () => { toggleFollow(S.uid); fol.remove(); };
+    const mine = $('#mine'); if (mine) mine.onclick = () => { try { localStorage.setItem('candid_ref', JSON.stringify({ uid: S.uid, name: S.prof.name })); } catch {} location.href = location.pathname; };
   };
 }
 
@@ -2246,21 +2257,44 @@ async function prepareImage(file) {
   return { kind: 'image', main, thumb, previewUrl: URL.createObjectURL(main) };
 }
 
+// iPhone Safari 는 재생 전엔 영상 데이터를 안 불러와서 무한 대기할 수 있음 → 모든 단계에 시간제한
+const within = (p, ms) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error('timeout')), ms))]);
 function loadVideo(file) {
-  return new Promise((ok, no) => {
+  return within(new Promise((ok, no) => {
     const v = document.createElement('video');
-    v.preload = 'auto'; v.muted = true; v.playsInline = true; v.src = URL.createObjectURL(file);
+    v.preload = 'auto'; v.muted = true; v.playsInline = true;
+    v.setAttribute('playsinline', ''); v.setAttribute('muted', '');
     v.onloadedmetadata = () => ok(v); v.onerror = () => no(new Error('video'));
-  });
+    v.src = URL.createObjectURL(file); v.load();
+  }), 8000);
 }
-const seek = (v, t) => new Promise(r => { v.onseeked = () => r(); v.currentTime = t; });
+const seek = (v, t) => within(new Promise(r => { v.onseeked = () => r(); v.currentTime = t; }), 3000);
+// 첫 장면을 그릴 수 있게 데이터 불러오기: 소리 없이 잠깐 재생했다 멈춤
+async function primeVideo(v) {
+  try { await within(v.play(), 2000); } catch {}
+  v.pause();
+  if (v.readyState < 2) await within(new Promise(r => v.addEventListener('loadeddata', r, { once: true })), 2500).catch(() => {});
+}
+// 대표 이미지를 못 뽑았을 때 쓰는 기본 이미지(어두운 배경 + ▶)
+async function fallbackPoster() {
+  const c = document.createElement('canvas'); c.width = 480; c.height = 600; const g = c.getContext('2d');
+  const bg = g.createLinearGradient(0, 0, 480, 600); bg.addColorStop(0, '#1a1f3a'); bg.addColorStop(1, '#2b50ff'); g.fillStyle = bg; g.fillRect(0, 0, 480, 600);
+  g.fillStyle = 'rgba(255,255,255,.9)'; g.beginPath(); g.moveTo(205, 255); g.lineTo(205, 345); g.lineTo(285, 300); g.closePath(); g.fill();
+  return canvasBlob(c, 0.8);
+}
 
 // 영상 고르기: 미리보기용 정보와 대표 이미지(포스터)만 먼저 준비. 실제 압축은 '보내기' 누를 때(소리 녹음에 사용자 터치가 필요)
 async function prepareVideoMeta(file) {
-  const v = await loadVideo(file);
-  await seek(v, Math.min(0.15, (v.duration || 1) / 2));
-  const thumb = await canvasBlob(drawScaled(v, v.videoWidth, v.videoHeight, 720), 0.72);
-  return { kind: 'video', file, duration: v.duration, w: v.videoWidth, h: v.videoHeight, thumb, previewUrl: v.src, main: null };
+  let v = null, thumb = null;
+  try {
+    v = await loadVideo(file);
+    await primeVideo(v);
+    await seek(v, Math.min(0.15, (isFinite(v.duration) ? v.duration : 1) / 2)).catch(() => {});
+    if (v.videoWidth) thumb = await canvasBlob(drawScaled(v, v.videoWidth, v.videoHeight, 720), 0.72);
+  } catch {}
+  if (!thumb || thumb.size < 2000) thumb = await fallbackPoster(); // 검은 화면이거나 실패
+  const duration = v && isFinite(v.duration) ? v.duration : MAX_VIDEO_SEC;
+  return { kind: 'video', file, duration, w: v?.videoWidth || 0, h: v?.videoHeight || 0, thumb, previewUrl: v?.src || URL.createObjectURL(file), main: null };
 }
 
 // 영상 압축: 720p·약 1.6Mbps 로 다시 인코딩(앞 10초까지). 10초 기준 약 2~3MB
@@ -2274,7 +2308,8 @@ async function compressVideo(meta, onProgress) {
   };
   if (!mime) return original();
 
-  const v = await loadVideo(meta.file);
+  let v; try { v = await loadVideo(meta.file); } catch { return original(); }
+  if (!v.videoWidth) { await primeVideo(v); if (!v.videoWidth) return original(); }
   v.muted = false; v.volume = 1; // 소리는 녹음용 오디오 그래프로만 보내고 스피커엔 연결하지 않음
   const c = drawScaled(v, v.videoWidth, v.videoHeight, 720), g = c.getContext('2d');
   const stream = c.captureStream(30);
@@ -2298,7 +2333,7 @@ async function compressVideo(meta, onProgress) {
     if (v.currentTime >= limit || v.ended) { stop = true; v.pause(); rec.state !== 'inactive' && rec.stop(); return; }
     v.requestVideoFrameCallback ? v.requestVideoFrameCallback(draw) : requestAnimationFrame(draw);
   };
-  await seek(v, 0);
+  await seek(v, 0).catch(() => {});
   rec.start(250);
   try { await v.play(); } catch { stop = true; rec.stop(); await done; actx?.close(); return original(); }
   draw();
