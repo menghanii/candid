@@ -2194,20 +2194,19 @@ function canInstall() {
   if (isIOS) return 'ios';
   return null;
 }
-// 하단 '앱으로 쓰기' 배너 (닫으면 7일간 안 뜸)
+// 하단 '앱으로 쓰기' 배너: 닫으면 이번 방문 동안만 숨김(다음에 링크로 들어오면 다시), 설치하면 영구히 안 뜸
 function maybeShowInstall() {
   const kind = canInstall();
   // 로그인 안 한 친구(카톡 링크로 들어옴)에게도 보여줌. 단 사진 보내는 중에는 가리지 않게
   if (!kind || document.querySelector('.ibanner, .composer, .cmp-done')) return;
-  let until = 0; try { until = +localStorage.getItem('candid_install_snooze') || 0; } catch {}
-  if (Date.now() < until) return;
+  try { if (sessionStorage.getItem('candid_install_closed')) return; } catch {} // 이번 방문에서 닫았으면 그만
   const b = document.createElement('div'); b.className = 'ibanner';
   b.innerHTML = `<img src="brand/icon-180.png" alt="">
     <div><b>candid. 앱으로 쓰기</b><span>${kind === 'inapp' ? 'Safari·Chrome에서 열면 설치할 수 있어요' : '홈 화면에 추가하면 새 사진 알림도 받아요'}</span></div>
     <button class="btn primary">${kind === 'android' ? '설치' : kind === 'ios' ? '방법 보기' : '열기'}</button>
     <button class="ix" aria-label="닫기">${I.close}</button>`;
   b.querySelector('.btn').onclick = () => { b.remove(); startInstall(); };
-  b.querySelector('.ix').onclick = () => { b.remove(); try { localStorage.setItem('candid_install_snooze', Date.now() + 7 * 864e5); } catch {} };
+  b.querySelector('.ix').onclick = () => { b.remove(); try { sessionStorage.setItem('candid_install_closed', '1'); } catch {} };
   document.body.appendChild(b);
 }
 async function startInstall() {
