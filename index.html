@@ -1217,6 +1217,13 @@ function navBar(active) {
 }
 // ⊕ 만들기: 친구 피드에서는 그 친구에게 보내기, 그 외(내 피드·릴스)에서는 내 피드 부탁하기
 function openCreate() {
+  // 릴스: 지금 화면에 보이는 릴스의 피드 주인에게 보내기
+  const reels = document.getElementById('reels');
+  if (reels) {
+    const cur = [...reels.querySelectorAll('.reel[data-id]')].find(r => Math.abs(r.offsetTop - reels.scrollTop) < r.clientHeight / 2);
+    const post = cur && HOME.posts.find(p => p.id === cur.dataset.id);
+    if (post && post.owner_id !== me.id) return fillFriend(post.owner_id);
+  }
   const onFriendFeed = !document.querySelector('.reels') && S.uid && S.prof && !S.isOwner;
   if (onFriendFeed) return openCompose();
   if (S.isOwner && !document.querySelector('.reels')) return shareFeed();
@@ -1403,7 +1410,7 @@ function paintHome({ posts, owners }) {
       <div class="rside">
         <button class="rbtn" data-like="${p.id}" aria-label="좋아요" aria-pressed="${s.liked}" onclick="toggleLike('${p.id}')"><span>${s.liked ? I.heartOn : I.heart}</span><b>${s.likes || ''}</b></button>
         <button class="rbtn" data-cmt="${p.id}" aria-label="댓글" onclick="openComments('${p.id}','${p.owner_id}')"><span>${I.comment}</span><b>${s.comments || ''}</b></button>
-        <button class="rbtn rsend" aria-label="${esc(o.name)} 피드 채워주기" onclick="fillFriend('${p.owner_id}')"><span>${I.imagePlus}</span><b>채워주기</b></button>
+
       </div>
     </section>`;
   }).join('')}
