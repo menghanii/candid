@@ -5,7 +5,7 @@ const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8').split('\n').filter(l => !l.trim().startsWith('//')).join('\n');
 const keys = new Set();
 // t('...') / t("...") — 첫 인자가 문자열 리터럴인 경우만 (t(변수) 는 사전에 직접 넣어야 함)
-for (const m of html.matchAll(/\bt\(\s*(['"])((?:\\.|(?!\1).)*)\1/g)) keys.add(m[2].replace(/\\(['"\\])/g, '$1'));
+for (const m of html.matchAll(/\bt\(\s*(['"])((?:\\.|(?!\1).)*)\1/g)) keys.add(m[2].replace(/\\n/g, '\n').replace(/\\(['"\\])/g, '$1'));
 const langs = fs.readdirSync(path.join(root, 'i18n')).filter(f => f.endsWith('.js'));
 let bad = 0;
 for (const f of langs) {

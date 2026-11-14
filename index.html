@@ -951,6 +951,8 @@ function openLang() {
 }
 function setLang(k) { try { localStorage.setItem('candid_lang', k); } catch {} location.reload(); }
 const LOGO = 'candid<i>.</i>';
+const aname = n => esc(n === '익명의 친구' ? t(n) : n); // 보낸 사람 이름(익명만 번역)
+const mname = m => esc(m ? t(m) : ''); // 미션 이름
 const sv = (d, s = 22, w = 1.6) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const I = {
   inbox: s => sv('<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>', s),
@@ -1221,43 +1223,43 @@ document.addEventListener('click', e => {
 function renderSetup(first) {
   const social = https(myProf.social_avatar_url || me.user_metadata?.avatar_url || me.user_metadata?.picture);
   const prov = me.app_metadata?.provider;
-  const socialLabel = prov === 'kakao' ? '카카오 프로필' : prov === 'google' ? 'Google 프로필' : '소셜 프로필';
+  const socialLabel = t(prov === 'kakao' ? '카카오 프로필' : prov === 'google' ? 'Google 프로필' : '소셜 프로필');
   let choice = 'default', customUrl = null, customBlob = null;
   if (!first && myProf.avatar_url) { if (myProf.avatar_url === social) choice = 'social'; else { choice = 'custom'; customUrl = myProf.avatar_url; } }
 
   $app.innerHTML = `
     <header class="top"><span class="logo">${LOGO}</span><div class="sp"></div>
-      <button id="skip" style="background:none;border:0;padding:8px 0;color:var(--sub);font-weight:600;font-size:14px">${first ? '건너뛰기' : '취소'}</button></header>
+      <button id="skip" style="background:none;border:0;padding:8px 0;color:var(--sub);font-weight:600;font-size:14px">${t(first ? '건너뛰기' : '취소')}</button></header>
     <div class="setup">
       <h1>${first ? 'Set up your<br><em>profile.</em>' : 'Edit <em>profile.</em>'}</h1>
-      <p class="hint">친구들에게 보일 이름과 사진이에요.${first ? '<br>나중에 언제든 바꿀 수 있어요.' : ''}</p>
+      <p class="hint">${t('친구들에게 보일 이름과 사진이에요.')}${first ? '<br>' + t('나중에 언제든 바꿀 수 있어요.') : ''}</p>
       ${first ? (() => {
         // 새 계정이 만들어진 첫 화면: 혹시 다른 로그인 방법으로 이미 가입했는지 확인
         const cur = me.app_metadata?.provider;
         const other = PREV_LOGIN && PREV_LOGIN !== cur ? PREV_LOGIN : null;
         return `<div class="acct-check ${other ? 'warn' : ''}">
           ${other
-            ? `<b>이 기기에서는 지난번에 ${PROVIDER_NAME[other]}로 로그인했어요.</b>그 계정을 쓰려던 거라면 ${PROVIDER_NAME[other]}로 다시 로그인해 주세요. 로그인 방법이 다르면 다른 계정이 돼요.`
-            : `<b>처음이 아니신가요?</b>예전에 다른 방법(카카오/Google)으로 가입했다면, 그 방법으로 로그인해야 기존 피드가 보여요.`}
-          <button class="btn" onclick="logout()">${other ? `${PROVIDER_NAME[other]}로 다시 로그인하기` : '다른 방법으로 로그인하기'}</button>
+            ? t('<b>이 기기에서는 지난번에 {p}로 로그인했어요.</b>그 계정을 쓰려던 거라면 {p}로 다시 로그인해 주세요. 로그인 방법이 다르면 다른 계정이 돼요.', { p: PROVIDER_NAME[other] })
+            : t('<b>처음이 아니신가요?</b>예전에 다른 방법(카카오/Google)으로 가입했다면, 그 방법으로 로그인해야 기존 피드가 보여요.')}
+          <button class="btn" onclick="logout()">${other ? t('{p}로 다시 로그인하기', { p: PROVIDER_NAME[other] }) : t('다른 방법으로 로그인하기')}</button>
         </div>`;
       })() : ''}
       <div style="text-align:center;margin:8px 0 24px"><div class="ring" id="preview"></div></div>
       <div class="label">PROFILE PHOTO</div>
       <div class="avopts">
-        <button class="avopt" data-c="default"><span class="sel"><span class="av">${DEFAULT_AV}</span></span>기본</button>
+        <button class="avopt" data-c="default"><span class="sel"><span class="av">${DEFAULT_AV}</span></span>${t('기본')}</button>
         ${social ? `<button class="avopt" data-c="social"><span class="sel"><img class="av" src="${esc(social)}" alt="" referrerpolicy="no-referrer"></span>${socialLabel}</button>` : ''}
-        <label class="avopt" data-c="custom"><span class="sel" id="customThumb"></span>앨범에서 선택<input type="file" accept="image/*" id="avfile" hidden></label>
+        <label class="avopt" data-c="custom"><span class="sel" id="customThumb"></span>${t('앨범에서 선택')}<input type="file" accept="image/*" id="avfile" hidden></label>
       </div>
       <div class="label">NAME</div>
       <input class="field" id="nm" maxlength="20" value="${esc(myProf.name)}" placeholder="${esc(myProf.name)}">
       ${'handle' in myProf ? `<div class="label">ID</div>
       <div class="hbox"><span>@</span><input class="field" id="hd" maxlength="20" value="${esc(myProf.handle || '')}" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" inputmode="email"></div>
-      <p class="hmsg" id="hmsg">영문 소문자·숫자·밑줄(_) 3~20자. 친구 검색과 공유 링크에 쓰여요.</p>` : ''}
+      <p class="hmsg" id="hmsg">${t('영문 소문자·숫자·밑줄(_) 3~20자. 친구 검색과 공유 링크에 쓰여요.')}</p>` : ''}
       <div class="label">MESSAGE</div>
-      <input class="field" id="bio" maxlength="60" value="${esc(myProf.bio || '')}" placeholder="예: 굴욕샷 환영, 단 너무 심한 건 거절함 📸">
+      <input class="field" id="bio" maxlength="60" value="${esc(myProf.bio || '')}" placeholder="${t('예: 굴욕샷 환영, 단 너무 심한 건 거절함 📸')}">
       <div style="height:10px"></div>
-      <button class="btn primary block" id="done">${first ? '시작하기' : '저장'}</button>
+      <button class="btn primary block" id="done">${t(first ? '시작하기' : '저장')}</button>
     </div>`;
 
   const $ = s => $app.querySelector(s);
@@ -1275,16 +1277,16 @@ function renderSetup(first) {
       const v = $hd.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
       if (v !== $hd.value) $hd.value = v;
       clearTimeout(t); seq++;
-      if (v === myProf.handle) return hdState('지금 쓰고 있는 아이디예요', true);
-      if (!HANDLE_RE.test(v)) return hdState('영문 소문자·숫자·밑줄(_) 3~20자로 만들어 주세요', false);
-      if (RESERVED.includes(v)) return hdState('쓸 수 없는 아이디예요', false);
-      hdState('확인 중…', null);
+      if (v === myProf.handle) return hdState(t('지금 쓰고 있는 아이디예요'), true);
+      if (!HANDLE_RE.test(v)) return hdState(t('영문 소문자·숫자·밑줄(_) 3~20자로 만들어 주세요'), false);
+      if (RESERVED.includes(v)) return hdState(t('쓸 수 없는 아이디예요'), false);
+      hdState(t('확인 중…'), null);
       const my = seq;
       t = setTimeout(async () => {
         const { data, error } = await sb.from('profiles').select('id').eq('handle', v).maybeSingle();
         if (my !== seq) return;
         if (error) return hdState(kerr(error), false);
-        data && data.id !== me.id ? hdState('이미 있는 아이디예요', false) : hdState('사용할 수 있어요 ✓', true);
+        data && data.id !== me.id ? hdState(t('이미 있는 아이디예요'), false) : hdState(t('사용할 수 있어요 ✓'), true);
       }, 300);
     };
   }
@@ -1307,7 +1309,7 @@ function renderSetup(first) {
     if (first) afterSignup();
   };
   $('#done').onclick = async e => {
-    e.target.disabled = true; e.target.textContent = '저장 중…';
+    e.target.disabled = true; e.target.textContent = t('저장 중…');
     try {
       let url = currentUrl();
       if (choice === 'custom' && customBlob) {
@@ -1319,14 +1321,14 @@ function renderSetup(first) {
       const patch = { name: $('#nm').value.trim() || myProf.name, bio: $('#bio').value.trim() || null, avatar_url: url, onboarded: true };
       if ($('#hd') && hdOk && $('#hd').value !== myProf.handle) patch.handle = $('#hd').value;
       const { error } = await sb.from('profiles').update(patch).eq('id', me.id);
-      if (error && /23505|duplicate|unique/i.test((error.code || '') + error.message)) { hdState('이미 있는 아이디예요. 다른 걸로 해주세요', false); throw new Error('dup'); }
+      if (error && /23505|duplicate|unique/i.test((error.code || '') + error.message)) { hdState(t('이미 있는 아이디예요. 다른 걸로 해주세요'), false); throw new Error('dup'); }
       if (error) throw error;
       if (patch.handle) { HANDLES.set(patch.handle, me.id); CACHE.prof.delete(me.id); }
       Object.assign(myProf, patch);
-      toast(first ? '환영해요!' : '프로필을 저장했어요');
+      toast(t(first ? '환영해요!' : '프로필을 저장했어요'));
       route();
       if (first) afterSignup();
-    } catch (err) { e.target.disabled = false; e.target.textContent = first ? '시작하기' : '저장'; if (err.message !== 'dup') toast(kerr(err)); }
+    } catch (err) { e.target.disabled = false; e.target.textContent = t(first ? '시작하기' : '저장'); if (err.message !== 'dup') toast(kerr(err)); }
   };
 }
 
@@ -1538,24 +1540,24 @@ function paintProfile() {
     ${coverHTML(dc.theme)}
     <section class="head ${dc.theme ? 'has-cover' : ''}">
       <div class="avwrap">${isOwner
-        ? `<button class="ring${rf.cls}"${rf.style} onclick="renderSetup(false)" aria-label="프로필 편집">${avatar(prof)}</button>`
+        ? `<button class="ring${rf.cls}"${rf.style} onclick="renderSetup(false)" aria-label="${t('프로필 편집')}">${avatar(prof)}</button>`
         : `<div class="ring${rf.cls}"${rf.style}>${avatar(prof)}</div>`}${stickersHTML(dc.stickers)}</div>
       <div class="name${nf.cls}"${nf.style}>${esc(prof.name)}</div>
       ${prof.handle ? `<div class="handle">@${esc(prof.handle)}</div>` : ''}
       ${prof.bio
         ? `<div class="desc bio">${esc(prof.bio)}</div>`
         : isOwner
-          ? `<button class="desc bio-empty" onclick="renderSetup(false)">+ 프로필 메시지 추가</button>`
+          ? `<button class="desc bio-empty" onclick="renderSetup(false)">${t('+ 프로필 메시지 추가')}</button>`
           : `<div class="desc">${t('친구들이 만들어주는 {name}의 피드', { name: esc(prof.name) })}</div>`}
       <div class="stats">
         <div><b>${approved.length}</b><span>${t('게시물')}</span></div>
         <div><b>${friends}</b><span>${t('참여한 친구')}</span></div>
-        ${isOwner ? `<button class="stat-btn${S.tab === 'friends' ? ' on' : ''}" onclick="setTab('friends')" aria-label="친구 목록 보기"><b>${myFollows.size}</b><span>친구</span></button>` : ''}
+        ${isOwner ? `<button class="stat-btn${S.tab === 'friends' ? ' on' : ''}" onclick="setTab('friends')" aria-label="${t('친구 목록 보기')}"><b>${myFollows.size}</b><span>${t('친구')}</span></button>` : ''}
       </div>
     </section>
     <div class="actions">
       ${isOwner
-        ? `<button class="btn primary" onclick="shareFeed()">친구에게 피드 부탁하기</button>
+        ? `<button class="btn primary" onclick="shareFeed()">${t('친구에게 피드 부탁하기')}</button>
            ${GACHA_ON ? '' : '<!--'}<button class="btn gbtn${TICKETS > 0 ? ' has' : ''}" id="gbtn" onclick="openGacha()" aria-label="뽑기권으로 꾸미기 아이템 뽑기"${TICKETS == null ? ' hidden' : ''}>🎁 <b data-tickets>${TICKETS ?? ''}</b></button>${GACHA_ON ? '' : '-->'}`
         : me
           // 로그인한 친구: 친구 추가만. 보내기는 하단 바 ⊕ 로
@@ -1566,8 +1568,8 @@ function paintProfile() {
     ${!isOwner && !me ? `<p style="text-align:center;margin:-6px 0 16px;font-size:13px;color:var(--sub)">${t('나도 친구들한테 받아보고 싶다면?')} <a href="${location.pathname}" style="color:var(--fg);font-weight:600">${t('내 피드 만들기')}</a></p>` : ''}
     <nav class="tabs">
       <button class="${S.tab === 'grid' ? 'on' : ''}" onclick="setTab('grid')">${t('피드')}</button>
-      ${isOwner ? `<button class="${S.tab === 'inbox' ? 'on' : ''}" onclick="setTab('inbox')">대기 피드${pending.length ? `<span class="n">${pending.length}</span>` : ''}</button>
-      <button class="${S.tab === 'friends' ? 'on' : ''}" onclick="setTab('friends')">친구</button>` : ''}
+      ${isOwner ? `<button class="${S.tab === 'inbox' ? 'on' : ''}" onclick="setTab('inbox')">${t('대기 피드')}${pending.length ? `<span class="n">${pending.length}</span>` : ''}</button>
+      <button class="${S.tab === 'friends' ? 'on' : ''}" onclick="setTab('friends')">${t('친구')}</button>` : ''}
     </nav>
     <main id="body"></main>
     ${navBar(isOwner ? 'feed' : '')}`;
@@ -1581,9 +1583,9 @@ function paintProfile() {
 function setTab(t) { S.tab = t; paintProfile(); }
 // 🔔 새 소식: 승인함 탭을 열고 탭 위치로 스크롤
 // 상단 오른쪽 아이콘(검색 · 알림 · 메뉴): 내 피드와 릴스에서 똑같이
-const topIcons = () => `<button class="icon-btn" aria-label="친구 검색" onclick="openSearch()">${I.search}</button>
-  <button class="icon-btn" id="notibtn" aria-label="알림" onclick="openNotis()">${I.bell}<span class="dot red" id="notidot"${NOTI.unread ? '' : ' hidden'}></span></button>
-  <button class="icon-btn" aria-label="메뉴" onclick="openMenu()">${I.menu}</button>`;
+const topIcons = () => `<button class="icon-btn" aria-label="${t('친구 검색')}" onclick="openSearch()">${I.search}</button>
+  <button class="icon-btn" id="notibtn" aria-label="${t('알림')}" onclick="openNotis()">${I.bell}<span class="dot red" id="notidot"${NOTI.unread ? '' : ' hidden'}></span></button>
+  <button class="icon-btn" aria-label="${t('메뉴')}" onclick="openMenu()">${I.menu}</button>`;
 // 내 피드가 아닌 화면(릴스 등)에서 내 피드 기능을 쓸 때: 내 피드로 이동해 다 그려진 뒤 실행
 const onMyFeed = () => me && S.uid === me.id && S.isOwner && !document.querySelector('.reels') && document.querySelector('.tabs');
 function withMyFeed(fn, tab) {
@@ -1612,51 +1614,51 @@ function renderBody() {
   if (S.tab === 'inbox') {
     // 대기 피드 = ① 승인을 기다리는 피드 ② 되돌리기한 피드(내가 피드에서 내린 것, 나만 보임)
     const hidden = S.hidden || [];
-    const thumbBtn = p => `<button class="thumb" onclick="openPost('${p.id}')" aria-label="크게 보기">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="${esc(p.author_name)}가 보낸 사진">`}</button>`;
-    const hiddenHTML = hidden.length ? `<div class="isec"><b>되돌리기한 피드</b><span>${hidden.length}</span></div>
-      <div class="note">내가 피드에서 내린 것들이에요. 나만 볼 수 있고, 언제든 다시 올릴 수 있어요.</div>
+    const thumbBtn = p => `<button class="thumb" onclick="openPost('${p.id}')" aria-label="${t('크게 보기')}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="${t('{name}가 보낸 사진', { name: aname(p.author_name) })}">`}</button>`;
+    const hiddenHTML = hidden.length ? `<div class="isec"><b>${t('되돌리기한 피드')}</b><span>${hidden.length}</span></div>
+      <div class="note">${t('내가 피드에서 내린 것들이에요. 나만 볼 수 있고, 언제든 다시 올릴 수 있어요.')}</div>
       ${hidden.map(p => `
         <div class="row hid">
           ${thumbBtn(p)}
           <div class="meta">
             <div class="t">${esc(p.text) || '<span style="color:var(--sub)">코멘트 없음</span>'}</div>
-            <small>${esc(p.author_name)} · ${ago(p.hidden_at || p.created_at)} 내림</small>
+            <small>${aname(p.author_name)} · ${t('{when} 내림', { when: ago(p.hidden_at || p.created_at) })}</small>
           </div>
           <div class="ab">
-            <button class="btn primary" onclick="restorePost('${p.id}')">다시 올리기</button>
-            <button class="btn" onclick="removePost('${p.id}')">삭제</button>
+            <button class="btn primary" onclick="restorePost('${p.id}')">${t('다시 올리기')}</button>
+            <button class="btn" onclick="removePost('${p.id}')">${t('삭제')}</button>
           </div>
         </div>`).join('')}` : '';
-    $b.innerHTML = `<div class="isec"><b>승인을 기다리는 피드</b><span>${pending.length}</span></div>` + (pending.length
-      ? `<div class="note">승인한 것만 피드에 올라가요. 거절해도 친구에게 알림이 가지 않아요.</div>
+    $b.innerHTML = `<div class="isec"><b>${t('승인을 기다리는 피드')}</b><span>${pending.length}</span></div>` + (pending.length
+      ? `<div class="note">${t('승인한 것만 피드에 올라가요. 거절해도 친구에게 알림이 가지 않아요.')}</div>
          ${pending.map(p => `
           <div class="row">
-            <button class="thumb" onclick="openPost('${p.id}')" aria-label="크게 보기">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="${esc(p.author_name)}가 보낸 ${esc(p.mission)}">`}</button>
+            <button class="thumb" onclick="openPost('${p.id}')" aria-label="${t('크게 보기')}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="${t('{name}가 보낸 사진', { name: aname(p.author_name) })}">`}</button>
             <div class="meta">
-              ${p.mission ? `<span class="mtag">${esc(p.mission)}</span>` : ''}
+              ${p.mission ? `<span class="mtag">${mname(p.mission)}</span>` : ''}
               <div class="t">${esc(p.text) || '<span style="color:var(--sub)">코멘트 없음</span>'}</div>
-              <small>${esc(p.author_name)} · ${ago(p.created_at)}</small>
+              <small>${aname(p.author_name)} · ${ago(p.created_at)}</small>
             </div>
             <div class="ab">
-              ${p.media_type === 'question' ? `<button class="btn primary" onclick="openAnswer('${p.id}')">답하기</button>` : `<button class="btn primary" onclick="approve('${p.id}')">승인</button>`}
-              <button class="btn" onclick="removePost('${p.id}')">거절</button>
+              ${p.media_type === 'question' ? `<button class="btn primary" onclick="openAnswer('${p.id}')">${t('답하기')}</button>` : `<button class="btn primary" onclick="approve('${p.id}')">${t('승인')}</button>`}
+              <button class="btn" onclick="removePost('${p.id}')">${t('거절')}</button>
             </div>
           </div>`).join('')}`
-      : `<div class="empty small"><div class="empty-dot">${DOT('happy', { size: 52 })}</div><h2>All clear<i class="pd">.</i></h2><p>승인을 기다리는 게시물이 없어요.<br>친구가 보내면 여기에 모여요.</p></div>`) + hiddenHTML;
+      : `<div class="empty small"><div class="empty-dot">${DOT('happy', { size: 52 })}</div><h2>All clear<i class="pd">.</i></h2><p>${t('승인을 기다리는 게시물이 없어요.<br>친구가 보내면 여기에 모여요.')}</p></div>`) + hiddenHTML;
     return;
   }
   if (approved.length) {
-    $b.innerHTML = `<div class="grid">${approved.map(p => `<button onclick="openPost('${p.id}')" class="${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${esc(p.author_name)}가 보낸 ${esc(p.mission)}${p.text ? ': ' + esc(p.text) : ''}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">`}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}<span class="from">${p.text && !isText(p) ? `<q>“${esc(p.text)}”</q>` : ''}from<i class="pd">.</i> ${esc(p.author_name)}</span></button>`).join('')}</div>`;
+    $b.innerHTML = `<div class="grid">${approved.map(p => `<button onclick="openPost('${p.id}')" class="${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${t('{name}가 보낸 사진', { name: aname(p.author_name) })}${p.text ? ': ' + esc(p.text) : ''}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">`}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}<span class="from">${p.text && !isText(p) ? `<q>“${esc(p.text)}”</q>` : ''}from<i class="pd">.</i> ${aname(p.author_name)}</span></button>`).join('')}</div>`;
     S.justApproved = null;
     return;
   }
   let ref = null; try { ref = JSON.parse(localStorage.getItem('candid_ref')); } catch {}
   $b.innerHTML = isOwner
     ? `<div class="empty"><div class="empty-dot">${DOT('look', { cls: 'blink' })}</div><h2>Nothing here, <em>yet.</em></h2>
-        <p>이 피드는 친구들만 채울 수 있어요.<br>이렇게 부탁해 보세요.</p>
-        ${ref && ref.uid !== uid ? `<div class="asked" style="margin:0 0 16px;text-align:left">방금 사진을 보내준 <b>${esc(ref.name)}</b>에게도 부탁해 보세요. 받은 만큼 돌려줄 거예요 😉</div>` : ''}
-        <div class="ideas">${MISSIONS.slice(0, 3).map((m, i) => `<div class="idea"><span class="k">${i + 1}</span><span class="it">내 ${m} 하나만 보내줘</span></div>`).join('')}</div>
-        <button class="btn primary block" onclick="shareFeed()">친구에게 첫 사진 부탁하기</button></div>`
+        <p>${t('이 피드는 친구들만 채울 수 있어요.<br>이렇게 부탁해 보세요.')}</p>
+        ${ref && ref.uid !== uid ? `<div class="asked" style="margin:0 0 16px;text-align:left">${t('방금 사진을 보내준 <b>{name}</b>에게도 부탁해 보세요. 받은 만큼 돌려줄 거예요 😉', { name: esc(ref.name) })}</div>` : ''}
+        <div class="ideas">${MISSIONS.slice(0, 3).map((m, i) => `<div class="idea"><span class="k">${i + 1}</span><span class="it">${t('내 {m} 하나만 보내줘', { m: t(m) })}</span></div>`).join('')}</div>
+        <button class="btn primary block" onclick="shareFeed()">${t('친구에게 첫 사진 부탁하기')}</button></div>`
     : `<div class="empty"><div class="empty-dot">${DOT('wow', { cls: 'float' })}</div><h2>Be the <em>first.</em></h2>
         <p>${t('{name}의 피드가 아직 비어 있어요.<br>첫 사진을 보내주세요.', { name: esc(prof.name) })}</p>
         <button class="btn primary block" onclick="openCompose()">${t('사진 보내기')}</button></div>`;
@@ -1671,15 +1673,15 @@ async function loadFollows() {
   if (!error) data.forEach(r => myFollows.add(r.followee_id)); // social.sql 실행 전이면 조용히 빈 목록
 }
 async function toggleFollow(uid, btn) {
-  if (!me) return toast('로그인하면 친구를 추가할 수 있어요');
+  if (!me) return toast(t('로그인하면 친구를 추가할 수 있어요'));
   const on = myFollows.has(uid);
   on ? myFollows.delete(uid) : myFollows.add(uid);
-  if (btn) { btn.textContent = on ? '친구 추가' : '친구 ✓'; btn.classList.toggle('add', on); }
+  if (btn) { btn.textContent = t(on ? '친구 추가' : '친구 ✓'); btn.classList.toggle('add', on); }
   const { error } = on
     ? await sb.from('follows').delete().eq('follower_id', me.id).eq('followee_id', uid)
     : await sb.from('follows').insert({ follower_id: me.id, followee_id: uid });
-  if (error) { on ? myFollows.add(uid) : myFollows.delete(uid); if (btn) { btn.textContent = on ? '친구 ✓' : '친구 추가'; btn.classList.toggle('add', !on); } return toast(kerr(error)); }
-  toast(on ? '친구에서 뺐어요' : '친구로 추가했어요. 새 사진이 홈에 떠요');
+  if (error) { on ? myFollows.add(uid) : myFollows.delete(uid); if (btn) { btn.textContent = t(on ? '친구 ✓' : '친구 추가'); btn.classList.toggle('add', !on); } return toast(kerr(error)); }
+  toast(t(on ? '친구에서 뺐어요' : '친구로 추가했어요. 새 사진이 홈에 떠요'));
 }
 
 // ---------- 하단 바 (릴스 · 친구 · 내 피드) ----------
@@ -1689,9 +1691,9 @@ function navBar(active) {
   const item = (key, label, icon, onclick) =>
     `<button class="${active === key ? 'on' : ''}" onclick="${onclick}" aria-label="${label}"${active === key ? ' aria-current="page"' : ''}>${icon}</button>`;
   return `<nav class="bnav ${active === 'reels' ? 'dark' : ''}">
-    ${item('reels', '릴스', I.reelsNav, "go(location.pathname+'?home=1')")}
-    ${item('create', '만들기', I.create, 'openCreate()')}
-    ${item('feed', '내 피드', `<span class="bav">${avatar(myProf, 'xs')}</span>`, `go('${feedUrl(me.id)}')`)}
+    ${item('reels', t('릴스'), I.reelsNav, "go(location.pathname+'?home=1')")}
+    ${item('create', t('만들기'), I.create, 'openCreate()')}
+    ${item('feed', t('내 피드'), `<span class="bav">${avatar(myProf, 'xs')}</span>`, `go('${feedUrl(me.id)}')`)}
   </nav>`;
 }
 // ⊕ 만들기: 친구 피드에서는 그 친구에게 보내기, 그 외(내 피드·릴스)에서는 내 피드 부탁하기
@@ -1713,35 +1715,35 @@ function openCreate() {
 async function renderFriendsTab($b) {
   const ids = [...myFollows];
   if (!ids.length) {
-    $b.innerHTML = `<div class="empty"><div class="empty-dot">${DOT('look', { cls: 'blink' })}</div><h2>No friends, <em>yet.</em></h2><p>오른쪽 위 🔍에서 이름으로 친구를 찾아 추가해 보세요.<br>추가한 친구의 새 사진이 릴스에 떠요.</p>
-      <button class="btn primary block" onclick="openSearch()">친구 찾기</button><div style="height:8px"></div><button class="btn block" onclick="openInvite()">💌 앱에 친구 초대하기</button></div>`;
+    $b.innerHTML = `<div class="empty"><div class="empty-dot">${DOT('look', { cls: 'blink' })}</div><h2>No friends, <em>yet.</em></h2><p>${t('오른쪽 위 🔍에서 이름으로 친구를 찾아 추가해 보세요.<br>추가한 친구의 새 사진이 릴스에 떠요.')}</p>
+      <button class="btn primary block" onclick="openSearch()">${t('친구 찾기')}</button><div style="height:8px"></div><button class="btn block" onclick="openInvite()">${t('💌 앱에 친구 초대하기')}</button></div>`;
     return;
   }
-  $b.innerHTML = `<div class="flist"><p class="hint" style="padding:16px 20px">불러오는 중…</p></div>`;
+  $b.innerHTML = `<div class="flist"><p class="hint" style="padding:16px 20px">${t('불러오는 중…')}</p></div>`;
   const { data, error } = await sb.from('profiles').select('*').in('id', ids);
   if (S.tab !== 'friends' || !document.body.contains($b)) return;
   if (error) return $b.innerHTML = `<div class="empty"><p>${esc(kerr(error))}</p></div>`;
   data.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-  const head = `<div class="fhead"><b>내 친구 ${data.length}</b><div style="flex:1"></div><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px" onclick="openSearch()">+ 친구 찾기</button><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px;margin-left:6px" onclick="openInvite()">💌 초대</button></div>`;
+  const head = `<div class="fhead"><b>${t('내 친구 {n}', { n: data.length })}</b><div style="flex:1"></div><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px" onclick="openSearch()">${t('+ 친구 찾기')}</button><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px;margin-left:6px" onclick="openInvite()">${t('💌 초대')}</button></div>`;
   $b.innerHTML = head + `<div class="flist">${data.map(p => `
     <div class="frow"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b><small>${p.handle ? `@${esc(p.handle)}` : ''}${p.handle && p.bio ? ' · ' : ''}${esc(p.bio || '')}</small></span></a>
-      <button class="btn" onclick="toggleFollow('${p.id}', this)">친구 ✓</button></div>`).join('')}</div>`;
+      <button class="btn" onclick="toggleFollow('${p.id}', this)">${t('친구 ✓')}</button></div>`).join('')}</div>`;
 }
 
 // ---------- 친구 검색 (검색어가 없으면 내 친구 목록) ----------
 async function openSearch() {
-  const w = sheet(`<div class="shead"><h3>Find friends<i class="pd">.</i></h3><button class="icon-btn" aria-label="닫기" onclick="closeSheet()">${I.close}</button></div>
-    <div class="sbox">${I.search}<input class="field" id="sq" type="search" placeholder="이름 또는 @아이디로 친구 찾기" autocomplete="off" autocapitalize="off" enterkeyhint="search"></div>
-    <div id="sr"><p class="hint">불러오는 중…</p></div>`, null, { top: true });
+  const w = sheet(`<div class="shead"><h3>Find friends<i class="pd">.</i></h3><button class="icon-btn" aria-label="${t('닫기')}" onclick="closeSheet()">${I.close}</button></div>
+    <div class="sbox">${I.search}<input class="field" id="sq" type="search" placeholder="${t('이름 또는 @아이디로 친구 찾기')}" autocomplete="off" autocapitalize="off" enterkeyhint="search"></div>
+    <div id="sr"><p class="hint">${t('불러오는 중…')}</p></div>`, null, { top: true });
   const $q = w.querySelector('#sq'), $r = w.querySelector('#sr');
   const row = p => `<div class="frow"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b><small>${p.handle ? `@${esc(p.handle)}` : ''}${p.handle && p.bio ? ' · ' : ''}${esc(p.bio || '')}</small></span></a>
-    ${p.id === me?.id ? '<small style="color:var(--sub)">나</small>' : `<button class="btn ${myFollows.has(p.id) ? '' : 'add'}" onclick="toggleFollow('${p.id}', this)">${myFollows.has(p.id) ? '친구 ✓' : '친구 추가'}</button>`}</div>`;
+    ${p.id === me?.id ? `<small style="color:var(--sub)">${t('나')}</small>` : `<button class="btn ${myFollows.has(p.id) ? '' : 'add'}" onclick="toggleFollow('${p.id}', this)">${t(myFollows.has(p.id) ? '친구 ✓' : '친구 추가')}</button>`}</div>`;
   const showAll = async () => {
     // 검색어가 없을 때: 친구뿐 아니라 가입한 사람 전체를 먼저 보여줌(친구 여부는 버튼으로 구분)
     const { data, error } = await sb.from('profiles').select('*').eq('onboarded', true).limit(50);
     if (error) return $r.innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
     const list = (data || []).filter(p => p.id !== me?.id);
-    $r.innerHTML = list.length ? `<div class="label" style="margin-top:8px">PEOPLE · ${list.length}</div>${list.map(row).join('')}` : '<p class="hint" style="padding:16px 0">아직 가입한 사람이 없어요.</p>';
+    $r.innerHTML = list.length ? `<div class="label" style="margin-top:8px">PEOPLE · ${list.length}</div>${list.map(row).join('')}` : `<p class="hint" style="padding:16px 0">${t('아직 가입한 사람이 없어요.')}</p>`;
   };
   let timer, seq = 0;
   $q.oninput = () => {
@@ -1757,7 +1759,7 @@ async function openSearch() {
       const { data, error } = await sb.from('profiles').select('*').or(q).eq('onboarded', true).limit(20);
       if (my !== seq) return; // 늦게 도착한 이전 검색 결과는 무시
       if (error) return $r.innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
-      $r.innerHTML = data.length ? `<div class="label" style="margin-top:8px">RESULTS</div>${data.map(row).join('')}` : `<p class="hint" style="padding:16px 0">'${esc(term)}'(으)로 찾은 친구가 없어요.</p>`;
+      $r.innerHTML = data.length ? `<div class="label" style="margin-top:8px">RESULTS</div>${data.map(row).join('')}` : `<p class="hint" style="padding:16px 0">${t("'{q}'(으)로 찾은 친구가 없어요.", { q: esc(term) })}</p>`;
     }, 250);
   };
   showAll();
@@ -1785,7 +1787,7 @@ function paintSoc(id) {
   document.querySelectorAll(`[data-cmt="${id}"] b`).forEach(b => b.textContent = s.comments || '');
 }
 async function toggleLike(id, only) {
-  if (!me) return toast('로그인하면 좋아요를 남길 수 있어요');
+  if (!me) return toast(t('로그인하면 좋아요를 남길 수 있어요'));
   const s = SOC.get(id); if (!s || (only && s.liked)) return;
   s.liked = !s.liked; s.likes += s.liked ? 1 : -1; paintSoc(id);
   if (s.liked) navigator.vibrate?.(8);
@@ -1795,10 +1797,10 @@ async function toggleLike(id, only) {
   if (error) { s.liked = !s.liked; s.likes += s.liked ? 1 : -1; paintSoc(id); toast(kerr(error)); }
 }
 // 댓글 목록 + 입력칸 (릴스는 시트로, 게시물 상세는 사진 아래에 바로)
-const commentsHtml = (foot = '') => `<div class="clist" data-cl><p class="hint">불러오는 중…</p></div>
+const commentsHtml = (foot = '') => `<div class="clist" data-cl><p class="hint">${t('불러오는 중…')}</p></div>
     <div class="cbar ${foot}">${me
-      ? `<input class="field" data-cin maxlength="200" placeholder="따뜻한 한마디 남기기" style="margin:0"><button class="btn primary" data-cgo>게시</button>`
-      : `<button class="btn primary block" onclick="closeSheet();location.href=location.pathname">로그인하고 댓글 달기</button>`}</div>`;
+      ? `<input class="field" data-cin maxlength="200" placeholder="${t('따뜻한 한마디 남기기')}" style="margin:0"><button class="btn primary" data-cgo>${t('게시')}</button>`
+      : `<button class="btn primary block" onclick="closeSheet();location.href=location.pathname">${t('로그인하고 댓글 달기')}</button>`}</div>`;
 function openComments(id, ownerId) {
   const w = sheet(`<h3>Comments<i class="pd">.</i></h3>${commentsHtml('sheet-foot')}`);
   mountComments(w, id, ownerId);
@@ -1817,9 +1819,9 @@ function mountComments(w, id, ownerId) {
     if (error) return w.querySelector('[data-cl]').innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
     const s = SOC.get(id); if (s) { s.comments = data.length; paintSoc(id); }
     w.querySelector('[data-cl]').innerHTML = data.length ? data.map(c => `
-      <div class="crow">${avatar(c.profiles, 'xs')}<div style="flex:1;min-width:0"><b>${esc(c.profiles?.name || '친구')}</b> <small>${ago(c.created_at)}</small><div>${esc(c.body)}</div></div>
-        ${me && (c.user_id === me.id || ownerId === me.id) ? `<button class="cdel" data-del="${c.id}" aria-label="댓글 삭제">삭제</button>` : ''}</div>`).join('')
-      : '<p class="hint" style="text-align:center;padding:24px 0">첫 댓글을 남겨 보세요</p>';
+      <div class="crow">${avatar(c.profiles, 'xs')}<div style="flex:1;min-width:0"><b>${esc(c.profiles?.name || t('친구'))}</b> <small>${ago(c.created_at)}</small><div>${esc(c.body)}</div></div>
+        ${me && (c.user_id === me.id || ownerId === me.id) ? `<button class="cdel" data-del="${c.id}" aria-label="${t('댓글 삭제')}">${t('삭제')}</button>` : ''}</div>`).join('')
+      : `<p class="hint" style="text-align:center;padding:24px 0">${t('첫 댓글을 남겨 보세요')}</p>`;
     w.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
       const { error } = await sb.from('comments').delete().eq('id', b.dataset.del);
       error ? toast(kerr(error)) : paint();
@@ -1888,20 +1890,20 @@ function composeTo(prof) {
 }
 // 하단 ⊕ (내 피드 등): 어떤 친구에게 보낼지 고르기
 async function pickFriendToSend() {
-  const w = sheet(`<h3>Send to<i class="pd">.</i></h3><p class="hint">누구의 피드를 채워줄까요?</p>
-    <input class="field" id="pfq" placeholder="친구 이름·아이디로 찾기" autocomplete="off" style="margin-bottom:6px">
-    <div id="pfl" class="flist pflist"><p class="hint">불러오는 중…</p></div>
-    <div class="sheet-foot"><button class="btn block" onclick="closeSheet();setTimeout(openInvite,250)">💌 앱에 친구 초대하기</button></div>`);
+  const w = sheet(`<h3>Send to<i class="pd">.</i></h3><p class="hint">${t('누구의 피드를 채워줄까요?')}</p>
+    <input class="field" id="pfq" placeholder="${t('친구 이름·아이디로 찾기')}" autocomplete="off" style="margin-bottom:6px">
+    <div id="pfl" class="flist pflist"><p class="hint">${t('불러오는 중…')}</p></div>
+    <div class="sheet-foot"><button class="btn block" onclick="closeSheet();setTimeout(openInvite,250)">${t('💌 앱에 친구 초대하기')}</button></div>`);
   const $l = w.querySelector('#pfl'), $q = w.querySelector('#pfq');
   const ids = [...myFollows];
-  if (!ids.length) { $q.hidden = true; $l.innerHTML = `<div class="empty-dot" style="margin:8px 0 4px">${DOT('look', { size: 52, cls: 'blink' })}</div><p class="hint" style="padding:4px 0 12px;text-align:center">아직 친구가 없어요. 친구를 찾아 추가하면 여기서 바로 보낼 수 있어요.</p><button class="btn primary block" onclick="closeSheet();setTimeout(openSearch,250)">친구 찾기</button>`; return; }
+  if (!ids.length) { $q.hidden = true; $l.innerHTML = `<div class="empty-dot" style="margin:8px 0 4px">${DOT('look', { size: 52, cls: 'blink' })}</div><p class="hint" style="padding:4px 0 12px;text-align:center">${t('아직 친구가 없어요. 친구를 찾아 추가하면 여기서 바로 보낼 수 있어요.')}</p><button class="btn primary block" onclick="closeSheet();setTimeout(openSearch,250)">${t('친구 찾기')}</button>`; return; }
   const { data, error } = await sb.from('profiles').select('id, name, handle, avatar_url, bio').in('id', ids);
   if (error) return $l.innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
   const list = (data || []).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
   const paint = () => {
     const kw = $q.value.trim().toLowerCase().replace(/^@/, '');
     const rows = list.filter(p => !kw || p.name.toLowerCase().includes(kw) || (p.handle || '').includes(kw));
-    $l.innerHTML = rows.length ? rows.map(p => `<button class="frow pfrow" data-id="${p.id}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b><small>${p.handle ? `@${esc(p.handle)}` : ''}</small></span><i class="pf-go">보내기</i></button>`).join('') : '<p class="hint" style="padding:12px 0">찾는 친구가 없어요</p>';
+    $l.innerHTML = rows.length ? rows.map(p => `<button class="frow pfrow" data-id="${p.id}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b><small>${p.handle ? `@${esc(p.handle)}` : ''}</small></span><i class="pf-go">${t('보내기')}</i></button>`).join('') : `<p class="hint" style="padding:12px 0">${t('찾는 친구가 없어요')}</p>`;
     $l.querySelectorAll('[data-id]').forEach(b => b.onclick = () => { const p = list.find(x => x.id === b.dataset.id); closeSheet(); setTimeout(() => composeTo(p), 200); });
   };
   $q.oninput = paint; paint();
@@ -1913,36 +1915,36 @@ function paintHome({ posts, owners }) {
     ${topIcons()}</header>`;
   if (!posts.length) {
     $app.innerHTML = `<div class="reels">${top}<section class="reel rempty"><div><div class="empty-dot">${DOT('sleepy', { size: 80, cls: 'float' })}</div>
-      <h2>Quiet for now<i class="pd">.</i></h2><p>친구들 피드에 새 사진이 올라오면 여기 떠요.<br>친구 피드에 사진을 먼저 보내 보는 건 어때요?</p>
-      <button class="btn primary block" onclick="openSearch()">친구 찾기</button><div style="height:8px"></div>
-      <a class="btn block" href="${feedUrl(me.id)}" style="display:block;text-decoration:none;text-align:center">내 피드로 가기</a></div></section></div>${navBar('reels')}`;
+      <h2>Quiet for now<i class="pd">.</i></h2><p>${t('친구들 피드에 새 사진이 올라오면 여기 떠요.<br>친구 피드에 사진을 먼저 보내 보는 건 어때요?')}</p>
+      <button class="btn primary block" onclick="openSearch()">${t('친구 찾기')}</button><div style="height:8px"></div>
+      <a class="btn block" href="${feedUrl(me.id)}" style="display:block;text-decoration:none;text-align:center">${t('내 피드로 가기')}</a></div></section></div>${navBar('reels')}`;
     return;
   }
   $app.innerHTML = `<div class="reels" id="reels">${top}${posts.map(p => {
-    const o = owners.get(p.owner_id) || { name: '친구' }, s = SOC.get(p.id);
+    const o = owners.get(p.owner_id) || { name: t('친구') }, s = SOC.get(p.id);
     return `<section class="reel" data-id="${p.id}">
       ${isText(p) ? `<div class="rbg rbg-${p.media_type}"></div><div class="rmedia rtc">${textStage(p)}</div>` : ''}
       ${isText(p) ? '' : `<div class="rmedia rcar">${mediaCarousel(p, 'reel')}</div>
-        ${mediaOf(p).some(m => m.k === 'video') ? `<button class="rmute" aria-label="소리 켜기/끄기">${muted ? I.mute : I.sound}</button>` : ''}`}
+        ${mediaOf(p).some(m => m.k === 'video') ? `<button class="rmute" aria-label="${t('소리 켜기/끄기')}">${muted ? I.mute : I.sound}</button>` : ''}`}
       <div class="rburst">${I.heartOn}</div>
       <div class="rinfo">
 
-        <div class="rfrom">from <b>${esc(p.author_name)}</b> ${p.mission ? `<span class="mchip">${esc(p.mission)}</span>` : ''}</div>
+        <div class="rfrom">from <b>${aname(p.author_name)}</b> ${p.mission ? `<span class="mchip">${mname(p.mission)}</span>` : ''}</div>
         ${p.text && !isText(p) ? `<div class="rtext">“${esc(p.text)}”</div>` : ''}
         <small>${ago(p.approved_at)}</small>
       </div>
       <div class="rside">
-        <a class="rav" href="${feedUrl(p.owner_id)}" aria-label="${esc(o.name)} 피드로 가기">${avatar(o, 'xs')}<b>${esc(o.name)}</b></a>
-        <button class="rbtn" data-like="${p.id}" aria-label="좋아요" aria-pressed="${s.liked}" onclick="toggleLike('${p.id}')"><span>${s.liked ? I.heartOn : I.heart}</span><b>${s.likes || ''}</b></button>
-        <button class="rbtn" data-cmt="${p.id}" aria-label="댓글" onclick="openComments('${p.id}','${p.owner_id}')"><span>${I.comment}</span><b>${s.comments || ''}</b></button>
-        ${me ? `<button class="rbtn" aria-label="스티커로 꾸미기" onclick="decorateFromReel('${p.id}', this)"><span>${I.sparkle}</span><b>꾸미기</b></button>` : ''}
-        <button class="rbtn" aria-label="${HIDE_STK ? '스티커 보이기' : '스티커 숨기기'}" aria-pressed="${HIDE_STK}" onclick="toggleReelStickers(this)"><span>${HIDE_STK ? I.eyeOff : I.eye}</span><b>${HIDE_STK ? '숨김' : '스티커'}</b></button>
+        <a class="rav" href="${feedUrl(p.owner_id)}" aria-label="${t('{name} 피드로 가기', { name: esc(o.name) })}">${avatar(o, 'xs')}<b>${esc(o.name)}</b></a>
+        <button class="rbtn" data-like="${p.id}" aria-label="${t('좋아요')}" aria-pressed="${s.liked}" onclick="toggleLike('${p.id}')"><span>${s.liked ? I.heartOn : I.heart}</span><b>${s.likes || ''}</b></button>
+        <button class="rbtn" data-cmt="${p.id}" aria-label="${t('댓글')}" onclick="openComments('${p.id}','${p.owner_id}')"><span>${I.comment}</span><b>${s.comments || ''}</b></button>
+        ${me ? `<button class="rbtn" aria-label="${t('스티커로 꾸미기')}" onclick="decorateFromReel('${p.id}', this)"><span>${I.sparkle}</span><b>${t('꾸미기')}</b></button>` : ''}
+        <button class="rbtn" aria-label="${t(HIDE_STK ? '스티커 보이기' : '스티커 숨기기')}" aria-pressed="${HIDE_STK}" onclick="toggleReelStickers(this)"><span>${HIDE_STK ? I.eyeOff : I.eye}</span><b>${t(HIDE_STK ? '숨김' : '스티커')}</b></button>
 
       </div>
     </section>`;
   }).join('')}
-    <section class="reel rempty"><div><div class="empty-dot">${DOT('happy', { size: 80, cls: 'hop' })}</div><h2>All caught <em>up.</em></h2><p>친구들 새 사진을 다 봤어요.<br>이번엔 내가 친구 피드를 채워줄 차례!</p>
-      <button class="btn primary block" onclick="openFriends()">친구 피드에 사진 보내기</button></div></section></div>${navBar('reels')}`;
+    <section class="reel rempty"><div><div class="empty-dot">${DOT('happy', { size: 80, cls: 'hop' })}</div><h2>All caught <em>up.</em></h2><p>${t('친구들 새 사진을 다 봤어요.<br>이번엔 내가 친구 피드를 채워줄 차례!')}</p>
+      <button class="btn primary block" onclick="openFriends()">${t('친구 피드에 사진 보내기')}</button></div></section></div>${navBar('reels')}`;
 
   // 마지막으로 본 릴스부터 이어서 보기 (+ 위로 새 게시물이 있으면 '최신으로' 버튼)
   // 앱을 새로 켜면 최신부터, 같은 세션 안에서 돌아올 때만 이어서(sessionStorage)
@@ -1952,7 +1954,7 @@ function paintHome({ posts, owners }) {
   $reels.classList.toggle('hide-stk', HIDE_STK);
   if (lastEl && lastEl.offsetTop > 0) {
     $reels.scrollTop = lastEl.offsetTop;
-    const up = document.createElement('button'); up.className = 'rtop-pill'; up.textContent = '↑ 최신으로';
+    const up = document.createElement('button'); up.className = 'rtop-pill'; up.textContent = t('↑ 최신으로');
     up.onclick = () => $reels.scrollTo({ top: 0, behavior: 'smooth' });
     $reels.appendChild(up);
     $reels.addEventListener('scroll', () => up.classList.toggle('hide', $reels.scrollTop < 10), { passive: true });
@@ -1992,9 +1994,9 @@ function toggleReelStickers(btn) {
   document.querySelector('.reels')?.classList.toggle('hide-stk', HIDE_STK);
   if (btn) {
     btn.setAttribute('aria-pressed', HIDE_STK);
-    btn.setAttribute('aria-label', HIDE_STK ? '스티커 보이기' : '스티커 숨기기');
+    btn.setAttribute('aria-label', t(HIDE_STK ? '스티커 보이기' : '스티커 숨기기'));
     const sp = btn.querySelector('span'); if (sp) sp.innerHTML = HIDE_STK ? I.eyeOff : I.eye;
-    const b = btn.querySelector('b'); if (b) b.textContent = HIDE_STK ? '숨김' : '스티커';
+    const b = btn.querySelector('b'); if (b) b.textContent = t(HIDE_STK ? '숨김' : '스티커');
   }
 }
 // 릴스에서 꾸미기: 지금 보고 있는 사진(여러 장이면 현재 장)으로 편집기 열기
@@ -2005,7 +2007,7 @@ function decorateFromReel(postId, el) {
 function shareOther(uid, handle) {
   const url = `${handle ? shareUrl({ handle }) : feedUrl(uid)}&m=0`;
   if (navigator.share) return navigator.share({ title: 'candid.', url }).catch(() => {});
-  navigator.clipboard.writeText(url).then(() => toast('피드 링크를 복사했어요')).catch(() => prompt('이 링크를 복사해 주세요', url));
+  navigator.clipboard.writeText(url).then(() => toast(t('피드 링크를 복사했어요'))).catch(() => prompt(t('이 링크를 복사해 주세요'), url));
 }
 
 // ---------- 투표·질문 ----------
@@ -2038,9 +2040,9 @@ function pollHTML(p) {
     const pct = s.total ? Math.round(s.counts[i] / s.total * 100) : 0;
     return `<div class="popt res ${s.mine === i ? 'mine' : ''}"><i style="width:${pct}%"></i><b>${esc(o)}${s.mine === i ? ' ✓' : ''}</b><em>${pct}%</em></div>`;
   }).join('');
-  const foot = p.status !== 'approved' ? '승인하면 친구들이 투표할 수 있어요'
-    : owner ? `${s.total}명 참여 · 내 피드의 투표엔 참여할 수 없어요`
-    : canVote ? '눌러서 투표하기' : `${s.total}명 참여`;
+  const foot = p.status !== 'approved' ? t('승인하면 친구들이 투표할 수 있어요')
+    : owner ? t('{n}명 참여 · 내 피드의 투표엔 참여할 수 없어요', { n: s.total })
+    : canVote ? t('눌러서 투표하기') : t('{n}명 참여', { n: s.total });
   return `<div class="poll" data-poll="${p.id}">${opts}<small>${foot}</small></div>`;
 }
 async function vote(id, i) {
@@ -2053,12 +2055,12 @@ async function vote(id, i) {
   const { error } = await sb.from('poll_votes').insert({ post_id: id, voter_key: voterKey(), user_id: me?.id ?? null, option: i });
   if (error) {
     s.mine = null; s.counts[i]--; s.total--; repaint();
-    toast(/duplicate|23505/i.test(error.message + error.code) ? '이미 투표했어요' : kerr(error));
+    toast(/duplicate|23505/i.test(error.message + error.code) ? t('이미 투표했어요') : kerr(error));
   }
 }
 const qaHTML = p => `<div class="qa"><div class="q"><span>Q.</span>${esc(p.text)}</div>${p.answer
   ? `<div class="a"><span>A.</span>${esc(p.answer)}</div>`
-  : `<div class="a wait">아직 답하지 않았어요</div>`}</div>`;
+  : `<div class="a wait">${t('아직 답하지 않았어요')}</div>`}</div>`;
 // 상세·릴스에서 쓰는 큰 카드
 // 투표·질문 카드 + 스티커 층(사진처럼 카드 위에 스티커를 붙일 수 있게)
 const textStage = p => `<div class="tstage">${textCard(p)}${p.status === 'approved' ? stickerLayer(p.id, 0) : ''}</div>`;
@@ -2068,24 +2070,24 @@ const textCard = p => `<div class="tcard ${p.media_type}"><span class="tk">${p.m
 // 질문 답하기 (피드 주인만) → 답과 함께 피드에 올림
 function openAnswer(id) {
   const p = findPost(id); if (!p) return;
-  const w = sheet(`<h3>Answer<i class="pd">.</i></h3><p class="hint">${esc(p.author_name)}님의 질문이에요. 답하면 질문과 함께 피드에 올라가요.</p>
+  const w = sheet(`<h3>Answer<i class="pd">.</i></h3><p class="hint">${t('{name}님의 질문이에요. 답하면 질문과 함께 피드에 올라가요.', { name: aname(p.author_name) })}</p>
     <div class="qa" style="margin-bottom:12px"><div class="q"><span>Q.</span>${esc(p.text)}</div></div>
-    <textarea class="field msg-box" id="ans" maxlength="300" placeholder="솔직하게 답해 주세요">${esc(p.answer || '')}</textarea>
-    <div class="sheet-foot"><button class="btn primary block" id="ansgo">답하고 피드에 올리기</button></div>`,
-    () => !w.querySelector('#ans').value.trim() || confirm('작성 중인 답이 사라져요. 닫을까요?'));
+    <textarea class="field msg-box" id="ans" maxlength="300" placeholder="${t('솔직하게 답해 주세요')}">${esc(p.answer || '')}</textarea>
+    <div class="sheet-foot"><button class="btn primary block" id="ansgo">${t('답하고 피드에 올리기')}</button></div>`,
+    () => !w.querySelector('#ans').value.trim() || confirm(t('작성 중인 답이 사라져요. 닫을까요?')));
   const $a = w.querySelector('#ans'), $go = w.querySelector('#ansgo');
   setTimeout(() => $a.focus(), 350);
   $go.onclick = async () => {
-    const answer = $a.value.trim(); if (!answer) return toast('답을 적어 주세요');
-    $go.disabled = true; $go.textContent = '올리는 중…';
+    const answer = $a.value.trim(); if (!answer) return toast(t('답을 적어 주세요'));
+    $go.disabled = true; $go.textContent = t('올리는 중…');
     const at = new Date().toISOString();
     const { error } = await sb.from('posts').update({ answer, answered_at: at, status: 'approved', approved_at: p.approved_at || at }).eq('id', id);
-    if (error) { $go.disabled = false; $go.textContent = '답하고 피드에 올리기'; return toast(kerr(error)); }
+    if (error) { $go.disabled = false; $go.textContent = t('답하고 피드에 올리기'); return toast(kerr(error)); }
     $a.value = ''; closeLayers();
     const wasPending = p.status === 'pending';
     Object.assign(p, { answer, answered_at: at, status: 'approved', approved_at: p.approved_at || at });
     if (wasPending) { S.pending = S.pending.filter(x => x.id !== id); S.approved.push(p); S.justApproved = id; }
-    paintProfile(); toast('답을 올렸어요');
+    paintProfile(); toast(t('답을 올렸어요'));
   };
 }
 const HOME = { posts: [] };
@@ -2137,28 +2139,28 @@ function openPost(id) {
     <article class="post">
       <div class="post-h">
         <div class="av sm">${esc(p.author_name.slice(0, 1))}</div>
-        <div class="who"><b>${esc(p.author_name)}<span style="font-weight:400;color:var(--sub)">님이 보냄</span></b>${p.mission ? `<span class="mchip">${esc(p.mission)}</span>` : ''}</div>
-        <button class="icon-btn" data-close aria-label="닫기">${I.close}</button>
+        <div class="who"><b>${t('{name}<span style="font-weight:400;color:var(--sub)">님이 보냄</span>', { name: aname(p.author_name) })}</b>${p.mission ? `<span class="mchip">${mname(p.mission)}</span>` : ''}</div>
+        <button class="icon-btn" data-close aria-label="${t('닫기')}">${I.close}</button>
       </div>
       ${isText(p) ? textStage(p) : `<div class="post-media">${mediaCarousel(p, 'post')}</div>`}
       ${p.text && !isText(p) ? `<div class="post-c"><div class="quote">${esc(p.text)}</div></div>` : ''}
       ${p.status === 'approved' ? `<div class="psoc">
-        <button class="pbtn" data-like="${p.id}" aria-label="좋아요" onclick="toggleLike('${p.id}')"><span>${I.heart}</span><b></b></button>
-        <button class="pbtn" data-cmt="${p.id}" aria-label="댓글" onclick="focusPostComments(this)"><span>${I.comment}</span><b></b></button>
-        ${me ? `<button class="pbtn deco" aria-label="스티커로 꾸미기" onclick="openDecorate('${p.id}')"><span>${I.sparkle}</span>꾸미기</button>` : ''}</div>` : ''}
+        <button class="pbtn" data-like="${p.id}" aria-label="${t('좋아요')}" onclick="toggleLike('${p.id}')"><span>${I.heart}</span><b></b></button>
+        <button class="pbtn" data-cmt="${p.id}" aria-label="${t('댓글')}" onclick="focusPostComments(this)"><span>${I.comment}</span><b></b></button>
+        ${me ? `<button class="pbtn deco" aria-label="${t('스티커로 꾸미기')}" onclick="openDecorate('${p.id}')"><span>${I.sparkle}</span>${t('꾸미기')}</button>` : ''}</div>` : ''}
       <div class="post-f">
-        ${p.status === 'pending' ? `받은 지 ${ago(p.created_at)} · 승인 대기 중` : p.status === 'hidden' ? `${ago(p.hidden_at || p.created_at)} 피드에서 내림 · 나만 보여요` : `${ago(p.approved_at || p.created_at)} 피드에 올림`}
+        ${p.status === 'pending' ? t('받은 지 {when} · 승인 대기 중', { when: ago(p.created_at) }) : p.status === 'hidden' ? t('{when} 피드에서 내림 · 나만 보여요', { when: ago(p.hidden_at || p.created_at) }) : t('{when} 피드에 올림', { when: ago(p.approved_at || p.created_at) })}
         <div class="sp"></div>
-        ${S.isOwner && p.status === 'approved' ? `<button class="icon-btn" aria-label="스토리 이미지 저장" onclick="makeStory('${p.id}')">${I.share}</button>` : ''}
-        ${S.isOwner ? `<button class="icon-btn" aria-label="더보기" onclick="postMenu('${p.id}')">${I.more}</button>` : ''}
+        ${S.isOwner && p.status === 'approved' ? `<button class="icon-btn" aria-label="${t('스토리 이미지 저장')}" onclick="makeStory('${p.id}')">${I.share}</button>` : ''}
+        ${S.isOwner ? `<button class="icon-btn" aria-label="${t('더보기')}" onclick="postMenu('${p.id}')">${I.more}</button>` : ''}
       </div>
       ${S.isOwner && p.status === 'pending' ? `<div class="pending-acts">
-        <button class="btn" onclick="removePost('${p.id}')">거절</button>
-        ${p.media_type === 'question' ? `<button class="btn primary" onclick="openAnswer('${p.id}')">답하기</button>` : `<button class="btn primary" onclick="approve('${p.id}')">피드에 올리기</button>`}</div>` : ''}
+        <button class="btn" onclick="removePost('${p.id}')">${t('거절')}</button>
+        ${p.media_type === 'question' ? `<button class="btn primary" onclick="openAnswer('${p.id}')">${t('답하기')}</button>` : `<button class="btn primary" onclick="approve('${p.id}')">${t('피드에 올리기')}</button>`}</div>` : ''}
       ${S.isOwner && p.status === 'hidden' ? `<div class="pending-acts">
-        <button class="btn" onclick="removePost('${p.id}')">삭제</button>
-        <button class="btn primary" onclick="restorePost('${p.id}')">다시 올리기</button></div>` : ''}
-      ${p.status === 'approved' ? `<section class="pcmts" aria-label="댓글">${commentsHtml()}</section>` : ''}
+        <button class="btn" onclick="removePost('${p.id}')">${t('삭제')}</button>
+        <button class="btn primary" onclick="restorePost('${p.id}')">${t('다시 올리기')}</button></div>` : ''}
+      ${p.status === 'approved' ? `<section class="pcmts" aria-label="${t('댓글')}">${commentsHtml()}</section>` : ''}
     </article>`;
   ov.onclick = e => { if (e.target === ov || e.target.closest('[data-close]')) ov.remove(); };
   document.body.appendChild(ov);
@@ -2225,30 +2227,30 @@ function closeSheet() {
   done?.();
 }
 addEventListener('keydown', e => { if (e.key === 'Escape') { const w = document.querySelector('.sheet-wrap:not(.closing)'); if (w) { if (w._guard()) closeSheet(); } else document.querySelector('.overlay')?.remove(); } });
-const menu = items => sheet(`<div class="menu">${items}</div><div class="menu"><button class="menu-item" onclick="closeSheet()">취소</button></div>`);
+const menu = items => sheet(`<div class="menu">${items}</div><div class="menu"><button class="menu-item" onclick="closeSheet()">${t('취소')}</button></div>`);
 
 function openMenu() {
-  menu(`<button class="menu-item" onclick="closeSheet();renderSetup(false)">프로필 편집</button>
+  menu(`<button class="menu-item" onclick="closeSheet();renderSetup(false)">${t('프로필 편집')}</button>
         ${GACHA_ON ? '<button class="menu-item" onclick="closeSheet();openCloset()">🎨 꾸미기</button><button class="menu-item" onclick="closeSheet();openGacha()">🎁 뽑기</button>' : ''}
-        <button class="menu-item" onclick="closeSheet();setTimeout(openInvite,250)">💌 친구 초대하기</button>
-        <button class="menu-item" onclick="closeSheet();withMyFeed(null, 'friends')">친구 목록</button>
-        <button class="menu-item" onclick="closeSheet();withMyFeed(shareFeed)">내 피드 링크 공유</button>
-        ${!DEMO ? '<button class="menu-item" onclick="openLinks()">🔗 로그인 방법 연결</button>' : ''}
-        ${!installed() && !DEMO ? '<button class="menu-item" onclick="closeSheet();setTimeout(startInstall,250)">📲 앱으로 설치 (홈 화면에 추가)</button>' : ''}
-        ${DEMO ? '' : '<button class="menu-item" onclick="openPush()">푸시 알림 설정</button>'}
+        <button class="menu-item" onclick="closeSheet();setTimeout(openInvite,250)">${t('💌 친구 초대하기')}</button>
+        <button class="menu-item" onclick="closeSheet();withMyFeed(null, 'friends')">${t('친구 목록')}</button>
+        <button class="menu-item" onclick="closeSheet();withMyFeed(shareFeed)">${t('내 피드 링크 공유')}</button>
+        ${!DEMO ? `<button class="menu-item" onclick="openLinks()">${t('🔗 로그인 방법 연결')}</button>` : ''}
+        ${!installed() && !DEMO ? `<button class="menu-item" onclick="closeSheet();setTimeout(startInstall,250)">${t('📲 앱으로 설치 (홈 화면에 추가)')}</button>` : ''}
+        ${DEMO ? '' : `<button class="menu-item" onclick="openPush()">${t('푸시 알림 설정')}</button>`}
         <button class="menu-item" onclick="closeSheet();setTimeout(openLang,250)">🌐 ${t('언어')} · ${LANGS[LANG]}</button>
-        <button class="menu-item danger" onclick="logout()">로그아웃</button>`);
+        <button class="menu-item danger" onclick="logout()">${t('로그아웃')}</button>`);
 }
 function postMenu(id) {
   const p = findPost(id);
-  menu(`${p.media_type === 'question' ? `<button class="menu-item" onclick="openAnswer('${id}')">${p.answer ? '답 수정하기' : '답하기'}</button>` : ''}
+  menu(`${p.media_type === 'question' ? `<button class="menu-item" onclick="openAnswer('${id}')">${t(p.answer ? '답 수정하기' : '답하기')}</button>` : ''}
         ${p.status === 'pending'
-          ? (p.media_type === 'question' ? '' : `<button class="menu-item" onclick="approve('${id}')">승인하기</button>`)
-          : p.status === 'hidden' ? `<button class="menu-item" onclick="restorePost('${id}')">다시 올리기</button>`
-          : `<button class="menu-item" onclick="makeStory('${id}')">스토리 이미지 저장</button>`}
+          ? (p.media_type === 'question' ? '' : `<button class="menu-item" onclick="approve('${id}')">${t('승인하기')}</button>`)
+          : p.status === 'hidden' ? `<button class="menu-item" onclick="restorePost('${id}')">${t('다시 올리기')}</button>`
+          : `<button class="menu-item" onclick="makeStory('${id}')">${t('스토리 이미지 저장')}</button>`}
         ${p.status === 'approved'
-          ? `<button class="menu-item danger" onclick="hidePost('${id}')">피드에서 내리기</button>`
-          : `<button class="menu-item danger" onclick="removePost('${id}')">${p.status === 'pending' ? '거절하기' : '완전히 삭제'}</button>`}`);
+          ? `<button class="menu-item danger" onclick="hidePost('${id}')">${t('피드에서 내리기')}</button>`
+          : `<button class="menu-item danger" onclick="removePost('${id}')">${t(p.status === 'pending' ? '거절하기' : '완전히 삭제')}</button>`}`);
 }
 
 // 업로드: 인스타·유튜브처럼 누르면 바로 사진첩이 열리고, 고르면 전체 화면 작성 화면
@@ -2462,7 +2464,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
         });
       }
     } catch (err) { ins = { error: err }; }
-    if (ins.error) { $send.disabled = false; status(t('다시 보내기')); return toast(/줄일 수 없어요/.test(ins.error.message) ? ins.error.message : kerr(ins.error)); }
+    if (ins.error) { $send.disabled = false; status(t('다시 보내기')); return toast(ins.error.user ? ins.error.message : kerr(ins.error)); }
     try { if (!me && who === 'name' && typed) localStorage.setItem('candid_author', typed); } catch {}
     media = null; el.querySelectorAll('textarea, #opts input').forEach(i => i.value = '');
     const what = t(mode === 'poll' ? '투표' : mode === 'question' ? '질문' : '사진·영상');
@@ -2509,38 +2511,38 @@ const b64u = s => Uint8Array.from(atob((s + '='.repeat((4 - s.length % 4) % 4)).
 async function openPush() {
   const st = await pushState().catch(() => 'unsupported');
   const msg = {
-    'ios-install': `<p class="hint">iPhone은 candid.을 홈 화면에 추가해야 알림을 받을 수 있어요.</p>
+    'ios-install': `<p class="hint">${t('iPhone은 candid.을 홈 화면에 추가해야 알림을 받을 수 있어요.')}</p>
       <div class="ideas">
-        <div class="idea"><span class="k">1</span><span class="it">Safari 아래쪽 공유 버튼(□↑)을 눌러요</span></div>
-        <div class="idea"><span class="k">2</span><span class="it">'홈 화면에 추가'를 눌러요</span></div>
-        <div class="idea"><span class="k">3</span><span class="it">홈 화면의 candid. 아이콘으로 열어요</span></div>
-        <div class="idea"><span class="k">4</span><span class="it">한 번 더 로그인하고 🔔을 눌러요</span></div>
+        <div class="idea"><span class="k">1</span><span class="it">${t('Safari 아래쪽 공유 버튼(□↑)을 눌러요')}</span></div>
+        <div class="idea"><span class="k">2</span><span class="it">${t("'홈 화면에 추가'를 눌러요")}</span></div>
+        <div class="idea"><span class="k">3</span><span class="it">${t('홈 화면의 candid. 아이콘으로 열어요')}</span></div>
+        <div class="idea"><span class="k">4</span><span class="it">${t('한 번 더 로그인하고 🔔을 눌러요')}</span></div>
       </div>`,
-    'in-app': '<p class="hint">카톡·인스타 안의 브라우저에서는 알림을 켤 수 없어요. Safari나 Chrome에서 열어 주세요.</p><button class="btn primary block" onclick="closeSheet();openExternal(installUrl())">외부 브라우저로 열기</button>',
-    unsupported: '<p class="hint">이 브라우저는 알림을 지원하지 않아요. 크롬이나 사파리 최신 버전에서 열어 주세요.</p>',
-    denied: '<p class="hint">알림이 차단돼 있어요. 브라우저의 사이트 설정에서 candid. 알림을 허용한 뒤 다시 눌러 주세요.</p>',
-    off: '<p class="hint">친구가 사진을 보내면 바로 알려드릴게요.</p><button class="btn primary block" id="pushOn">알림 켜기</button>',
-    on: '<p class="hint">알림이 켜져 있어요. 친구가 사진을 보내면 이 기기로 알려드려요.</p><button class="btn block" id="pushOff">이 기기 알림 끄기</button>',
+    'in-app': `<p class="hint">${t('카톡·인스타 안의 브라우저에서는 알림을 켤 수 없어요. Safari나 Chrome에서 열어 주세요.')}</p><button class="btn primary block" onclick="closeSheet();openExternal(installUrl())">${t('외부 브라우저로 열기')}</button>`,
+    unsupported: `<p class="hint">${t('이 브라우저는 알림을 지원하지 않아요. 크롬이나 사파리 최신 버전에서 열어 주세요.')}</p>`,
+    denied: `<p class="hint">${t('알림이 차단돼 있어요. 브라우저의 사이트 설정에서 candid. 알림을 허용한 뒤 다시 눌러 주세요.')}</p>`,
+    off: `<p class="hint">${t('친구가 사진을 보내면 바로 알려드릴게요.')}</p><button class="btn primary block" id="pushOn">${t('알림 켜기')}</button>`,
+    on: `<p class="hint">${t('알림이 켜져 있어요. 친구가 사진을 보내면 이 기기로 알려드려요.')}</p><button class="btn block" id="pushOff">${t('이 기기 알림 끄기')}</button>`,
   }[st];
-  const w = sheet(`<h3>Get notified<i class="pd">.</i></h3>${msg}<div style="height:8px"></div><button class="btn block" onclick="closeSheet()">닫기</button>`);
+  const w = sheet(`<h3>Get notified<i class="pd">.</i></h3>${msg}<div style="height:8px"></div><button class="btn block" onclick="closeSheet()">${t('닫기')}</button>`);
   const on = w.querySelector('#pushOn'), off = w.querySelector('#pushOff');
   if (on) on.onclick = async () => {
-    on.disabled = true; on.textContent = '설정 중…';
-    try { await enablePush(); closeSheet(); toast('알림을 켰어요 🔔'); }
-    catch (e) { on.disabled = false; on.textContent = '알림 켜기'; toast(e.message || '알림 설정 실패'); }
+    on.disabled = true; on.textContent = t('설정 중…');
+    try { await enablePush(); closeSheet(); toast(t('알림을 켰어요 🔔')); }
+    catch (e) { on.disabled = false; on.textContent = t('알림 켜기'); toast(e.message || t('알림 설정 실패')); }
     updateBell();
   };
   if (off) off.onclick = async () => {
     const reg = await navigator.serviceWorker.getRegistration();
     const sub = reg && await reg.pushManager.getSubscription();
     if (sub) { await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint); await sub.unsubscribe(); }
-    closeSheet(); toast('이 기기 알림을 껐어요'); updateBell();
+    closeSheet(); toast(t('이 기기 알림을 껐어요')); updateBell();
   };
 }
 
 // 알림 구독(권한 요청 포함). 권한 요청은 버튼을 누른 순간에만 가능(브라우저 규칙)
 async function enablePush() {
-  if (Notification.permission !== 'granted' && await Notification.requestPermission() !== 'granted') throw new Error('알림 권한이 허용되지 않았어요');
+  if (Notification.permission !== 'granted' && await Notification.requestPermission() !== 'granted') throw new Error(t('알림 권한이 허용되지 않았어요'));
   const reg = await navigator.serviceWorker.register('sw.js');
   await navigator.serviceWorker.ready;
   const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(cfg.VAPID_PUBLIC_KEY) });
@@ -2559,16 +2561,16 @@ async function autoPush() {
   if (Notification.permission === 'granted') { try { await enablePush(); updateBell(); } catch {} return; }
   let until = 0; try { until = +localStorage.getItem('candid_push_ask') || 0; } catch {}
   if (Date.now() < until || document.querySelector('.sheet-wrap, .page-ov, .overlay, .iguide')) return;
-  const w = sheet(`<div class="pask"><div class="pask-ic">${DOT('wow', { size: 64, cls: 'float' })}</div><h3>알림을 켜 둘까요?</h3>
-      <p class="hint">친구가 <b>내 피드에 사진을 보내거나</b>, <b>내 사진을 꾸몄을 때</b> 바로 알 수 있어요.<br>꺼 두면 앱을 열기 전까지 몰라요.</p></div>
-    <button class="btn primary block" id="paskOn">알림 켜기</button>
-    <button class="btn block" id="paskNo" style="margin-top:8px;border:0;background:none;color:var(--sub)">나중에</button>`, () => { snooze(); return true; });
+  const w = sheet(`<div class="pask"><div class="pask-ic">${DOT('wow', { size: 64, cls: 'float' })}</div><h3>${t('알림을 켜 둘까요?')}</h3>
+      <p class="hint">${t('친구가 <b>내 피드에 사진을 보내거나</b>, <b>내 사진을 꾸몄을 때</b> 바로 알 수 있어요.<br>꺼 두면 앱을 열기 전까지 몰라요.')}</p></div>
+    <button class="btn primary block" id="paskOn">${t('알림 켜기')}</button>
+    <button class="btn block" id="paskNo" style="margin-top:8px;border:0;background:none;color:var(--sub)">${t('나중에')}</button>`, () => { snooze(); return true; });
   const snooze = () => { try { localStorage.setItem('candid_push_ask', Date.now() + 3 * 864e5); } catch {} };
   w.querySelector('#paskNo').onclick = () => { snooze(); closeSheet(); };
   w.querySelector('#paskOn').onclick = async e => {
-    e.target.disabled = true; e.target.textContent = '설정 중…';
-    try { await enablePush(); closeSheet(); toast('알림을 켰어요 🔔'); }
-    catch (err) { snooze(); closeSheet(); toast(Notification.permission === 'denied' ? '알림이 차단됐어요. 나중에 설정에서 켤 수 있어요' : (err.message || '알림 설정 실패')); }
+    e.target.disabled = true; e.target.textContent = t('설정 중…');
+    try { await enablePush(); closeSheet(); toast(t('알림을 켰어요 🔔')); }
+    catch (err) { snooze(); closeSheet(); toast(Notification.permission === 'denied' ? t('알림이 차단됐어요. 나중에 설정에서 켤 수 있어요') : (err.message || t('알림 설정 실패'))); }
     updateBell();
   };
 }
@@ -2579,7 +2581,7 @@ async function autoPush() {
 let installEvt = null;
 const installed = () => isStandalone || matchMedia('(display-mode: standalone)').matches;
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; maybeShowInstall(); });
-addEventListener('appinstalled', () => { installEvt = null; document.querySelector('.ibanner')?.remove(); toast('설치했어요! 홈 화면의 candid. 아이콘으로 열어 보세요'); });
+addEventListener('appinstalled', () => { installEvt = null; document.querySelector('.ibanner')?.remove(); toast(t('설치했어요! 홈 화면의 candid. 아이콘으로 열어 보세요')); });
 
 function canInstall() {
   if (installed() || DEMO) return null;
@@ -2652,7 +2654,7 @@ async function fetchNotis(force) {
   const uids = [...new Set(items.map(i => i.uid).filter(Boolean))];
   const profs = new Map();
   if (uids.length) { const { data } = await sb.from('profiles').select('id, name, handle, avatar_url').in('id', uids); (data || []).forEach(p => profs.set(p.id, p)); }
-  items.forEach(i => { i.prof = i.uid ? profs.get(i.uid) : null; i.name = i.prof?.name || i.name || '친구'; });
+  items.forEach(i => { i.prof = i.uid ? profs.get(i.uid) : null; i.name = i.prof?.name || (i.name === '익명의 친구' ? t(i.name) : i.name) || t('친구'); });
   items.sort((a, b) => new Date(b.at) - new Date(a.at));
   NOTI.items = items.slice(0, 60); NOTI.at = Date.now();
   const seen = notiSeen();
@@ -2662,34 +2664,34 @@ async function fetchNotis(force) {
 async function refreshNotiDot() {
   try { await fetchNotis(); } catch { return; }
   const d = document.getElementById('notidot'); if (d) d.hidden = !NOTI.unread;
-  document.getElementById('notibtn')?.setAttribute('aria-label', NOTI.unread ? `알림, 새 알림 ${NOTI.unread}개` : '알림');
+  document.getElementById('notibtn')?.setAttribute('aria-label', NOTI.unread ? t('알림, 새 알림 {n}개', { n: NOTI.unread }) : t('알림'));
 }
 function notiText(i) {
-  const n = `<b>${esc(i.name)}</b>님이`;
-  const what = p => p?.media_type === 'poll' ? '투표' : p?.media_type === 'question' ? '질문' : p?.media_type === 'video' ? '영상' : '사진';
+  const n = `<b>${esc(i.name)}</b>`;
+  const what = p => t(p?.media_type === 'poll' ? '투표' : p?.media_type === 'question' ? '질문' : p?.media_type === 'video' ? '영상' : '사진');
   switch (i.k) {
-    case 'post': return `${n} ${what(i.post)}을(를) 보냈어요. 승인을 기다리고 있어요`;
-    case 'like': return `${n} 내 게시물을 좋아해요`;
-    case 'comment': return `${n} 댓글을 남겼어요: “${esc(i.body.length > 40 ? i.body.slice(0, 40) + '…' : i.body)}”`;
-    case 'sticker': return `${n} 내 ${what(i.post)}을(를) 꾸몄어요 ✨${i.n > 1 ? ` (스티커 ${i.n}개)` : ''}`;
-    case 'follow': return `${n} 나를 친구로 추가했어요`;
+    case 'post': return t('{n}님이 {what}을(를) 보냈어요. 승인을 기다리고 있어요', { n, what: what(i.post) });
+    case 'like': return t('{n}님이 내 게시물을 좋아해요', { n });
+    case 'comment': return t('{n}님이 댓글을 남겼어요: “{c}”', { n, c: esc(i.body.length > 40 ? i.body.slice(0, 40) + '…' : i.body) });
+    case 'sticker': return t('{n}님이 내 {what}을(를) 꾸몄어요 ✨', { n, what: what(i.post) }) + (i.n > 1 ? t(' (스티커 {k}개)', { k: i.n }) : '');
+    case 'follow': return t('{n}님이 나를 친구로 추가했어요', { n });
   }
 }
 async function openNotis() {
   // 검색처럼 위에서 내려오는 패널
-  const el = sheet(`<div class="shead"><h3>Notifications<i class="pd">.</i></h3><button class="icon-btn" aria-label="닫기" onclick="closeSheet()">${I.close}</button></div>
-    <div class="nlist" id="nl"><p class="hint" style="padding:16px 0">불러오는 중…</p></div>`, null, { top: true });
+  const el = sheet(`<div class="shead"><h3>Notifications<i class="pd">.</i></h3><button class="icon-btn" aria-label="${t('닫기')}" onclick="closeSheet()">${I.close}</button></div>
+    <div class="nlist" id="nl"><p class="hint" style="padding:16px 0">${t('불러오는 중…')}</p></div>`, null, { top: true });
   let items; try { items = await fetchNotis(true); } catch (e) { return el.querySelector('#nl').innerHTML = `<p class="hint" style="padding:24px 20px">${esc(kerr(e))}</p>`; }
   if (!el.isConnected) return;
   const seen = notiSeen();
   try { localStorage.setItem(notiKey(), Date.now()); } catch {}
   NOTI.unread = 0; const d = document.getElementById('notidot'); if (d) d.hidden = true;
   const $l = el.querySelector('#nl');
-  if (!items.length) return $l.innerHTML = `<div class="empty-dot" style="margin:8px 0 4px">${DOT('sleepy', { size: 52 })}</div><p class="hint" style="padding:4px 0 20px;text-align:center">아직 알림이 없어요. 친구가 사진을 보내거나 좋아요·댓글·꾸미기를 하면 여기 떠요.</p>`;
+  if (!items.length) return $l.innerHTML = `<div class="empty-dot" style="margin:8px 0 4px">${DOT('sleepy', { size: 52 })}</div><p class="hint" style="padding:4px 0 20px;text-align:center">${t('아직 알림이 없어요. 친구가 사진을 보내거나 좋아요·댓글·꾸미기를 하면 여기 떠요.')}</p>`;
   $l.innerHTML = items.map((i, x) => {
     const p = i.post, thumb = p && !isText(p) && mediaOf(p).length ? `<img class="nthumb" src="${thumbUrl(p)}" alt="" loading="lazy">` : '';
     const av = i.prof ? avatar(i.prof, 'xs') : `<div class="av xs">${esc((i.name || '?').slice(0, 1))}</div>`;
-    const fol = i.k === 'follow' && !myFollows.has(i.uid) ? `<button class="btn add nfol" data-fol="${i.uid}">맞친구</button>` : '';
+    const fol = i.k === 'follow' && !myFollows.has(i.uid) ? `<button class="btn add nfol" data-fol="${i.uid}">${t('맞친구')}</button>` : '';
     return `<button class="nrow${new Date(i.at).getTime() > seen ? ' new' : ''}" data-i="${x}">${av}<span class="ntx">${notiText(i)}<small>${ago(i.at)}</small></span>${fol || thumb}</button>`;
   }).join('');
   $l.querySelectorAll('[data-fol]').forEach(b => b.onclick = e => { e.stopPropagation(); toggleFollow(b.dataset.fol); b.remove(); });
@@ -2697,10 +2699,10 @@ async function openNotis() {
     const i = items[+b.dataset.i];
     if (i.k === 'follow') { closeSheet(); return go(feedUrl(i.uid)); }
     if (i.k === 'post') { closeSheet(); return openInbox(); }
-    if (!i.post) return toast('지금은 볼 수 없는 게시물이에요');
+    if (!i.post) return toast(t('지금은 볼 수 없는 게시물이에요'));
     closeSheet();
     withMyFeed(() => {
-      if (!findPost(i.post.id)) return toast('지금은 볼 수 없는 게시물이에요');
+      if (!findPost(i.post.id)) return toast(t('지금은 볼 수 없는 게시물이에요'));
       openPost(i.post.id);
       if (i.k === 'comment') setTimeout(() => { const c = document.querySelector('.overlay .pbtn[data-cmt]'); if (c) focusPostComments(c); }, 300);
     });
@@ -2742,26 +2744,26 @@ async function applyInvite() {
   const { error } = await sb.from('follows').insert({ follower_id: me.id, followee_id: inv.id });
   if (error) return false;
   myFollows.add(inv.id);
-  setTimeout(() => toast(`${inv.name}님과 친구가 됐어요`), 1200);
+  setTimeout(() => toast(t('{name}님과 친구가 됐어요', { name: inv.name })), 1200);
   return true;
 }
 // 초대 보내기
 function openInvite() {
   if (!me) return;
-  const msg = `candid. 같이 하자! 📸\n친구들이 내 피드를 채워주는 앱이야. 링크 누르면 바로 설치할 수 있어`;
+  const msg = t('candid. 같이 하자! 📸\n친구들이 내 피드를 채워주는 앱이야. 링크 누르면 바로 설치할 수 있어');
   const w = sheet(`
     <h3>Invite friends<i class="pd">.</i></h3>
-    <p class="hint">링크를 받은 친구는 바로 앱을 설치할 수 있고, 가입하면 자동으로 나와 친구가 돼요.</p>
+    <p class="hint">${t('링크를 받은 친구는 바로 앱을 설치할 수 있고, 가입하면 자동으로 나와 친구가 돼요.')}</p>
     <div class="label">MESSAGE</div>
     <textarea class="field msg-box" id="imsg" maxlength="200">${esc(msg)}</textarea>
     <div class="sheet-foot">
-      ${navigator.share ? '<button class="btn primary block" id="inative">카톡으로 초대하기</button><div style="height:8px"></div>' : ''}
-      <button class="btn ${navigator.share ? '' : 'primary'} block" id="icopy">메시지 + 링크 복사</button>
+      ${navigator.share ? `<button class="btn primary block" id="inative">${t('카톡으로 초대하기')}</button><div style="height:8px"></div>` : ''}
+      <button class="btn ${navigator.share ? '' : 'primary'} block" id="icopy">${t('메시지 + 링크 복사')}</button>
     </div>`);
   const text = () => w.querySelector('#imsg').value;
   w.querySelector('#icopy').onclick = async () => {
-    try { await navigator.clipboard.writeText(`${text()}\n${inviteUrl()}`); toast('복사했어요. 카톡에 붙여넣어 보내세요'); closeSheet(); }
-    catch { prompt('이 내용을 복사해서 보내 주세요', `${text()}\n${inviteUrl()}`); }
+    try { await navigator.clipboard.writeText(`${text()}\n${inviteUrl()}`); toast(t('복사했어요. 카톡에 붙여넣어 보내세요')); closeSheet(); }
+    catch { prompt(t('이 내용을 복사해서 보내 주세요'), `${text()}\n${inviteUrl()}`); }
   };
   const n = w.querySelector('#inative');
   if (n) n.onclick = () => navigator.share({ title: 'candid.', text: text(), url: inviteUrl() }).then(closeSheet).catch(() => {});
@@ -2832,25 +2834,25 @@ function showInstallGuide() {
 // 연결해 두면 둘 중 아무거나로 로그인해도 같은 계정. Supabase Auth 설정에서 Manual linking 을 켜야 동작
 async function openLinks() {
   const w = sheet(`<h3>Sign-in methods<i class="pd">.</i></h3>
-    <p class="hint">여러 로그인 방법을 이 계정에 연결해 두면, 어떤 방법으로 로그인해도 같은 피드로 들어와요.</p>
-    <div id="lk"><p class="hint">불러오는 중…</p></div>`);
+    <p class="hint">${t('여러 로그인 방법을 이 계정에 연결해 두면, 어떤 방법으로 로그인해도 같은 피드로 들어와요.')}</p>
+    <div id="lk"><p class="hint">${t('불러오는 중…')}</p></div>`);
   const $l = w.querySelector('#lk');
-  if (!sb.auth.getUserIdentities) return $l.innerHTML = '<p class="hint">데모 모드에서는 사용할 수 없어요.</p>';
+  if (!sb.auth.getUserIdentities) return $l.innerHTML = `<p class="hint">${t('데모 모드에서는 사용할 수 없어요.')}</p>`;
   const { data, error } = await sb.auth.getUserIdentities();
   if (error) return $l.innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
   const have = new Set((data?.identities || []).map(i => i.provider));
   const rows = (cfg.PROVIDERS || ['kakao', 'google']).map(p => `
-    <div class="frow"><span class="lk-ic ${p}">${p === 'kakao' ? I.kakao : I.google}</span><span style="flex:1"><b>${PROVIDER_NAME[p]}</b><small>${have.has(p) ? '연결됨' : '연결 안 됨'}</small></span>
-      ${have.has(p) ? '<span class="lk-ok">✓</span>' : `<button class="btn add" data-p="${p}">연결하기</button>`}</div>`).join('');
-  $l.innerHTML = rows + `<p class="hint" style="font-size:12px;margin-top:12px">'이미 다른 계정에서 사용 중'이라고 나오면, 그 로그인 방법으로 만들어진 다른 계정이 있다는 뜻이에요. 그 계정을 먼저 삭제해야 연결할 수 있어요.</p>`;
+    <div class="frow"><span class="lk-ic ${p}">${p === 'kakao' ? I.kakao : I.google}</span><span style="flex:1"><b>${PROVIDER_NAME[p]}</b><small>${t(have.has(p) ? '연결됨' : '연결 안 됨')}</small></span>
+      ${have.has(p) ? '<span class="lk-ok">✓</span>' : `<button class="btn add" data-p="${p}">${t('연결하기')}</button>`}</div>`).join('');
+  $l.innerHTML = rows + `<p class="hint" style="font-size:12px;margin-top:12px">${t("'이미 다른 계정에서 사용 중'이라고 나오면, 그 로그인 방법으로 만들어진 다른 계정이 있다는 뜻이에요. 그 계정을 먼저 삭제해야 연결할 수 있어요.")}</p>`;
   $l.querySelectorAll('[data-p]').forEach(b => b.onclick = async () => {
-    b.disabled = true; b.textContent = '이동 중…';
+    b.disabled = true; b.textContent = t('이동 중…');
     try { localStorage.setItem('candid_last_login', b.dataset.p); } catch {}
     const { error } = await sb.auth.linkIdentity({ provider: b.dataset.p, options: { redirectTo: location.origin + location.pathname } });
     if (error) {
-      b.disabled = false; b.textContent = '연결하기';
-      toast(/manual linking|disabled/i.test(error.message) ? '아직 연결 기능이 꺼져 있어요(관리자 설정 필요)'
-        : /already|exists|linked/i.test(error.message) ? '이미 다른 계정에서 사용 중인 로그인이에요' : kerr(error));
+      b.disabled = false; b.textContent = t('연결하기');
+      toast(/manual linking|disabled/i.test(error.message) ? t('아직 연결 기능이 꺼져 있어요(관리자 설정 필요)')
+        : /already|exists|linked/i.test(error.message) ? t('이미 다른 계정에서 사용 중인 로그인이에요') : kerr(error));
     }
   });
 }
@@ -2858,7 +2860,7 @@ async function openLinks() {
 (() => {
   const h = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
   const d = h.get('error_description');
-  if (d) setTimeout(() => toast(/already|exists|linked/i.test(d) ? '이미 다른 계정에서 사용 중인 로그인이라 연결하지 못했어요' : '로그인 연결에 실패했어요: ' + d), 1500);
+  if (d) setTimeout(() => toast(/already|exists|linked/i.test(d) ? t('이미 다른 계정에서 사용 중인 로그인이라 연결하지 못했어요') : t('로그인 연결에 실패했어요: ') + d), 1500);
 })();
 // ---------- 가챠 꾸미기 ----------
 // @@CATALOG-BEGIN (tools/items.js 에서 자동 생성 — 직접 고치지 말 것)
@@ -3035,8 +3037,8 @@ async function stkWho(e, s) {
   const u = STK_WHO.get(r.user_id), mine = me && r.user_id === me.id;
   const tag = document.createElement(u ? 'button' : 'span');
   tag.className = 'stk-tag'; tag.dataset.for = r.id;
-  tag.innerHTML = mine ? '내 스티커' : u ? `<b>${esc(u.name)}</b>${u.handle ? `<small>@${esc(u.handle)}</small>` : ''}<i>›</i>` : '알 수 없는 친구';
-  if (u) tag.setAttribute('aria-label', mine ? '내 피드로 가기' : `${u.name} 피드로 가기`);
+  tag.innerHTML = mine ? t('내 스티커') : u ? `<b>${esc(u.name)}</b>${u.handle ? `<small>@${esc(u.handle)}</small>` : ''}<i>›</i>` : t('알 수 없는 친구');
+  if (u) tag.setAttribute('aria-label', mine ? t('내 피드로 가기') : t('{name} 피드로 가기', { name: u.name }));
   // 위치: 스티커 오른쪽 위(오른쪽 끝에 가까우면 왼쪽 위)
   const lr = L.getBoundingClientRect(), sr = s.getBoundingClientRect();
   const right = sr.left + sr.width / 2 > lr.left + lr.width * 0.62;
@@ -3089,7 +3091,7 @@ function mediaEl(m, mode, alt) {
 }
 // 여러 장이면 좌우로 넘기는 슬라이드(인스타처럼 점 + 1/3)
 function mediaCarousel(p, mode) {
-  const items = mediaOf(p), alt = `${esc(p.author_name)}가 보낸 사진`;
+  const items = mediaOf(p), alt = t('{name}가 보낸 사진', { name: aname(p.author_name) });
   if (items.length <= 1) return `<div class="carwrap" data-idx="0"><div class="stage">${items[0] ? mediaEl(items[0], mode, alt) : ''}${stickerLayer(p.id, 0)}</div></div>`;
   return `<div class="carwrap multi" data-idx="0">
     <div class="car" data-car>${items.map((m, i) => `<div class="slide"><div class="stage">${mediaEl(m, mode, alt)}${stickerLayer(p.id, i)}</div></div>`).join('')}</div>
@@ -3115,35 +3117,35 @@ function initCarousels(root, autoplay) {
 
 // 스티커 꾸미기 편집기: 가챠로 뽑은 스티커만, 내 스티커만 옮기기·떼기(남의 스티커는 피드 주인도 못 건드림), 승인 없음
 async function openDecorate(postId, idx0) {
-  if (!me) return toast('로그인하면 스티커로 꾸밀 수 있어요');
+  if (!me) return toast(t('로그인하면 스티커로 꾸밀 수 있어요'));
   const p = findAny(postId); if (!p) return;
   const idx = Number.isInteger(idx0) ? idx0 : +(document.querySelector('.overlay .carwrap')?.dataset.idx || 0);
   const m = isText(p) ? null : mediaOf(p)[idx]; if (!m && !isText(p)) return;
   const isOwnerPost = p.owner_id === me.id;
   const MAX_MINE = 10;
   const el = pageOverlay('decor', `
-    <header class="pov-h cmp-h"><button class="icon-btn" data-x aria-label="닫기">${I.close}</button><b>스티커 꾸미기</b><button class="cmp-send" id="dsave">저장</button></header>
+    <header class="pov-h cmp-h"><button class="icon-btn" data-x aria-label="${t('닫기')}">${I.close}</button><b>${t('스티커 꾸미기')}</b><button class="cmp-send" id="dsave">${t('저장')}</button></header>
     <div class="dwrap"><div class="stage dstage${m ? '' : ' tstage'}" id="dstage">${m ? `<img src="${photoUrl(m.k === 'video' ? (m.t || m.p) : m.p)}" alt="" draggable="false">` : textCard(p)}<div class="dlayer" id="dlayer"></div></div></div>
     <div class="dtools" id="dtools" hidden>
-      <div class="dsl" id="dszw"><small>크기</small><input type="range" id="dsize" min="0.4" max="3" step="0.05" aria-label="크기"></div>
-      <div class="dsl" id="drotw"><small>회전</small><input type="range" id="drot" min="-180" max="180" step="1" aria-label="회전"></div>
+      <div class="dsl" id="dszw"><small>${t('크기')}</small><input type="range" id="dsize" min="0.4" max="3" step="0.05" aria-label="${t('크기')}"></div>
+      <div class="dsl" id="drotw"><small>${t('회전')}</small><input type="range" id="drot" min="-180" max="180" step="1" aria-label="${t('회전')}"></div>
       <div class="dwho" id="dwho" hidden></div>
-      <div class="dbtns"><button data-a="edit" id="dedit">수정</button><button data-a="x" class="danger">떼기</button></div>
+      <div class="dbtns"><button data-a="edit" id="dedit">${t('수정')}</button><button data-a="x" class="danger">${t('떼기')}</button></div>
     </div>
     <div class="dtxt" id="dtxt" hidden>
-      <input class="field" id="dtin" maxlength="40" placeholder="하고 싶은 말 (최대 40자)" autocomplete="off" enterkeyhint="done">
-      <div class="dtrow"><div class="dstyles">${[['plain', '기본'], ['box', '박스'], ['hl', '형광']].map(([k, l]) => `<button data-st="${k}"><span class="ptxt ${k}">${l}</span></button>`).join('')}</div>
-        <span class="dcount" id="dcount">0/40</span><button class="btn primary" id="dtok">완료</button></div>
+      <input class="field" id="dtin" maxlength="40" placeholder="${t('하고 싶은 말 (최대 40자)')}" autocomplete="off" enterkeyhint="done">
+      <div class="dtrow"><div class="dstyles">${[['plain', '기본'], ['box', '박스'], ['hl', '형광']].map(([k, l]) => `<button data-st="${k}"><span class="ptxt ${k}">${t(l)}</span></button>`).join('')}</div>
+        <span class="dcount" id="dcount">0/40</span><button class="btn primary" id="dtok">${t('완료')}</button></div>
     </div>
     <p class="hint dhint" id="dhint"></p>
-    <div class="dtray" id="dtray"><p class="hint">불러오는 중…</p></div>`);
+    <div class="dtray" id="dtray"><p class="hint">${t('불러오는 중…')}</p></div>`);
   const $ = s => el.querySelector(s);
   // 최신 상태 불러오기(그 사이 다른 친구가 붙인 것도 보이게) — select('*') 라 아직 안 생긴 칸이 있어도 동작
   const [st, inv] = await Promise.all([
     sb.from('post_stickers').select('*').eq('post_id', postId),
     GACHA_ON ? sb.from('inventory').select('item_id').eq('user_id', me.id) : Promise.resolve({ data: [] }),
   ]);
-  if (st.error) { el.remove(); return toast(/post_stickers|relation/i.test(st.error.message) ? '스티커 기능 준비 중이에요(관리자: SQL 실행 필요)' : kerr(st.error)); }
+  if (st.error) { el.remove(); return toast(/post_stickers|relation/i.test(st.error.message) ? t('스티커 기능 준비 중이에요(관리자: SQL 실행 필요)') : kerr(st.error)); }
   const rows = st.data.filter(r => r.media_idx === idx).map(r => ({ ...r, rot: r.rot || 0 }));
   const others = rows.filter(r => r.user_id !== me.id);
   // 친구 스티커를 누르면 누가 붙였는지 보여주기 위해 이름 미리 불러옴(주인·친구 모두)
@@ -3170,18 +3172,18 @@ async function openDecorate(postId, idx0) {
     $('#dtools [data-a="x"]').hidden = !selMine; // 떼기·수정은 내가 붙인 스티커만(친구 스티커는 누가 붙였는지만 보임)
     const u = selOther && who.get(selOther.user_id);
     $('#dwho').hidden = !selOther;
-    if (selOther) $('#dwho').innerHTML = `<b>${esc(u?.name || '친구')}</b>${u?.handle ? ` <small>@${esc(u.handle)}</small>` : ''}님이 붙였어요`;
+    if (selOther) $('#dwho').innerHTML = t('{name}님이 붙였어요', { name: `<b>${esc(u?.name || t('친구'))}</b>${u?.handle ? ` <small>@${esc(u.handle)}</small>` : ''}` });
     if (selMine) { $('#dsize').value = selMine.scale; $('#drot').value = selMine.rot || 0; }
-    $('#dhint').textContent = `내 스티커 ${mine.length}/${MAX_MINE} · 끌어서 옮기고, 두 손가락으로 크기·회전 · 친구 스티커를 누르면 누가 붙였는지 볼 수 있어요`;
+    $('#dhint').textContent = t('내 스티커 {a}/{b} · 끌어서 옮기고, 두 손가락으로 크기·회전 · 친구 스티커를 누르면 누가 붙였는지 볼 수 있어요', { a: mine.length, b: MAX_MINE });
   };
   // 트레이: 텍스트 + 미니 아이템 + 이모지 (+ 가챠 스티커)
-  const tile = i => `<button class="dts${i.data.mini ? ' mini' : ''}" data-item="${i.id}" aria-label="${esc(i.name)} 붙이기">${glyph(i)}</button>`;
+  const tile = i => `<button class="dts${i.data.mini ? ' mini' : ''}" data-item="${i.id}" aria-label="${t('{name} 붙이기', { name: esc(i.name) })}">${glyph(i)}</button>`;
   $('#dtray').innerHTML =
-    `<button class="dtadd" id="dtadd"><b>Aa</b> 텍스트 넣기 <small>최대 40자</small></button>` +
-    `<div class="dsec">미니 아이템</div><div class="dgrid">${FREE_STICKERS.filter(i => i.data.mini).map(tile).join('')}</div>` +
-    (owned.length ? `<div class="dsec">내가 뽑은 스티커</div><div class="dgrid">${owned.map(tile).join('')}</div>` : '') +
-    `<div class="dsec">이모지</div><div class="dgrid">${FREE_STICKERS.filter(i => !i.data.mini).map(tile).join('')}</div>`;
-  const add = r => { if (mine.length >= MAX_MINE) { toast(`한 사진에 내 스티커는 ${MAX_MINE}개까지예요`); return false; } mine.push(r); sel = r.id; paint(); return true; };
+    `<button class="dtadd" id="dtadd"><b>Aa</b> ${t('텍스트 넣기')} <small>${t('최대 40자')}</small></button>` +
+    `<div class="dsec">${t('미니 아이템')}</div><div class="dgrid">${FREE_STICKERS.filter(i => i.data.mini).map(tile).join('')}</div>` +
+    (owned.length ? `<div class="dsec">${t('내가 뽑은 스티커')}</div><div class="dgrid">${owned.map(tile).join('')}</div>` : '') +
+    `<div class="dsec">${t('이모지')}</div><div class="dgrid">${FREE_STICKERS.filter(i => !i.data.mini).map(tile).join('')}</div>`;
+  const add = r => { if (mine.length >= MAX_MINE) { toast(t('한 사진에 내 스티커는 {n}개까지예요', { n: MAX_MINE })); return false; } mine.push(r); sel = r.id; paint(); return true; };
   const newId = () => 'tmp' + Math.random().toString(36).slice(2);
   $('#dtray').querySelectorAll('[data-item]').forEach(b => b.onclick = () => add({ id: newId(), item_id: b.dataset.item, x: 0.5, y: 0.5, scale: 1, rot: 0, tmp: true }));
 
@@ -3251,10 +3253,10 @@ async function openDecorate(postId, idx0) {
 
   const KEYS = ['x', 'y', 'scale', 'rot', 'text', 'style'];
   const changed = () => removed.size || mine.some(r => r.tmp || KEYS.some(k => (orig.get(r.id)?.[k] ?? null) !== (r[k] ?? null)));
-  $('[data-x]').onclick = () => { if (!changed() || confirm('저장하지 않은 꾸미기가 사라져요. 닫을까요?')) el.remove(); };
+  $('[data-x]').onclick = () => { if (!changed() || confirm(t('저장하지 않은 꾸미기가 사라져요. 닫을까요?'))) el.remove(); };
   // 저장: 내 것만 추가·수정·삭제 → 서로 덮어쓰지 않음. 실패하면 원인을 그대로 보여줌
   $('#dsave').onclick = async () => {
-    const btn = $('#dsave'); btn.disabled = true; btn.textContent = '저장 중…';
+    const btn = $('#dsave'); btn.disabled = true; btn.textContent = t('저장 중…');
     let step = '';
     try {
       step = '떼기';
@@ -3278,14 +3280,14 @@ async function openDecorate(postId, idx0) {
         if (error) throw error;
       }
       await loadStickers([postId]); refreshStickerLayers(postId);
-      el.remove(); toast('꾸몄어요 ✨');
+      el.remove(); toast(t('꾸몄어요 ✨'));
     } catch (err) {
-      btn.disabled = false; btn.textContent = '저장';
+      btn.disabled = false; btn.textContent = t('저장');
       const msg = String(err?.message || err), code = err?.code ? `[${err.code}] ` : '';
       console.error('sticker save failed', step, err);
-      toast(/row-level|42501/i.test(msg) ? '스티커를 붙일 수 없어요(개수 제한이거나 권한이 없어요)'
-        : /column .*(rot|text|style)|t_text|foreign key/i.test(msg) ? '텍스트·회전 기능 준비 중이에요(관리자: 12 SQL 실행 필요)'
-        : `저장 실패(${step}): ${code}${msg}`.slice(0, 120));
+      toast(/row-level|42501/i.test(msg) ? t('스티커를 붙일 수 없어요(개수 제한이거나 권한이 없어요)')
+        : /column .*(rot|text|style)|t_text|foreign key/i.test(msg) ? t('텍스트·회전 기능 준비 중이에요(관리자: 12 SQL 실행 필요)')
+        : `${t('저장 실패')}(${step}): ${code}${msg}`.slice(0, 120));
     }
   };
   paint();
@@ -3326,7 +3328,7 @@ async function approve(id) {
   S.justApproved = id; paintProfile();
   navigator.vibrate?.(8);
   if (GACHA_ON) setTimeout(() => refreshTickets(true), 400); // 승인하면 뽑기권 +1 → 🎁 버튼이 톡 튐
-  toast(`${p.author_name}의 사진을 피드에 올렸어요`, { label: '되돌리기', fn: async () => {
+  toast(t('{name}의 사진을 피드에 올렸어요', { name: p.author_name === '익명의 친구' ? t(p.author_name) : p.author_name }), { label: t('되돌리기'), fn: async () => {
     const { error } = await sb.from('posts').update({ status: 'pending', approved_at: null }).eq('id', id);
     if (error) return toast(kerr(error));
     S.approved = S.approved.filter(x => x.id !== id);
@@ -3351,11 +3353,11 @@ async function hidePost(id) {
   closeLayers();
   const at = new Date().toISOString();
   const { error } = await sb.from('posts').update({ status: 'hidden', hidden_at: at }).eq('id', id);
-  if (error) return toast(/check|constraint|23514/i.test(error.message + error.code) ? '아직 준비 중이에요(관리자: 11_hide.sql 실행 필요)' : kerr(error));
+  if (error) return toast(/check|constraint|23514/i.test(error.message + error.code) ? t('아직 준비 중이에요(관리자: 11_hide.sql 실행 필요)') : kerr(error));
   S.approved = S.approved.filter(x => x.id !== id);
   Object.assign(p, { status: 'hidden', hidden_at: at }); (S.hidden = S.hidden || []).unshift(p);
   paintProfile();
-  toast('피드에서 내렸어요 · 대기 피드에 보관돼요', { label: '되돌리기', fn: () => restorePost(id) });
+  toast(t('피드에서 내렸어요 · 대기 피드에 보관돼요'), { label: t('되돌리기'), fn: () => restorePost(id) });
 }
 // 다시 올리기: 원래 위치(처음 승인한 시간)로 복귀
 async function restorePost(id) {
@@ -3365,7 +3367,7 @@ async function restorePost(id) {
   if (error) return toast(kerr(error));
   S.hidden = S.hidden.filter(x => x.id !== id);
   Object.assign(p, { status: 'approved', hidden_at: null }); S.approved.push(p);
-  S.justApproved = id; paintProfile(); toast('다시 피드에 올렸어요');
+  S.justApproved = id; paintProfile(); toast(t('다시 피드에 올렸어요'));
 }
 async function removePost(id) {
   const p = findPost(id); if (!p) return;
@@ -3376,7 +3378,7 @@ async function removePost(id) {
   S[list] = S[list].filter(x => x.id !== id); paintProfile();
   const restore = () => { S[list].splice(idx, 0, p); paintProfile(); };
   pendingDeletes.set(id, { p, restore, timer: setTimeout(() => commitDelete(id), 5000) });
-  toast(wasPending ? '조용히 정리했어요' : '삭제했어요', { label: '되돌리기', fn: () => {
+  toast(t(wasPending ? '조용히 정리했어요' : '삭제했어요'), { label: t('되돌리기'), fn: () => {
     const job = pendingDeletes.get(id); if (!job) return;
     clearTimeout(job.timer); pendingDeletes.delete(id); restore();
   } });
@@ -3385,18 +3387,18 @@ function shareFeed() {
   let mi = 0;
   const name = S.prof.name;
   const url = () => `${shareUrl(S.prof)}&m=${mi}`;
-  const msgFor = i => `내 피드 좀 채워줘 🙏\n네 폰에 있는 내 '${MISSIONS[i]}' 하나만 보내줘! 로그인 없이 10초면 돼`;
+  const msgFor = i => t("내 피드 좀 채워줘 🙏\n네 폰에 있는 내 '{m}' 하나만 보내줘! 로그인 없이 10초면 돼", { m: t(MISSIONS[i]) });
   const w = sheet(`
     <h3>Ask your friends<i class="pd">.</i></h3>
-    <p class="hint">무엇을 부탁할지 고르면 메시지를 만들어 드려요. 받은 친구는 로그인 없이 바로 보낼 수 있어요.</p>
+    <p class="hint">${t('무엇을 부탁할지 고르면 메시지를 만들어 드려요. 받은 친구는 로그인 없이 바로 보낼 수 있어요.')}</p>
     <div class="label">WHAT TO ASK</div>
-    <div class="chips" role="radiogroup">${MISSIONS.slice(0, 5).map((m, i) => `<button class="chip ${i ? '' : 'on'}" role="radio" aria-checked="${!i}" data-i="${i}">${m}</button>`).join('')}</div>
+    <div class="chips" role="radiogroup">${MISSIONS.slice(0, 5).map((m, i) => `<button class="chip ${i ? '' : 'on'}" role="radio" aria-checked="${!i}" data-i="${i}">${t(m)}</button>`).join('')}</div>
     <div class="label">MESSAGE</div>
     <textarea class="field msg-box" id="msg" maxlength="200">${esc(msgFor(0))}</textarea>
     <div class="sheet-foot">
-      <button class="btn primary block" id="copy">메시지 + 링크 복사</button>
-      ${navigator.share ? '<div style="height:8px"></div><button class="btn block" id="native">카톡·인스타로 바로 보내기</button>' : ''}
-      ${me ? '<button class="btn block" style="margin-top:8px;border:0;background:var(--soft)" onclick="closeSheet();setTimeout(openInvite,250)">💌 앱에 친구 초대하기</button>' : ''}
+      <button class="btn primary block" id="copy">${t('메시지 + 링크 복사')}</button>
+      ${navigator.share ? `<div style="height:8px"></div><button class="btn block" id="native">${t('카톡·인스타로 바로 보내기')}</button>` : ''}
+      ${me ? `<button class="btn block" style="margin-top:8px;border:0;background:var(--soft)" onclick="closeSheet();setTimeout(openInvite,250)">${t('💌 앱에 친구 초대하기')}</button>` : ''}
     </div>`);
   const $msg = w.querySelector('#msg');
   w.querySelectorAll('.chip').forEach(c => c.onclick = () => {
@@ -3405,8 +3407,8 @@ function shareFeed() {
     mi = +c.dataset.i; $msg.value = msgFor(mi);
   });
   w.querySelector('#copy').onclick = async () => {
-    try { await navigator.clipboard.writeText(`${$msg.value}\n${url()}`); toast('메시지와 링크를 복사했어요. 카톡에 붙여넣어 보세요'); closeSheet(); }
-    catch { prompt('이 내용을 복사해서 보내 주세요', `${$msg.value}\n${url()}`); }
+    try { await navigator.clipboard.writeText(`${$msg.value}\n${url()}`); toast(t('메시지와 링크를 복사했어요. 카톡에 붙여넣어 보세요')); closeSheet(); }
+    catch { prompt(t('이 내용을 복사해서 보내 주세요'), `${$msg.value}\n${url()}`); }
   };
   const n = w.querySelector('#native');
   if (n) n.onclick = () => navigator.share({ title: 'candid.', text: $msg.value, url: url() }).then(closeSheet).catch(() => {});
@@ -3659,7 +3661,7 @@ async function compressVideo(meta, onProgress) {
   const originalOk = !trimmed && dur <= MAX_VIDEO_SEC + 0.5 && meta.file.size <= 10 * 1024 * 1024 && /^video\/(mp4|webm|quicktime)/.test(meta.file.type);
   const original = () => {
     if (originalOk) return meta.file;
-    throw new Error('이 기기에서는 영상을 줄일 수 없어요. 더 짧거나 작은 영상으로 골라 주세요');
+    throw Object.assign(new Error(t('이 기기에서는 영상을 줄일 수 없어요. 더 짧거나 작은 영상으로 골라 주세요')), { user: true });
   };
   if (!mime) return original();
 
@@ -3769,10 +3771,10 @@ function drawTextCard(g, p, x, y, w, h) {
 async function makeStory(id) {
   closeSheet();
   const p = S.approved.find(x => x.id === id); if (!p) return;
-  toast('스토리 이미지를 만드는 중…');
+  toast(t('스토리 이미지를 만드는 중…'));
   await Promise.all([document.fonts.load('800 80px "Bricolage Grotesque"'), document.fonts.load('800 40px Pretendard')]).catch(() => {});
   let img = null;
-  if (!isText(p)) { try { img = await loadImg(isVideo(p) ? thumbUrl(p) : photoUrl(p.image_path)); } catch { return toast('사진을 불러오지 못했어요. 다시 시도해 주세요'); } }
+  if (!isText(p)) { try { img = await loadImg(isVideo(p) ? thumbUrl(p) : photoUrl(p.image_path)); } catch { return toast(t('사진을 불러오지 못했어요. 다시 시도해 주세요')); } }
   const c = document.createElement('canvas'); c.width = 1080; c.height = 1920;
   const g = c.getContext('2d');
   const cover = (W, H) => { const r = Math.max(W / img.width, H / img.height), sw = W / r, sh = H / r; return [(img.width - sw) / 2, (img.height - sh) / 2, sw, sh]; };
@@ -3790,7 +3792,7 @@ async function makeStory(id) {
   const lw = g.measureText('candid').width, dw = g.measureText('.').width, lx = 540 - (lw + dw) / 2;
   g.fillStyle = '#0a0a0a'; g.fillText('candid', lx, 330); g.fillStyle = '#2b50ff'; g.fillText('.', lx + lw, 330);
   g.textAlign = 'center'; g.fillStyle = '#3a3a3c'; g.font = '700 34px Pretendard, sans-serif';
-  g.fillText(`친구가 본 ${S.prof.name}`, 540, 392);
+  g.fillText(t('친구가 본 {name}', { name: S.prof.name }), 540, 392);
 
   // 폴라로이드 카드 (랜딩 콜라주와 같은 구조)
   g.save(); g.translate(540, 960); g.rotate(-0.02);
@@ -3810,13 +3812,13 @@ async function makeStory(id) {
   // 하단 CTA 알약 — 인스타 링크 스티커를 여기에 붙이면 좋음
   g.fillStyle = '#2b50ff'; g.beginPath(); g.roundRect ? g.roundRect(170, 1560, 740, 96, 48) : g.rect(170, 1560, 740, 96); g.fill();
   g.fillStyle = '#fff'; g.font = '700 32px Pretendard, sans-serif'; g.textAlign = 'center';
-  g.fillText('나한테도 사진 보내줘 → 링크 클릭', 540, 1619);
+  g.fillText(t('나한테도 사진 보내줘 → 링크 클릭'), 540, 1619);
 
   const blob = await new Promise(res => c.toBlob(res, 'image/png'));
   const file = new File([blob], 'candid-story.png', { type: 'image/png' });
   if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file] }); return; } catch {} }
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; a.click();
-  toast('이미지를 저장했어요. 스토리에 올리고 링크 스티커로 내 피드 링크를 붙여 보세요');
+  toast(t('이미지를 저장했어요. 스토리에 올리고 링크 스티커로 내 피드 링크를 붙여 보세요'));
 }
 </script>
 </body>
