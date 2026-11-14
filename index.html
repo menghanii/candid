@@ -159,6 +159,7 @@
   .wander { position:absolute; left:0; top:0; z-index:2; padding:0; border:0; background:none; cursor:pointer; will-change:transform; -webkit-tap-highlight-color:transparent; }
   .wander svg { display:block; overflow:visible; }
   .wander .d3-happy { display:none; }
+  .wander.cardw { z-index:4; pointer-events:none; }
   .wander.happy .d3-happy { display:inline; }
   .wander.happy .d3-eyes { display:none; }
   .landing { min-height:100vh; display:flex; flex-direction:column; padding:28px 24px calc(28px + env(safe-area-inset-bottom)); }
@@ -1409,7 +1410,7 @@ function renderLanding(inviter) {
 }
 // 첫 화면의 3D 닷: 꼬물꼬물 계속 걸어 다님(순간이동 없이 매 프레임 조금씩). 가끔 멈춰 두리번, 누르면 깡충 + 웃음
 function DOT3D(size = 56) {
-  const k = 'd3' + Date.now().toString(36);
+  const k = 'd3' + (DOT3D.n = (DOT3D.n || 0) + 1) + Math.random().toString(36).slice(2, 6); // 그라데이션 id 가 겹치면 다른 닷의 것을 참조해 안 보일 수 있음
   const eye = cx => `<ellipse cx="${cx}" cy="48" rx="6.6" ry="9.4" fill="url(#${k}e)"/><circle class="d3-pupil" cx="${cx + 1.6}" cy="45.6" r="2.8" fill="#fff"/>`;
   return `<svg class="dot3d" viewBox="-8 -10 126 116" width="${Math.round(size * 1.09)}" height="${size}" aria-hidden="true"><defs>
     <radialGradient id="${k}b" cx="34%" cy="24%" r="85%"><stop offset="0" stop-color="#8aa2ff"/><stop offset=".5" stop-color="#3d5cff"/><stop offset="1" stop-color="#1a2fb0"/></radialGradient>
@@ -1430,18 +1431,34 @@ function DOT3D(size = 56) {
 }
 function startWander() {
   const w = document.getElementById('wander'); if (!w) return;
-  const land = w.closest('.landing'), calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const svg = w.firstElementChild, body = svg.querySelector('.d3-body'), eyes = svg.querySelector('.d3-eyes'), shadow = svg.querySelector('.d3-shadow');
-  const pupils = [...svg.querySelectorAll('.d3-pupil')].map(p => [p, +p.getAttribute('cx'), +p.getAttribute('cy')]);
-  const box = () => {
+  const land = w.closest('.landing');
+  wanderEngine(w, () => {
     const L = land.getBoundingClientRect(), stop = land.querySelector('.social, .inapp')?.getBoundingClientRect();
     return { x0: 8, x1: L.width - w.offsetWidth - 8, y0: 64, y1: Math.max(80, (stop ? stop.top - L.top : L.height * .6) - w.offsetHeight - 12) };
-  };
+  }, { tap: true });
+}
+// 투표·질문 카드 안에서도 작은 3D 닷이 돌아다님(누를 수 없음 — 투표 버튼을 가리지 않게). 화면에 보일 때만 움직임
+function cardDots(root = document) {
+  root.querySelectorAll('.tstage').forEach(st => {
+    if (st.querySelector('.wander') || st.closest('.dstage')) return;
+    st.insertAdjacentHTML('beforeend', `<span class="wander cardw" aria-hidden="true">${DOT3D(30)}</span>`);
+    const w = st.lastElementChild;
+    const ctl = wanderEngine(w, () => ({ x0: 6, x1: st.clientWidth - w.offsetWidth - 6, y0: 6, y1: st.clientHeight - w.offsetHeight - 6 }), { speed: 22, start: false });
+    if (!ctl) return;
+    new IntersectionObserver(es => es.forEach(e => e.isIntersecting ? ctl.play() : ctl.pause()), { threshold: .2 }).observe(st);
+  });
+}
+// 꼬물꼬물 걷기 엔진: getBox() = 다닐 수 있는 범위(부모 기준 px). tap: 누르면 깡충, speed: 걷는 속도(px/초)
+function wanderEngine(w, getBox, { tap = false, speed: SPEED = 34, start = true } = {}) {
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const svg = w.firstElementChild, body = svg.querySelector('.d3-body'), eyes = svg.querySelector('.d3-eyes'), shadow = svg.querySelector('.d3-shadow');
+  const pupils = [...svg.querySelectorAll('.d3-pupil')].map(p => [p, +p.getAttribute('cx'), +p.getAttribute('cy')]);
+  const box = getBox;
   let B = box(), x = B.x0 + (B.x1 - B.x0) * .7, y = B.y0 + (B.y1 - B.y0) * .55;
   let th = Math.PI, turn = 0, speed = 0, face = -1, phase = 0, mode = 'walk', modeT = 3 + Math.random() * 4, turnT = 0;
   let gaze = [0, 0], gazeT = [0, 0], blinkT = 2 + Math.random() * 3, blink = 0, jump = 0, last = performance.now();
   const set = () => {
-    const sp = speed / 34, wob = Math.sin(phase);
+    const sp = speed / SPEED, wob = Math.sin(phase);
     const sx = 1 + (.07 * sp + .015) * wob, sy = 1 - (.07 * sp + .015) * wob, tilt = 5 * sp * Math.sin(phase / 2);
     const lift = jump > 0 ? Math.sin(Math.PI * (1 - jump / .6)) * 26 : 0;
     w.style.transform = `translate(${x.toFixed(1)}px, ${(y - lift).toFixed(1)}px)`;
@@ -1450,8 +1467,9 @@ function startWander() {
     eyes.setAttribute('transform', `translate(0 48) scale(1 ${(1 - blink).toFixed(2)}) translate(0 -48)`);
     pupils.forEach(([p, cx, cy]) => { p.setAttribute('cx', (cx + gaze[0]).toFixed(2)); p.setAttribute('cy', (cy + gaze[1]).toFixed(2)); });
   };
+  let running = false;
   const tick = now => {
-    if (!w.isConnected) return;
+    if (!w.isConnected || !running) { running = false; return; }
     const dt = Math.min(.05, (now - last) / 1000); last = now;
     if ((turnT -= dt) <= 0) { turn = (Math.random() - .5) * 2.2; turnT = .6 + Math.random() * 1.4; }
     if ((modeT -= dt) <= 0) { mode = mode === 'walk' ? 'pause' : 'walk'; modeT = mode === 'walk' ? 3 + Math.random() * 5 : 1.2 + Math.random() * 1.8; if (mode === 'pause') gazeT = [(Math.random() - .5) * 4, (Math.random() - .3) * 2.4]; }
@@ -1462,7 +1480,7 @@ function startWander() {
       const want = Math.atan2(cy - y, cx - x); let d = want - th; d = Math.atan2(Math.sin(d), Math.cos(d)); steer = d * 2.4;
     }
     th += steer * dt;
-    const target = mode === 'walk' && jump <= 0 ? 34 : 0;
+    const target = mode === 'walk' && jump <= 0 ? SPEED : 0;
     speed += (target - speed) * Math.min(1, dt * 2.2);
     x = Math.min(B.x1, Math.max(B.x0, x + Math.cos(th) * speed * dt));
     y = Math.min(B.y1, Math.max(B.y0, y + Math.sin(th) * speed * dt * .55));
@@ -1476,7 +1494,7 @@ function startWander() {
     set(); requestAnimationFrame(tick);
   };
   set();
-  w.onclick = () => {
+  if (tap) w.onclick = () => {
     if (jump > 0) return;
     jump = .6; w.classList.add('happy'); navigator.vibrate?.(8);
     setTimeout(() => w.classList.remove('happy'), 1100);
@@ -1484,7 +1502,9 @@ function startWander() {
   };
   addEventListener('resize', () => { B = box(); }, { passive: true });
   setTimeout(() => { B = box(); }, 400); // 글꼴·이미지 뒤에 버튼 위치가 바뀌는 경우
-  if (!calm) requestAnimationFrame(t => { last = t; tick(t); });
+  const play = () => { if (calm || running || !w.isConnected) return; running = true; B = box(); requestAnimationFrame(ts => { last = ts; tick(ts); }); };
+  if (start) play();
+  return { play, pause: () => { running = false; } };
 }
 
 // ---------- 프로필 ----------
@@ -1974,6 +1994,7 @@ function paintHome({ posts, owners }) {
   }), { threshold: 0.6 });
   initCarousels(document.getElementById('reels'), () => true);
   document.querySelectorAll('.rcar .stage').forEach(watchReelRatio);
+  cardDots(document.getElementById('reels'));
   document.querySelectorAll('.reel[data-id]').forEach(r => {
     io.observe(r);
     // 두 번 탭: 좋아요 + 하트 / 한 번 탭(영상): 소리 켜기·끄기
@@ -2173,6 +2194,7 @@ function openPost(id) {
   if (p.status === 'approved') { loadSocial([p.id]).then(() => paintSoc(p.id)).catch(() => {}); mountComments(ov.querySelector('.pcmts'), p.id, p.owner_id); }
   if (p.status === 'approved') loadStickers([p.id]).then(() => refreshStickerLayers(p.id)).catch(() => {});
   initCarousels(ov, () => true);
+  cardDots(ov);
   ov.querySelector('video')?.play().catch(() => {});
 }
 
