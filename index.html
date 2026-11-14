@@ -415,6 +415,13 @@
   .hbox .field { padding-left:32px; }
   .hmsg { margin:-4px 2px 14px; min-height:16px; font-size:12px; color:var(--sub); }
   .hmsg.ok { color:#34c759; } .hmsg.bad { color:var(--danger); }
+  /* 지난번 로그인 방법 배지 · 새 계정 확인 안내 */
+  .social { position:relative; }
+  .last-badge { position:absolute; right:12px; top:50%; transform:translateY(-50%); padding:4px 9px; border-radius:999px; background:var(--accent); color:#fff; font-size:11px; font-weight:700; }
+  .acct-check { margin:12px 0 4px; padding:14px 16px; border-radius:16px; background:var(--soft); font-size:13px; line-height:1.5; color:var(--sub); }
+  .acct-check b { display:block; color:var(--fg); font-size:14px; margin-bottom:2px; }
+  .acct-check .btn { display:block; margin-top:10px; padding:9px 14px; font-size:13px; }
+  .acct-check.warn { background:color-mix(in srgb, #ff9f0a 14%, var(--soft)); border:1px solid color-mix(in srgb, #ff9f0a 40%, transparent); }
 </style>
 </head>
 <body>
@@ -523,6 +530,10 @@ async function boot() {
   try {
     await withTimeout((async () => {
       me = (await sb.auth.getSession()).data.session?.user || null;
+      // 이 기기에서 지난번에 쓴 로그인 방법(카카오/Google) 기억 — 다른 방법으로 들어와 새 계정이 생기는 실수 방지
+      try { PREV_LOGIN = localStorage.getItem('candid_last_login'); } catch {}
+      const prov = me?.app_metadata?.provider;
+      if (prov === 'kakao' || prov === 'google') try { localStorage.setItem('candid_last_login', prov); } catch {}
       if (me) {
         const r = await sb.from('profiles').select('*').eq('id', me.id).maybeSingle();
         if (r.error) throw r.error;
@@ -617,6 +628,17 @@ function renderSetup(first) {
     <div class="setup">
       <h1>${first ? 'Set up your<br><em>profile.</em>' : 'Edit <em>profile.</em>'}</h1>
       <p class="hint">친구들에게 보일 이름과 사진이에요.${first ? '<br>나중에 언제든 바꿀 수 있어요.' : ''}</p>
+      ${first ? (() => {
+        // 새 계정이 만들어진 첫 화면: 혹시 다른 로그인 방법으로 이미 가입했는지 확인
+        const cur = me.app_metadata?.provider;
+        const other = PREV_LOGIN && PREV_LOGIN !== cur ? PREV_LOGIN : null;
+        return `<div class="acct-check ${other ? 'warn' : ''}">
+          ${other
+            ? `<b>이 기기에서는 지난번에 ${PROVIDER_NAME[other]}로 로그인했어요.</b>그 계정을 쓰려던 거라면 ${PROVIDER_NAME[other]}로 다시 로그인해 주세요. 로그인 방법이 다르면 다른 계정이 돼요.`
+            : `<b>처음이 아니신가요?</b>예전에 다른 방법(카카오/Google)으로 가입했다면, 그 방법으로 로그인해야 기존 피드가 보여요.`}
+          <button class="btn" onclick="logout()">${other ? `${PROVIDER_NAME[other]}로 다시 로그인하기` : '다른 방법으로 로그인하기'}</button>
+        </div>`;
+      })() : ''}
       <div style="text-align:center;margin:8px 0 24px"><div class="ring" id="preview"></div></div>
       <div class="label">PROFILE PHOTO</div>
       <div class="avopts">
@@ -704,8 +726,11 @@ function renderSetup(first) {
 }
 
 // ---------- 로그인 ----------
+let PREV_LOGIN = null;
+const PROVIDER_NAME = { kakao: '카카오', google: 'Google' };
 function login(provider) {
   if (inApp && !DEMO) return openExternal(); // 인앱에선 Google이 차단되고 세션도 외부 브라우저로 안 넘어감
+  try { localStorage.setItem('candid_last_login', provider); } catch {}
   sb.auth.signInWithOAuth({ provider, options: { redirectTo: location.origin + location.pathname } });
 }
 async function logout() { await sb.auth.signOut(); location.href = location.pathname; }
@@ -725,8 +750,17 @@ function renderLanding() {
         <p class="tagline">내가 고른 사진 말고, 친구들이 본 진짜 나.<br>친구가 올리고, 내가 고르는 피드.</p>
       </div>
       ${inAppBanner()}
-      ${p.includes('kakao') ? `<button class="social kakao" onclick="login('kakao')">${I.kakao} 카카오로 계속하기</button>` : ''}
-      ${p.includes('google') ? `<button class="social google" onclick="login('google')">${I.google} Google로 계속하기</button>` : ''}
+      ${(() => {
+        // 지난번에 쓴 로그인 방법을 맨 위로 올리고 배지 표시
+        let last = null; try { last = localStorage.getItem('candid_last_login'); } catch {}
+        const badge = k => last === k ? '<span class="last-badge">지난번에 사용</span>' : '';
+        const btn = {
+          kakao: `<button class="social kakao" onclick="login('kakao')">${I.kakao} 카카오로 계속하기${badge('kakao')}</button>`,
+          google: `<button class="social google" onclick="login('google')">${I.google} Google로 계속하기${badge('google')}</button>`,
+        };
+        const order = last && p.includes(last) ? [last, ...p.filter(k => k !== last)] : p;
+        return order.filter(k => btn[k]).map(k => btn[k]).join('');
+      })()}
       <p class="fine">친구는 로그인 없이 사진을 보낼 수 있어요.<br>내가 승인한 사진만 피드에 올라갑니다.</p>
     </div>`;
 }
