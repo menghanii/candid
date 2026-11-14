@@ -441,6 +441,11 @@
   /* 홈 화면 앱 첫 실행 로그인 */
   .landing .app1 { align-items:flex-start; }
   .landing .app1-ic { width:76px; height:76px; border-radius:20px; margin-bottom:22px; box-shadow:0 8px 24px rgba(0,0,0,.3); }
+  .invite1 .av { width:84px; height:84px; margin-bottom:22px; font-size:32px; box-shadow:0 0 0 3px var(--accent); }
+  .invite1 h1 { font-size:42px !important; }
+  .inv-install { flex:none; height:56px; font-size:16px; margin-bottom:14px; }
+  .inv-or { display:flex; align-items:center; gap:10px; margin:2px 0 12px; color:var(--sub); font-size:12px; }
+  .inv-or::before, .inv-or::after { content:""; flex:1; height:1px; background:var(--line); }
   .fine.linkish { display:block; width:100%; background:none; border:0; color:var(--sub); text-decoration:underline; text-underline-offset:3px; margin-top:4px; }
   /* 전체 화면 설치 안내 */
   .iguide { position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; justify-content:center; padding:calc(56px + env(safe-area-inset-top)) 28px calc(96px + env(safe-area-inset-bottom)); background:rgba(0,0,0,.95); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); color:#fff; animation:fade .2s; }
@@ -943,6 +948,7 @@ async function boot() {
         if (r.error) throw r.error;
         myProf = r.data;
         await loadFollows();
+        if (myProf?.onboarded) await applyInvite();
       }
     })(), 10000);
   } catch { return renderError(boot); }
@@ -963,7 +969,7 @@ function route() {
   if (at) return renderHandle(at[1].toLowerCase());
   const u = new URLSearchParams(location.search).get('u');
   if (u) return renderProfile(u);
-  if (!me) return renderLanding();
+  if (!me) return INVITE ? renderInvite(INVITE) : renderLanding();
   if (new URLSearchParams(location.search).has('home')) return renderHome(); // 하단 바 릴스 탭
   // 로그인: 친구가 있으면 홈(릴스), 없으면 내 피드
   myFollows.size ? renderHome() : go(feedUrl(me.id), true);
@@ -1149,7 +1155,7 @@ function login(provider) {
 }
 async function logout() { await sb.auth.signOut(); location.href = location.pathname; }
 
-function renderLanding() {
+function renderLanding(inviter) {
   document.documentElement.classList.add('noscroll'); // 첫 화면은 스크롤 없이 한 화면에 고정
   const all = cfg.PROVIDERS || ['kakao', 'google'];
   const p = inKakao && all.includes('kakao') ? ['kakao'] : all; // 카톡 안: 카카오만(Google은 인앱에서 막힘)
@@ -1158,7 +1164,11 @@ function renderLanding() {
   $app.innerHTML = `
     <div class="landing">
       <span class="logo">${LOGO}</span>
-      ${appFirst ? `<div class="hero app1"><img class="app1-ic" src="brand/icon-180.png" alt="">
+      ${inviter && !appFirst ? `<div class="hero app1 invite1">${avatar(inviter, 'lg')}
+        <h1><em>${esc(inviter.name)}</em>님이<br>초대했어요</h1>
+        <p class="tagline">친구들이 내 피드를 채워주는 앱, candid.<br>앱을 설치하면 친구가 사진을 보낼 때 바로 알림이 와요.</p></div>
+        <button class="btn primary block inv-install" onclick="installNow()">📲 앱 설치하고 시작하기</button>
+        <div class="inv-or">또는 웹에서 바로 시작</div>` : appFirst ? `<div class="hero app1"><img class="app1-ic" src="brand/icon-180.png" alt="">
         <h1>거의 다 됐어요<em>!</em></h1>
         <p class="tagline">홈 화면 앱은 브라우저와 로그인이 따로예요.<br>여기서 <b style="color:var(--fg)">한 번만</b> 다시 로그인해 주세요.</p></div>` : `
       <div class="hero">
@@ -1413,7 +1423,7 @@ async function renderFriendsTab($b) {
   const ids = [...myFollows];
   if (!ids.length) {
     $b.innerHTML = `<div class="empty"><h2>No friends, <em>yet.</em></h2><p>오른쪽 위 🔍에서 이름으로 친구를 찾아 추가해 보세요.<br>추가한 친구의 새 사진이 릴스에 떠요.</p>
-      <button class="btn primary block" onclick="openSearch()">친구 찾기</button></div>`;
+      <button class="btn primary block" onclick="openSearch()">친구 찾기</button><div style="height:8px"></div><button class="btn block" onclick="openInvite()">💌 앱에 친구 초대하기</button></div>`;
     return;
   }
   $b.innerHTML = `<div class="flist"><p class="hint" style="padding:16px 20px">불러오는 중…</p></div>`;
@@ -1421,7 +1431,7 @@ async function renderFriendsTab($b) {
   if (S.tab !== 'friends' || !document.body.contains($b)) return;
   if (error) return $b.innerHTML = `<div class="empty"><p>${esc(kerr(error))}</p></div>`;
   data.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-  const head = `<div class="fhead"><b>내 친구 ${data.length}</b><div style="flex:1"></div><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px" onclick="openSearch()">+ 친구 찾기</button></div>`;
+  const head = `<div class="fhead"><b>내 친구 ${data.length}</b><div style="flex:1"></div><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px" onclick="openSearch()">+ 친구 찾기</button><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px;margin-left:6px" onclick="openInvite()">💌 초대</button></div>`;
   $b.innerHTML = head + `<div class="flist">${data.map(p => `
     <div class="frow"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b><small>${p.handle ? `@${esc(p.handle)}` : ''}${p.handle && p.bio ? ' · ' : ''}${esc(p.bio || '')}</small></span></a>
       <button class="btn" onclick="toggleFollow('${p.id}', this)">친구 ✓</button></div>`).join('')}</div>`;
@@ -1895,6 +1905,7 @@ const menu = items => sheet(`<div class="menu">${items}</div><div class="menu"><
 function openMenu() {
   menu(`<button class="menu-item" onclick="closeSheet();renderSetup(false)">프로필 편집</button>
         ${GACHA_ON ? '<button class="menu-item" onclick="closeSheet();openCloset()">🎨 꾸미기</button><button class="menu-item" onclick="closeSheet();openGacha()">🎁 뽑기</button>' : ''}
+        <button class="menu-item" onclick="closeSheet();setTimeout(openInvite,250)">💌 친구 초대하기</button>
         <button class="menu-item" onclick="closeSheet();setTab('friends')">친구 목록</button>
         <button class="menu-item" onclick="closeSheet();shareFeed()">내 피드 링크 공유</button>
         ${!DEMO ? '<button class="menu-item" onclick="openLinks()">🔗 로그인 방법 연결</button>' : ''}
@@ -2237,10 +2248,71 @@ async function startInstall() {
   if (kind === 'ios') return showInstallGuide(); // 공유 버튼 위치를 화살표로 가리키는 전체 화면 안내
   toast(installed() ? '이미 앱으로 쓰고 있어요' : '브라우저 메뉴에서 "앱 설치" 또는 "홈 화면에 추가"를 눌러 주세요');
 }
+// ---------- 앱 초대 ----------
+// 초대 링크 ?invite=아이디(또는 id): 받은 사람은 '앱 설치하고 시작하기' 한 번 → 설치 안내, 가입하면 초대한 친구와 자동으로 친구
+const INVITE = (() => {
+  const v = new URLSearchParams(location.search).get('invite');
+  if (v && /^[A-Za-z0-9_-]{3,40}$/.test(v)) { try { localStorage.setItem('candid_invite', v); } catch {} return v; }
+  return null;
+})();
+const inviteUrl = () => `${location.origin}${location.pathname}?invite=${encodeURIComponent(myProf?.handle || me.id)}`;
+async function findInviter(key) {
+  const isId = /^[0-9a-f-]{36}$/i.test(key);
+  const { data } = await sb.from('profiles').select('id, name, handle, avatar_url').eq(isId ? 'id' : 'handle', isId ? key : key.toLowerCase()).maybeSingle();
+  return data || null;
+}
+async function renderInvite(key) {
+  let inviter = null; try { inviter = await withTimeout(findInviter(key), 6000); } catch {}
+  renderLanding(inviter);
+}
+// 설치 버튼: 카톡 등 인앱 → Safari·Chrome 으로(설치 안내 + 초대 정보 유지), 그 외 → 바로 설치/안내
+function installNow() {
+  if (installed()) return toast('이미 앱으로 쓰고 있어요');
+  if (inApp) return openExternal(installUrl());
+  if (installEvt) return startInstall();
+  showInstallGuide();
+  if (!isIOS && !/android/i.test(UA)) toast('브라우저 메뉴에서 "앱 설치" 또는 "홈 화면에 추가"를 눌러 주세요');
+}
+// 로그인 후: 초대한 친구를 내 친구로 (한 번만)
+async function applyInvite() {
+  let key = null; try { key = localStorage.getItem('candid_invite'); } catch {}
+  if (!key || !me) return false;
+  try { localStorage.removeItem('candid_invite'); } catch {}
+  const inv = await findInviter(key).catch(() => null);
+  if (!inv || inv.id === me.id || myFollows.has(inv.id)) return false;
+  const { error } = await sb.from('follows').insert({ follower_id: me.id, followee_id: inv.id });
+  if (error) return false;
+  myFollows.add(inv.id);
+  setTimeout(() => toast(`${inv.name}님과 친구가 됐어요`), 1200);
+  return true;
+}
+// 초대 보내기
+function openInvite() {
+  if (!me) return;
+  const msg = `candid. 같이 하자! 📸\n친구들이 내 피드를 채워주는 앱이야. 링크 누르면 바로 설치할 수 있어`;
+  const w = sheet(`
+    <h3>Invite friends<i class="pd">.</i></h3>
+    <p class="hint">링크를 받은 친구는 바로 앱을 설치할 수 있고, 가입하면 자동으로 나와 친구가 돼요.</p>
+    <div class="label">MESSAGE</div>
+    <textarea class="field msg-box" id="imsg" maxlength="200">${esc(msg)}</textarea>
+    <div class="sheet-foot">
+      ${navigator.share ? '<button class="btn primary block" id="inative">카톡으로 초대하기</button><div style="height:8px"></div>' : ''}
+      <button class="btn ${navigator.share ? '' : 'primary'} block" id="icopy">메시지 + 링크 복사</button>
+    </div>`);
+  const text = () => w.querySelector('#imsg').value;
+  w.querySelector('#icopy').onclick = async () => {
+    try { await navigator.clipboard.writeText(`${text()}\n${inviteUrl()}`); toast('복사했어요. 카톡에 붙여넣어 보내세요'); closeSheet(); }
+    catch { prompt('이 내용을 복사해서 보내 주세요', `${text()}\n${inviteUrl()}`); }
+  };
+  const n = w.querySelector('#inative');
+  if (n) n.onclick = () => navigator.share({ title: 'candid.', text: text(), url: inviteUrl() }).then(closeSheet).catch(() => {});
+}
+
 // ---------- 가입 직후 홈 화면 추가 ----------
 // 카톡 안에서 가입 → 버튼 하나로 Safari·Chrome 을 열고(?install=1) 거기서 큰 설치 안내
-const installUrl = () => `${location.origin}${location.pathname}?install=1`;
+const installUrl = () => `${location.origin}${location.pathname}?install=1${INVITE ? `&invite=${encodeURIComponent(INVITE)}` : ''}`;
 function afterSignup() {
+  applyInvite().then(ok => { if (ok) loadFollows(); });
   if (DEMO || installed()) return;
   if (inApp) return setTimeout(() => {
     sheet(`<h3>Add to Home<i class="pd">.</i></h3>
