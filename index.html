@@ -437,6 +437,10 @@
   /* iPhone: 하단 가운데 공유 버튼을 가리키는 화살표 */
   body.ios-hint::after { content:"↓"; position:fixed; left:50%; bottom:calc(4px + env(safe-area-inset-bottom)); z-index:60; transform:translateX(-50%); font-size:34px; font-weight:800; color:var(--accent); animation:bob .9s ease-in-out infinite; pointer-events:none; }
   @keyframes bob { 50% { transform:translate(-50%, 8px); } }
+  .lk-ic { flex:none; width:40px; height:40px; display:flex; align-items:center; justify-content:center; border-radius:50%; }
+  .lk-ic.kakao { background:#FEE500; } .lk-ic.google { background:#fff; border:1px solid var(--line); }
+  .frow small { display:block; }
+  .lk-ok { color:#34c759; font-weight:800; font-size:18px; padding:0 8px; }
 </style>
 </head>
 <body>
@@ -1414,6 +1418,7 @@ function openMenu() {
   menu(`<button class="menu-item" onclick="closeSheet();renderSetup(false)">프로필 편집</button>
         <button class="menu-item" onclick="closeSheet();setTab('friends')">친구 목록</button>
         <button class="menu-item" onclick="closeSheet();shareFeed()">내 피드 링크 공유</button>
+        ${!DEMO ? '<button class="menu-item" onclick="openLinks()">🔗 로그인 방법 연결</button>' : ''}
         ${!installed() && !DEMO ? '<button class="menu-item" onclick="closeSheet();setTimeout(startInstall,250)">📲 앱으로 설치 (홈 화면에 추가)</button>' : ''}
         ${DEMO ? '' : '<button class="menu-item" onclick="openPush()">푸시 알림 설정</button>'}
         <button class="menu-item danger" onclick="logout()">로그아웃</button>`);
@@ -1697,6 +1702,38 @@ async function startInstall() {
   }
   toast(installed() ? '이미 앱으로 쓰고 있어요' : '브라우저 메뉴에서 "앱 설치" 또는 "홈 화면에 추가"를 눌러 주세요');
 }
+// ---------- 로그인 방법 연결 (카카오 + Google 을 한 계정에) ----------
+// 연결해 두면 둘 중 아무거나로 로그인해도 같은 계정. Supabase Auth 설정에서 Manual linking 을 켜야 동작
+async function openLinks() {
+  const w = sheet(`<h3>Sign-in methods<i class="pd">.</i></h3>
+    <p class="hint">여러 로그인 방법을 이 계정에 연결해 두면, 어떤 방법으로 로그인해도 같은 피드로 들어와요.</p>
+    <div id="lk"><p class="hint">불러오는 중…</p></div>`);
+  const $l = w.querySelector('#lk');
+  if (!sb.auth.getUserIdentities) return $l.innerHTML = '<p class="hint">데모 모드에서는 사용할 수 없어요.</p>';
+  const { data, error } = await sb.auth.getUserIdentities();
+  if (error) return $l.innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
+  const have = new Set((data?.identities || []).map(i => i.provider));
+  const rows = (cfg.PROVIDERS || ['kakao', 'google']).map(p => `
+    <div class="frow"><span class="lk-ic ${p}">${p === 'kakao' ? I.kakao : I.google}</span><span style="flex:1"><b>${PROVIDER_NAME[p]}</b><small>${have.has(p) ? '연결됨' : '연결 안 됨'}</small></span>
+      ${have.has(p) ? '<span class="lk-ok">✓</span>' : `<button class="btn add" data-p="${p}">연결하기</button>`}</div>`).join('');
+  $l.innerHTML = rows + `<p class="hint" style="font-size:12px;margin-top:12px">'이미 다른 계정에서 사용 중'이라고 나오면, 그 로그인 방법으로 만들어진 다른 계정이 있다는 뜻이에요. 그 계정을 먼저 삭제해야 연결할 수 있어요.</p>`;
+  $l.querySelectorAll('[data-p]').forEach(b => b.onclick = async () => {
+    b.disabled = true; b.textContent = '이동 중…';
+    try { localStorage.setItem('candid_last_login', b.dataset.p); } catch {}
+    const { error } = await sb.auth.linkIdentity({ provider: b.dataset.p, options: { redirectTo: location.origin + location.pathname } });
+    if (error) {
+      b.disabled = false; b.textContent = '연결하기';
+      toast(/manual linking|disabled/i.test(error.message) ? '아직 연결 기능이 꺼져 있어요(관리자 설정 필요)'
+        : /already|exists|linked/i.test(error.message) ? '이미 다른 계정에서 사용 중인 로그인이에요' : kerr(error));
+    }
+  });
+}
+// 연결하고 돌아왔을 때 에러가 주소에 붙어 오면 안내
+(() => {
+  const h = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
+  const d = h.get('error_description');
+  if (d) setTimeout(() => toast(/already|exists|linked/i.test(d) ? '이미 다른 계정에서 사용 중인 로그인이라 연결하지 못했어요' : '로그인 연결에 실패했어요: ' + d), 1500);
+})();
 // ---------- 주인장 액션 ----------
 const closeLayers = () => { closeSheet(); document.querySelector('.overlay')?.remove(); };
 const leaveRow = id => new Promise(r => {
