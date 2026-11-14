@@ -408,6 +408,13 @@
   .shead { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
   .shead h3 { margin:0; }
   .shead .icon-btn { margin:0 -8px 0 0; }
+  /* 아이디 */
+  .handle { color:var(--sub); font-size:13px; font-weight:600; margin:-2px 0 6px; letter-spacing:0; }
+  .hbox { position:relative; }
+  .hbox span { position:absolute; left:15px; top:0; line-height:51px; color:var(--sub); font-weight:700; font-size:16px; pointer-events:none; }
+  .hbox .field { padding-left:32px; }
+  .hmsg { margin:-4px 2px 14px; min-height:16px; font-size:12px; color:var(--sub); }
+  .hmsg.ok { color:#34c759; } .hmsg.bad { color:var(--danger); }
 </style>
 </head>
 <body>
@@ -531,6 +538,8 @@ boot();
 
 function route() {
   CUR = pageKey();
+  const at = location.search.match(/^\?@([A-Za-z0-9_]{3,20})/); // 짧은 링크 ?@아이디
+  if (at) return renderHandle(at[1].toLowerCase());
   const u = new URLSearchParams(location.search).get('u');
   if (u) return renderProfile(u);
   if (!me) return renderLanding();
@@ -538,6 +547,29 @@ function route() {
   // 로그인: 친구가 있으면 홈(릴스), 없으면 내 피드
   myFollows.size ? renderHome() : go(feedUrl(me.id), true);
 }
+
+// ---------- 아이디(@handle) ----------
+const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
+const RESERVED = ['admin', 'candid', 'help', 'support', 'root', 'system', 'null', 'undefined', 'api', 'www', 'official', 'me', 'settings'];
+const HANDLES = new Map(); // handle → user id (한 번 찾은 건 기억)
+async function renderHandle(h) {
+  CUR = pageKey(); const myKey = CUR;
+  let id = HANDLES.get(h);
+  if (!id) {
+    let r; try { r = await withTimeout(sb.from('profiles').select('id').eq('handle', h).maybeSingle(), 10000); } catch { return renderError(() => renderHandle(h)); }
+    if (pageKey() !== myKey) return;
+    if (r.error) return renderError(() => renderHandle(h));
+    if (!r.data) {
+      $app.innerHTML = `<div class="landing"><span class="logo">${LOGO}</span><div class="hero"><h1>Not found<i class="pd">.</i></h1>
+        <p class="tagline">@${esc(h)} 아이디를 가진 친구가 없어요. 아이디가 바뀌었을 수 있어요.</p><button class="btn primary block" onclick="go(location.pathname)">${me ? '홈으로' : '내 피드 만들기'}</button></div></div>`;
+      return;
+    }
+    id = r.data.id; HANDLES.set(h, id);
+  }
+  renderProfile(id);
+}
+// 공유용 짧은 링크: 아이디가 있으면 ?@아이디, 없으면 기존 ?u=ID
+const shareUrl = p => p?.handle ? `${location.origin}${location.pathname}?@${p.handle}` : feedUrl(p.id);
 
 // ---------- 화면 전환 (페이지 새로고침 없이) ----------
 // 하단 바·링크 이동 때 앱을 다시 불러오지 않고 주소만 바꾼 뒤 화면을 그림 → 로고 로딩 화면이 안 뜸
@@ -594,6 +626,9 @@ function renderSetup(first) {
       </div>
       <div class="label">NAME</div>
       <input class="field" id="nm" maxlength="20" value="${esc(myProf.name)}" placeholder="${esc(myProf.name)}">
+      ${'handle' in myProf ? `<div class="label">ID</div>
+      <div class="hbox"><span>@</span><input class="field" id="hd" maxlength="20" value="${esc(myProf.handle || '')}" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" inputmode="email"></div>
+      <p class="hmsg" id="hmsg">영문 소문자·숫자·밑줄(_) 3~20자. 친구 검색과 공유 링크에 쓰여요.</p>` : ''}
       <div class="label">MESSAGE</div>
       <input class="field" id="bio" maxlength="60" value="${esc(myProf.bio || '')}" placeholder="예: 굴욕샷 환영, 단 너무 심한 건 거절함 📸">
       <div style="height:10px"></div>
@@ -601,6 +636,33 @@ function renderSetup(first) {
     </div>`;
 
   const $ = s => $app.querySelector(s);
+  // 아이디 실시간 확인: 형식 → 예약어 → 중복(0.3초 뒤 서버 확인)
+  let hdOk = true;
+  const hdState = (msg, ok) => {
+    const m = $('#hmsg'); if (!m) return;
+    m.textContent = msg; m.className = 'hmsg' + (ok === true ? ' ok' : ok === false ? ' bad' : '');
+    hdOk = ok === true; $('#done').disabled = !hdOk;
+  };
+  const $hd = $('#hd');
+  if ($hd) {
+    let t, seq = 0;
+    $hd.oninput = () => {
+      const v = $hd.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+      if (v !== $hd.value) $hd.value = v;
+      clearTimeout(t); seq++;
+      if (v === myProf.handle) return hdState('지금 쓰고 있는 아이디예요', true);
+      if (!HANDLE_RE.test(v)) return hdState('영문 소문자·숫자·밑줄(_) 3~20자로 만들어 주세요', false);
+      if (RESERVED.includes(v)) return hdState('쓸 수 없는 아이디예요', false);
+      hdState('확인 중…', null);
+      const my = seq;
+      t = setTimeout(async () => {
+        const { data, error } = await sb.from('profiles').select('id').eq('handle', v).maybeSingle();
+        if (my !== seq) return;
+        if (error) return hdState(kerr(error), false);
+        data && data.id !== me.id ? hdState('이미 있는 아이디예요', false) : hdState('사용할 수 있어요 ✓', true);
+      }, 300);
+    };
+  }
   const currentUrl = () => choice === 'social' ? social : choice === 'custom' ? customUrl : null;
   const paint = () => {
     $('#preview').innerHTML = avatar({ avatar_url: currentUrl() });
@@ -629,12 +691,15 @@ function renderSetup(first) {
         url = sb.storage.from('avatars').getPublicUrl(path).data.publicUrl;
       }
       const patch = { name: $('#nm').value.trim() || myProf.name, bio: $('#bio').value.trim() || null, avatar_url: url, onboarded: true };
+      if ($('#hd') && hdOk && $('#hd').value !== myProf.handle) patch.handle = $('#hd').value;
       const { error } = await sb.from('profiles').update(patch).eq('id', me.id);
+      if (error && /23505|duplicate|unique/i.test((error.code || '') + error.message)) { hdState('이미 있는 아이디예요. 다른 걸로 해주세요', false); throw new Error('dup'); }
       if (error) throw error;
+      if (patch.handle) { HANDLES.set(patch.handle, me.id); CACHE.prof.delete(me.id); }
       Object.assign(myProf, patch);
       toast(first ? '환영해요!' : '프로필을 저장했어요');
       route();
-    } catch (err) { e.target.disabled = false; e.target.textContent = first ? '시작하기' : '저장'; toast(kerr(err)); }
+    } catch (err) { e.target.disabled = false; e.target.textContent = first ? '시작하기' : '저장'; if (err.message !== 'dup') toast(kerr(err)); }
   };
 }
 
@@ -728,6 +793,7 @@ function paintProfile() {
         ? `<button class="ring" onclick="renderSetup(false)" aria-label="프로필 편집" style="cursor:pointer;background:none">${avatar(prof)}</button>`
         : `<div class="ring">${avatar(prof)}</div>`}
       <div class="name">${esc(prof.name)}</div>
+      ${prof.handle ? `<div class="handle">@${esc(prof.handle)}</div>` : ''}
       ${prof.bio
         ? `<div class="desc bio">${esc(prof.bio)}</div>`
         : isOwner
@@ -865,28 +931,28 @@ async function renderFriendsTab($b) {
     return;
   }
   $b.innerHTML = `<div class="flist"><p class="hint" style="padding:16px 20px">불러오는 중…</p></div>`;
-  const { data, error } = await sb.from('profiles').select('id, name, avatar_url, bio').in('id', ids);
+  const { data, error } = await sb.from('profiles').select('*').in('id', ids);
   if (S.tab !== 'friends' || !document.body.contains($b)) return;
   if (error) return $b.innerHTML = `<div class="empty"><p>${esc(kerr(error))}</p></div>`;
   data.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
   const head = `<div class="fhead"><button onclick="setTab('grid')" aria-label="피드로 돌아가기">←</button><b>내 친구 ${data.length}</b></div>`;
   $b.innerHTML = head + `<div class="flist">${data.map(p => `
-    <div class="frow"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b>${p.bio ? `<small>${esc(p.bio)}</small>` : ''}</span></a>
+    <div class="frow"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b><small>${p.handle ? `@${esc(p.handle)}` : ''}${p.handle && p.bio ? ' · ' : ''}${esc(p.bio || '')}</small></span></a>
       <button class="btn" onclick="toggleFollow('${p.id}', this)">친구 ✓</button></div>`).join('')}</div>`;
 }
 
 // ---------- 친구 검색 (검색어가 없으면 내 친구 목록) ----------
 async function openSearch() {
   const w = sheet(`<div class="shead"><h3>Find friends<i class="pd">.</i></h3><button class="icon-btn" aria-label="닫기" onclick="closeSheet()">${I.close}</button></div>
-    <div class="sbox">${I.search}<input class="field" id="sq" type="search" placeholder="이름으로 친구 찾기" autocomplete="off" enterkeyhint="search"></div>
+    <div class="sbox">${I.search}<input class="field" id="sq" type="search" placeholder="이름 또는 @아이디로 친구 찾기" autocomplete="off" autocapitalize="off" enterkeyhint="search"></div>
     <div id="sr"><p class="hint">불러오는 중…</p></div>`, null, { top: true });
   const $q = w.querySelector('#sq'), $r = w.querySelector('#sr');
-  const row = p => `<div class="frow"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b>${p.bio ? `<small>${esc(p.bio)}</small>` : ''}</span></a>
+  const row = p => `<div class="frow"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b><small>${p.handle ? `@${esc(p.handle)}` : ''}${p.handle && p.bio ? ' · ' : ''}${esc(p.bio || '')}</small></span></a>
     ${p.id === me?.id ? '<small style="color:var(--sub)">나</small>' : `<button class="btn ${myFollows.has(p.id) ? '' : 'add'}" onclick="toggleFollow('${p.id}', this)">${myFollows.has(p.id) ? '친구 ✓' : '친구 추가'}</button>`}</div>`;
   const showFriends = async () => {
     const ids = [...myFollows];
     if (!ids.length) return $r.innerHTML = '<p class="hint" style="padding:16px 0">아직 추가한 친구가 없어요. 위에서 이름으로 찾아보세요.</p>';
-    const { data, error } = await sb.from('profiles').select('id, name, avatar_url, bio').in('id', ids);
+    const { data, error } = await sb.from('profiles').select('*').in('id', ids);
     if (error) return $r.innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
     $r.innerHTML = `<div class="label" style="margin-top:8px">MY FRIENDS · ${data.length}</div>${data.map(row).join('')}`;
   };
@@ -897,8 +963,11 @@ async function openSearch() {
     if (!term) return showFriends();
     timer = setTimeout(async () => {
       const my = ++seq;
-      const like = `%${term.replace(/[%_\\]/g, c => '\\' + c)}%`;
-      const { data, error } = await sb.from('profiles').select('id, name, avatar_url, bio').ilike('name', like).eq('onboarded', true).limit(20);
+      // 이름 또는 아이디로 검색 (@로 시작하면 아이디만). 검색식을 깨는 특수문자는 제거
+      const clean = term.replace(/^@/, '').replace(/[,()".:\\%_*]/g, '');
+      if (!clean) return;
+      const q = term.startsWith('@') ? `handle.ilike.%${clean.toLowerCase()}%` : `name.ilike.%${clean}%,handle.ilike.%${clean.toLowerCase()}%`;
+      const { data, error } = await sb.from('profiles').select('*').or(q).eq('onboarded', true).limit(20);
       if (my !== seq) return; // 늦게 도착한 이전 검색 결과는 무시
       if (error) return $r.innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
       $r.innerHTML = data.length ? `<div class="label" style="margin-top:8px">RESULTS</div>${data.map(row).join('')}` : `<p class="hint" style="padding:16px 0">'${esc(term)}'(으)로 찾은 친구가 없어요.</p>`;
@@ -975,7 +1044,7 @@ async function fetchHome() {
   const ids = [...myFollows];
   const r = await withTimeout(sb.from('posts').select('*').in('owner_id', ids).eq('status', 'approved').order('approved_at', { ascending: false }).limit(40), 10000);
   if (r.error) throw r.error;
-  const o = await sb.from('profiles').select('id, name, avatar_url').in('id', ids);
+  const o = await sb.from('profiles').select('*').in('id', ids);
   await loadSocial(r.data.map(p => p.id));
   await loadPolls(r.data).catch(() => {});
   return { posts: r.data, owners: new Map((o.data || []).map(p => [p.id, p])) };
@@ -1028,7 +1097,7 @@ function paintHome({ posts, owners }) {
       <div class="rside">
         <button class="rbtn" data-like="${p.id}" aria-label="좋아요" aria-pressed="${s.liked}" onclick="toggleLike('${p.id}')"><span>${s.liked ? I.heartOn : I.heart}</span><b>${s.likes || ''}</b></button>
         <button class="rbtn" data-cmt="${p.id}" aria-label="댓글" onclick="openComments('${p.id}','${p.owner_id}')"><span>${I.comment}</span><b>${s.comments || ''}</b></button>
-        <button class="rbtn" aria-label="공유" onclick="shareOther('${p.owner_id}')"><span>${I.send}</span><b>공유</b></button>
+        <button class="rbtn" aria-label="공유" onclick="shareOther('${p.owner_id}','${esc(o.handle || '')}')"><span>${I.send}</span><b>공유</b></button>
         <button class="rbtn rsend" aria-label="${esc(o.name)}에게 사진 보내기" onclick="go('${feedUrl(p.owner_id)}&m=0')"><span>${I.plus}</span><b>보내기</b></button>
       </div>
     </section>`;
@@ -1073,8 +1142,8 @@ function toggleMute() {
   document.querySelectorAll('.reel video').forEach(v => v.muted = muted);
   document.querySelectorAll('.rmute').forEach(b => b.innerHTML = muted ? I.mute : I.sound);
 }
-function shareOther(uid) {
-  const url = `${feedUrl(uid)}&m=0`;
+function shareOther(uid, handle) {
+  const url = `${handle ? shareUrl({ handle }) : feedUrl(uid)}&m=0`;
   if (navigator.share) return navigator.share({ title: 'candid.', url }).catch(() => {});
   navigator.clipboard.writeText(url).then(() => toast('피드 링크를 복사했어요')).catch(() => prompt('이 링크를 복사해 주세요', url));
 }
@@ -1577,7 +1646,7 @@ async function removePost(id) {
 function shareFeed() {
   let mi = 0;
   const name = S.prof.name;
-  const url = () => `${feedUrl(S.uid)}&m=${mi}`;
+  const url = () => `${shareUrl(S.prof)}&m=${mi}`;
   const msgFor = i => `내 피드 좀 채워줘 🙏\n네 폰에 있는 내 '${MISSIONS[i]}' 하나만 보내줘! 로그인 없이 10초면 돼`;
   const w = sheet(`
     <h3>Ask your friends<i class="pd">.</i></h3>
@@ -1648,7 +1717,7 @@ function demoClient() {
     .map(([owner_id, author_name, mission, text, h], i) => ({ id: 'f' + i, owner_id, author_name, mission, text, image_path: art(3 + i * 2), status: 'approved', created_at: t(h + 1), approved_at: t(h) }));
   let db; try { db = JSON.parse(ss.get('demo_db2')); } catch {}
   db = db || {
-    profiles: [{ id: 'demo', name: '민수', avatar_url: null, onboarded: true }, { id: 'f1', name: '지수', avatar_url: null, onboarded: true, bio: '굴욕샷 환영' }, { id: 'f2', name: '태윤', avatar_url: null, onboarded: true }],
+    profiles: [{ id: 'demo', name: '민수', handle: 'minsu', avatar_url: null, onboarded: true }, { id: 'f1', name: '지수', handle: 'jisoo', avatar_url: null, onboarded: true, bio: '굴욕샷 환영' }, { id: 'f2', name: '태윤', handle: 'taeyun', avatar_url: null, onboarded: true }],
     posts: [...seed, ...pend, ...fposts],
     follows: [{ follower_id: 'demo', followee_id: 'f1' }, { follower_id: 'demo', followee_id: 'f2' }],
     likes: [{ post_id: 'f0', user_id: 'f2' }, { post_id: 'f0', user_id: 'f1' }, { post_id: 'f1', user_id: 'f1' }],
@@ -1670,7 +1739,7 @@ function demoClient() {
     let op = 'select', payload, single = false, order = null, lim = 0; const filters = [];
     const run = () => {
       db[table] = db[table] || [];
-      let rows = db[table].filter(r => filters.every(([k, v, how]) => how === 'in' ? v.includes(r[k]) : how === 're' ? v.test(r[k] || '') : r[k] === v));
+      let rows = db[table].filter(r => filters.every(([k, v, how]) => how === 'in' ? v.includes(r[k]) : how === 're' ? v.test(r[k] || '') : how === 'or' ? v.some(([c, re]) => re.test(r[c] || '')) : r[k] === v));
       if (op === 'insert') {
         const row = { id: 'x' + Math.random().toString(36).slice(2), created_at: new Date().toISOString(), ...payload };
         if (table === 'posts') Object.assign(row, { status: 'pending', approved_at: null, ...payload });
@@ -1691,6 +1760,8 @@ function demoClient() {
     const b = {
       select: () => b, eq: (k, v) => (filters.push([k, v]), b), in: (k, arr) => (filters.push([k, arr, 'in']), b),
       ilike: (k, pat) => (filters.push([k, new RegExp(pat.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/%/g, '.*'), 'i'), 're']), b),
+      // or('name.ilike.%x%,handle.ilike.%x%') 흉내: 조건 중 하나라도 맞으면 통과
+      or: expr => (filters.push([null, expr.split(',').map(c => { const [k, , p] = c.split('.'); return [k, new RegExp(p.replace(/%/g, '.*'), 'i')]; }), 'or']), b),
       maybeSingle: () => (single = true, b), limit: n => (lim = n, b),
       order: (k, o = {}) => (order = [k, o.ascending !== false], b),
       insert: p => (op = 'insert', payload = p, b), update: p => (op = 'update', payload = p, b), delete: () => (op = 'delete', b),
