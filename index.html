@@ -873,7 +873,19 @@ function renderError(retry) {
 const UA = navigator.userAgent;
 const inApp = /KAKAOTALK|Instagram|FBAN|FBAV|Line\/|NAVER\(inapp|DaumApps|everytimeApp|Threads/i.test(UA);
 const inKakao = /KAKAOTALK/i.test(UA);
-function openExternal(url = location.href) {
+// iPhone: 기본 브라우저가 무엇이든 Safari 로 열기 시도(x-safari-https://, 공식 문서는 없는 방식)
+const safariUrl = url => url.replace(/^https?:\/\//, 'x-safari-https://');
+const isIPhone = /iphone|ipad|ipod/i.test(UA);
+function tryOpen(href, fallback, wait = 1300) {
+  // 앱 전환이 일어나면 화면이 가려짐(hidden) → 성공. 그대로 보이면 대체 방법으로
+  let left = false;
+  const onHide = () => { if (document.visibilityState === 'hidden') left = true; };
+  document.addEventListener('visibilitychange', onHide);
+  setTimeout(() => { document.removeEventListener('visibilitychange', onHide); if (!left && document.visibilityState === 'visible') fallback(); }, wait);
+  location.href = href;
+}
+function openExternal(url = location.href, noSafari) {
+  if (isIPhone && !noSafari && /^https:/.test(url)) return tryOpen(safariUrl(url), () => openExternal(url, true));
   if (inKakao) { location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(url); return; }
   sheet(`<h3>Open in browser<i class="pd">.</i></h3>
     <p class="hint">이 앱 안의 브라우저에서는 로그인과 알림이 막혀 있어요.</p>
@@ -2244,6 +2256,7 @@ function showInstallGuide() {
   if (installed() || inApp || document.querySelector('.iguide')) return;
   const iosVer = +((UA.match(/OS (\d+)_/) || [])[1] || 0);
   const chromeIOS = /CriOS/i.test(UA);
+  const otherIOS = isIOS && /CriOS|FxiOS|EdgiOS|Whale|NAVER|DaumApps|SamsungBrowser|OPiOS|YaBrowser/i.test(UA); // Safari 가 아닌 iPhone 브라우저
   const android = /android/i.test(UA);
   if (!isIOS && !android) return; // 데스크톱은 하단 배너·메뉴로 충분
   const el = document.createElement('div'); el.className = 'iguide'; el.setAttribute('role', 'dialog');
@@ -2266,11 +2279,14 @@ function showInstallGuide() {
     <img class="ig-ic" src="brand/icon-180.png" alt="">
     <h2>홈 화면에 추가하기</h2>
     <p>앱처럼 바로 열리고, 친구가 사진을 보내면 알림이 와요.</p>
+    ${otherIOS ? `<button class="btn primary block" id="igsafari" style="margin-bottom:18px">Safari로 열기 (추천)</button><p class="ig-sub" style="margin:-8px 0 20px">안 열리면 아래 방법으로 여기서 바로 추가해도 돼요</p>` : ''}
     <ol>${steps}</ol>
     ${android ? `<button class="btn primary block" id="iginst"${installEvt ? '' : ' disabled'}>${installEvt ? '앱 설치' : '설치 준비 중…'}</button>
       <p class="ig-sub" id="igalt"${installEvt ? ' hidden' : ''}>버튼이 계속 안 눌리면 오른쪽 위 <b>⋮</b> → <b>앱 설치</b> 또는 <b>홈 화면에 추가</b></p>` : ''}
     ${arrow ? `<div class="ig-arrow ${arrow}" aria-hidden="true"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v15M5 12l7 7 7-7"/></svg></div>` : ''}`;
   el.querySelector('.ig-x').onclick = () => el.remove();
+  const sf = el.querySelector('#igsafari');
+  if (sf) sf.onclick = () => tryOpen(safariUrl(installUrl()), () => toast('Safari를 열 수 없어요. 아래 방법으로 추가해 주세요'));
   document.body.appendChild(el);
   if (android) {
     const btn = el.querySelector('#iginst');
