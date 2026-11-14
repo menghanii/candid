@@ -709,6 +709,12 @@
   .grid button { container-type:inline-size; }
   .grid .stk-layer .pst { font-size:calc(var(--s, 1) * 13cqw); }
   .stk-layer .pst { pointer-events:auto; cursor:pointer; -webkit-tap-highlight-color:transparent; } /* 보는 화면: 누르면 누가 붙였는지 */
+  .stk-tag { position:absolute; z-index:5; display:inline-flex; align-items:center; gap:4px; max-width:70%; transform:translate(-6px, -100%); padding:6px 10px; border:0; border-radius:999px 999px 999px 4px; background:rgba(15,15,18,.86); color:#fff; font:inherit; font-size:12px; line-height:1.2; white-space:nowrap; pointer-events:auto; box-shadow:0 4px 14px rgba(0,0,0,.3); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); animation:tagIn .18s ease both; }
+  .stk-tag.flip { transform:translate(calc(-100% + 6px), -100%); border-radius:999px 999px 4px 999px; }
+  .stk-tag b { font-weight:700; overflow:hidden; text-overflow:ellipsis; }
+  .stk-tag small { opacity:.65; font-size:11px; }
+  .stk-tag i { font-style:normal; opacity:.7; margin-left:1px; }
+  @keyframes tagIn { from { opacity:0; margin-top:4px; } }
   .stk-layer .pst.ping { animation:stkPing .35s ease; }
   @keyframes stkPing { 50% { transform:translate(-50%,-50%) rotate(var(--r, 0deg)) scale(1.18); } }
   .stk-layer { z-index:3; }
@@ -2818,19 +2824,37 @@ async function loadStickers(ids) {
 const stickerSpan = (r, cls = '') => `<span class="pst${r.text ? ' tx' : ''} ${cls}" data-id="${r.id}"${cls ? '' : ' role="button" onclick="stkWho(event, this)"'} style="left:${r.x * 100}%;top:${r.y * 100}%;--s:${r.scale};--r:${r.rot || 0}deg">${r.text ? `<span class="ptxt ${r.style || 'plain'}">${esc(r.text)}</span>` : glyph(ITEM[r.item_id])}</span>`;
 const stickerLayer = (postId, idx) => `<div class="stk-layer" data-sl="${postId}:${idx}">${(STK.get(postId) || []).filter(r => r.media_idx === idx).map(r => stickerSpan(r)).join('')}</div>`;
 // 보는 화면(게시물·릴스)에서 스티커를 누르면 누가 붙였는지
-const STK_WHO = new Map(); // user_id → 이름
+const STK_WHO = new Map(); // user_id → 프로필 {id, name, handle} | null
+// 보는 화면에서 스티커를 누르면: 스티커 오른쪽 위에 붙인 사람 이름표. 누르면 그 친구 피드로
 async function stkWho(e, s) {
   e.stopPropagation(); e.preventDefault(); // 릴스 두 번 탭(좋아요)·음소거로 넘어가지 않게
-  const postId = s.closest('[data-sl]').dataset.sl.split(':')[0];
+  const L = s.closest('.stk-layer'), postId = L.dataset.sl.split(':')[0];
   const r = (STK.get(postId) || []).find(x => x.id === s.dataset.id); if (!r) return;
   s.classList.remove('ping'); void s.offsetWidth; s.classList.add('ping');
-  if (me && r.user_id === me.id) return toast('내가 붙인 스티커예요');
+  const open = L.querySelector(`.stk-tag[data-for="${r.id}"]`);
+  document.querySelectorAll('.stk-tag').forEach(t => t.remove());
+  if (open) return; // 같은 스티커를 다시 누르면 이름표 닫기
   if (!STK_WHO.has(r.user_id)) {
-    const { data } = await sb.from('profiles').select('name, handle').eq('id', r.user_id).maybeSingle();
-    STK_WHO.set(r.user_id, data ? `${data.name}${data.handle ? ` @${data.handle}` : ''}` : '친구');
+    const { data } = await sb.from('profiles').select('id, name, handle').eq('id', r.user_id).maybeSingle();
+    STK_WHO.set(r.user_id, data || null);
   }
-  toast(`${STK_WHO.get(r.user_id)}님이 붙였어요`);
+  const u = STK_WHO.get(r.user_id), mine = me && r.user_id === me.id;
+  const tag = document.createElement(u ? 'button' : 'span');
+  tag.className = 'stk-tag'; tag.dataset.for = r.id;
+  tag.innerHTML = mine ? '내 스티커' : u ? `<b>${esc(u.name)}</b>${u.handle ? `<small>@${esc(u.handle)}</small>` : ''}<i>›</i>` : '알 수 없는 친구';
+  if (u) tag.setAttribute('aria-label', mine ? '내 피드로 가기' : `${u.name} 피드로 가기`);
+  // 위치: 스티커 오른쪽 위(오른쪽 끝에 가까우면 왼쪽 위)
+  const lr = L.getBoundingClientRect(), sr = s.getBoundingClientRect();
+  const right = sr.left + sr.width / 2 > lr.left + lr.width * 0.62;
+  tag.style.top = `${((sr.top - lr.top) / lr.height) * 100}%`;
+  tag.style.left = `${(((right ? sr.left : sr.right) - lr.left) / lr.width) * 100}%`;
+  if (right) tag.classList.add('flip');
+  tag.onclick = ev => { ev.stopPropagation(); ev.preventDefault(); if (u) go(feedUrl(u.id)); };
+  L.appendChild(tag);
+  setTimeout(() => tag.remove(), 4000);
 }
+// 다른 곳을 누르면 이름표 닫기
+document.addEventListener('pointerdown', e => { if (!e.target.closest('.stk-tag, .stk-layer .pst')) document.querySelectorAll('.stk-tag').forEach(t => t.remove()); }, true);
 function refreshStickerLayers(postId) {
   document.querySelectorAll(`[data-sl^="${postId}:"]`).forEach(el => { const st = el.parentElement; el.outerHTML = stickerLayer(postId, +el.dataset.sl.split(':')[1]); if (st?.dataset.ar) fitStickerLayer(st); });
 }
