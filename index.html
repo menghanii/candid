@@ -3292,8 +3292,9 @@ async function openDecorate(postId, idx0) {
       const msg = String(err?.message || err), code = err?.code ? `[${err.code}] ` : '';
       console.error('sticker save failed', step, err);
       toast(/row-level|42501/i.test(msg) ? t('스티커를 붙일 수 없어요(개수 제한이거나 권한이 없어요)')
-        : /column .*(rot|text|style)|t_text|foreign key/i.test(msg) ? t('텍스트·회전 기능 준비 중이에요(관리자: 12 SQL 실행 필요)')
-        : `${t('저장 실패')}(${step}): ${code}${msg}`.slice(0, 120));
+        // 칸이 없다는 오류만 '준비 중'으로(예전엔 'text' 가 들어간 다른 오류까지 잘못 걸렸음). 그 외엔 원인을 그대로 보여줌
+        : /(could not find|does not exist).*\b(rot|text|style)\b/i.test(msg) ? t('텍스트·회전 기능 준비 중이에요(관리자: 12 SQL 실행 필요)') + ` ${code}`
+        : `${t('저장 실패')}(${t(step)}): ${code}${msg}`.slice(0, 160));
     }
   };
   paint();

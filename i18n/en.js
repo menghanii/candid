@@ -380,5 +380,7 @@
  "사진을 불러오지 못했어요. 다시 시도해 주세요": "Couldn't load the photo. Please try again.",
  "친구가 본 {name}": "{name}, through friends’ eyes",
  "나한테도 사진 보내줘 → 링크 클릭": "Send me a photo too → tap the link",
- "이미지를 저장했어요. 스토리에 올리고 링크 스티커로 내 피드 링크를 붙여 보세요": "Image saved. Post it to your story and add your feed link with a link sticker."
+ "이미지를 저장했어요. 스토리에 올리고 링크 스티커로 내 피드 링크를 붙여 보세요": "Image saved. Post it to your story and add your feed link with a link sticker.",
+ "붙이기": "Add",
+ "옮기기": "Move"
 };
