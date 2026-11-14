@@ -230,6 +230,16 @@
   .wm-dot { display:inline-block; margin:0 0 .08em .06em; line-height:0; }
   .wm-dot .dotc { width:.62em; height:.62em; }
   .landing .hero > .btn { flex:none; }
+  /* 시작 화면 변신: 통통 2번(0~1.1초) → 눈 감기 → 작아지며 사라짐 + 마침표 등장(~1.55초) */
+  .wm-dot { position:relative; }
+  .wm-period { position:absolute; left:.02em; bottom:.02em; width:.2em; height:.2em; border-radius:50%; background:var(--accent); transform:scale(0); }
+  #splash.morph .dotc.hop .dotc-b { animation-duration:.55s; animation-iteration-count:2; }
+  #splash.morph .dotc .dotc-e { transform-box:fill-box; transform-origin:center; animation:dotShut .18s ease 1.05s forwards; }
+  #splash.morph .wm-dot .dotc { transform-origin:12% 100%; animation:dotToPeriod .32s cubic-bezier(.5,0,.75,0) 1.15s forwards; }
+  #splash.morph .wm-period { animation:periodIn .3s cubic-bezier(.2,1.6,.4,1) 1.3s forwards; }
+  @keyframes dotShut { to { transform:scaleY(.08); } }
+  @keyframes dotToPeriod { to { transform:scale(.3); opacity:0; } }
+  @keyframes periodIn { to { transform:scale(1); } }
   .empty-dot { display:flex; justify-content:center; margin:0 0 14px; }
   .splash { position:fixed; inset:0; z-index:70; display:flex; align-items:center; justify-content:center; background:var(--bg); transition:opacity .35s ease; }
   .splash .logo, .authwait .logo { font-size:40px; color:var(--fg); }
@@ -1040,12 +1050,25 @@ function DOT(mood = 'base', { size = 72, tail = true, cls = '', label = '' } = {
 }
 // 로고: 'candid' + 마침표 자리에 닷(통통 튐). 시작 화면·로그인 중 화면에서 같은 자리에
 const LOGO_DOT = `candid<span class="wm-dot">${DOT('base', { size: 22, tail: false, cls: 'hop' })}</span>`;
-(() => { const sp = document.querySelector('#splash .logo'); if (sp) sp.innerHTML = LOGO_DOT; })();
+// 시작 화면: 닷이 두 번 통통 튀다가 눈을 감고 작아지며 파란 마침표로 변신 → 앱 화면으로
+// (로그인에서 돌아오는 중이면 변신 없이 계속 튐 — 곧 '로그인하는 중' 화면이 같은 자리에 이어짐)
+const SPLASH_MORPH = !/[#&?](access_token|code|error_description)=/.test(location.href) && (() => { try { return sessionStorage.getItem('candid_oauth') !== '1'; } catch { return true; } })()
+  && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+(() => {
+  const sp = document.querySelector('#splash .logo'); if (!sp) return;
+  sp.innerHTML = `candid<span class="wm-dot">${DOT('base', { size: 22, tail: false, cls: 'hop' })}<i class="wm-period"></i></span>`;
+  document.getElementById('splash').classList.add(SPLASH_MORPH ? 'morph' : 'stay');
+})();
 
 // 시작 화면 걷어내기: #app 에 첫 화면이 그려지면(로그인 중 화면 포함) 페이드아웃
 (() => {
   const sp = document.getElementById('splash'), app = document.getElementById('app');
-  const hide = () => { if (!sp || sp.classList.contains('out')) return; app.classList.add('enter'); sp.classList.add('out'); setTimeout(() => { sp.remove(); app.classList.remove('enter'); }, 450); };
+  const MIN = SPLASH_MORPH ? 1650 : 0, t0 = performance.now(); // 변신 애니메이션(시작 화면이 그려진 순간부터)이 끝날 때까지는 보여 줌
+  const hide = () => {
+    if (!sp || sp.classList.contains('out')) return;
+    const wait = t0 + MIN - performance.now(); if (wait > 0) return setTimeout(hide, wait);
+    app.classList.add('enter'); sp.classList.add('out'); setTimeout(() => { sp.remove(); app.classList.remove('enter'); }, 450);
+  };
   new MutationObserver((_, ob) => { if (app.children.length) { ob.disconnect(); requestAnimationFrame(hide); } }).observe(app, { childList: true });
   setTimeout(hide, 12000); // 안전장치
 })();
