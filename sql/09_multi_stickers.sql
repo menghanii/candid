@@ -56,7 +56,8 @@ create or replace function public.can_add_sticker(p_post uuid, p_idx int, p_item
 language sql stable security definer set search_path = '' as $$
   select
     -- 피드에 올라간 사진·영상 게시물에만
-    exists (select 1 from public.posts p where p.id = p_post and p.status = 'approved' and p.media_type in ('image', 'video'))
+    exists (select 1 from public.posts p where p.id = p_post and p.status = 'approved'
+             and (p.media_type in ('image', 'video') or (p.media_type in ('poll', 'question') and p_idx = 0)))
     -- 무료 스티커이거나, 가챠로 가진 스티커만
     and exists (select 1 from public.items t where t.id = p_item and t.kind = 'sticker'
                  and (coalesce((t.data->>'free')::boolean, false)

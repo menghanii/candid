@@ -762,6 +762,12 @@
   .dwrap { padding:4px 16px 0; }
   .dstage { border-radius:16px; touch-action:none; }
   .dstage > img { pointer-events:none; -webkit-user-drag:none; }
+  /* 투표·질문 카드에 스티커: 카드 상자 기준으로 위치(0~1) */
+  .tstage { position:relative; container-type:inline-size; }
+  .rtc .tstage { width:100%; }
+  .tstage .stk-layer { z-index:3; }
+  .dstage.tstage .tcard { pointer-events:none; border-radius:16px; }
+  .dstage.tstage .tcard * { pointer-events:none; }
   .dlayer { position:absolute; inset:0; z-index:1; }
   .dlayer .pst { pointer-events:auto; cursor:grab; transition:filter .15s; }
   .dlayer .pst.other { opacity:.9; cursor:default; }
@@ -1397,7 +1403,7 @@ async function renderProfile(uid, fresh) {
   S.pending = posts.filter(p => p.status === 'pending');
   S.hidden = posts.filter(p => p.status === 'hidden').sort((a, b) => new Date(b.hidden_at || 0) - new Date(a.hidden_at || 0)); // 주인이 피드에서 내린 것
   await loadPolls(S.approved).catch(() => {});
-  await loadStickers(S.approved.filter(p => !isText(p)).map(p => p.id)).catch(() => {});
+  await loadStickers(S.approved.map(p => p.id)).catch(() => {});
   if (!S.isOwner) S.tab = 'grid';
   CACHE.prof.set(uid, { prof, isOwner: S.isOwner, approved: S.approved, pending: S.pending, sig });
   paintProfile();
@@ -1735,7 +1741,7 @@ async function fetchHome() {
   const o = await sb.from('profiles').select('*').in('id', ids);
   await loadSocial(r.data.map(p => p.id));
   await loadPolls(r.data).catch(() => {});
-  await loadStickers(r.data.filter(p => !isText(p)).map(p => p.id)).catch(() => {});
+  await loadStickers(r.data.map(p => p.id)).catch(() => {});
   return { posts: r.data, owners: new Map((o.data || []).map(p => [p.id, p])) };
 }
 // 홈: 저장해 둔 릴스를 바로 보여주고 뒤에서 갱신. fresh=true(당겨서 새로고침)면 새로 받아 다시 그림
@@ -1807,7 +1813,7 @@ function paintHome({ posts, owners }) {
   $app.innerHTML = `<div class="reels" id="reels">${top}${posts.map(p => {
     const o = owners.get(p.owner_id) || { name: '친구' }, s = SOC.get(p.id);
     return `<section class="reel" data-id="${p.id}">
-      ${isText(p) ? `<div class="rbg rbg-${p.media_type}"></div><div class="rmedia rtc">${textCard(p)}</div>` : ''}
+      ${isText(p) ? `<div class="rbg rbg-${p.media_type}"></div><div class="rmedia rtc">${textStage(p)}</div>` : ''}
       ${isText(p) ? '' : `<div class="rmedia rcar">${mediaCarousel(p, 'reel')}</div>
         ${mediaOf(p).some(m => m.k === 'video') ? `<button class="rmute" aria-label="소리 켜기/끄기">${muted ? I.mute : I.sound}</button>` : ''}`}
       <div class="rburst">${I.heartOn}</div>
@@ -1821,7 +1827,7 @@ function paintHome({ posts, owners }) {
         <a class="rav" href="${feedUrl(p.owner_id)}" aria-label="${esc(o.name)} 피드로 가기">${avatar(o, 'xs')}<b>${esc(o.name)}</b></a>
         <button class="rbtn" data-like="${p.id}" aria-label="좋아요" aria-pressed="${s.liked}" onclick="toggleLike('${p.id}')"><span>${s.liked ? I.heartOn : I.heart}</span><b>${s.likes || ''}</b></button>
         <button class="rbtn" data-cmt="${p.id}" aria-label="댓글" onclick="openComments('${p.id}','${p.owner_id}')"><span>${I.comment}</span><b>${s.comments || ''}</b></button>
-        ${me && !isText(p) ? `<button class="rbtn" aria-label="스티커로 꾸미기" onclick="decorateFromReel('${p.id}', this)"><span>${I.sparkle}</span><b>꾸미기</b></button>` : ''}
+        ${me ? `<button class="rbtn" aria-label="스티커로 꾸미기" onclick="decorateFromReel('${p.id}', this)"><span>${I.sparkle}</span><b>꾸미기</b></button>` : ''}
         <button class="rbtn" aria-label="${HIDE_STK ? '스티커 보이기' : '스티커 숨기기'}" aria-pressed="${HIDE_STK}" onclick="toggleReelStickers(this)"><span>${HIDE_STK ? I.eyeOff : I.eye}</span><b>${HIDE_STK ? '숨김' : '스티커'}</b></button>
 
       </div>
@@ -1946,6 +1952,8 @@ const qaHTML = p => `<div class="qa"><div class="q"><span>Q.</span>${esc(p.text)
   ? `<div class="a"><span>A.</span>${esc(p.answer)}</div>`
   : `<div class="a wait">아직 답하지 않았어요</div>`}</div>`;
 // 상세·릴스에서 쓰는 큰 카드
+// 투표·질문 카드 + 스티커 층(사진처럼 카드 위에 스티커를 붙일 수 있게)
+const textStage = p => `<div class="tstage">${textCard(p)}${p.status === 'approved' ? stickerLayer(p.id, 0) : ''}</div>`;
 const textCard = p => `<div class="tcard ${p.media_type}"><span class="tk">${p.media_type === 'poll' ? 'POLL' : 'Q&amp;A'}</span>
   ${p.media_type === 'poll' ? `<h4>${esc(p.text)}</h4>${pollHTML(p)}` : qaHTML(p)}</div>`;
 
@@ -2024,12 +2032,12 @@ function openPost(id) {
         <div class="who"><b>${esc(p.author_name)}<span style="font-weight:400;color:var(--sub)">님이 보냄</span></b>${p.mission ? `<span class="mchip">${esc(p.mission)}</span>` : ''}</div>
         <button class="icon-btn" data-close aria-label="닫기">${I.close}</button>
       </div>
-      ${isText(p) ? textCard(p) : `<div class="post-media">${mediaCarousel(p, 'post')}</div>`}
+      ${isText(p) ? textStage(p) : `<div class="post-media">${mediaCarousel(p, 'post')}</div>`}
       ${p.text && !isText(p) ? `<div class="post-c"><div class="quote">${esc(p.text)}</div></div>` : ''}
       ${p.status === 'approved' ? `<div class="psoc">
         <button class="pbtn" data-like="${p.id}" aria-label="좋아요" onclick="toggleLike('${p.id}')"><span>${I.heart}</span><b></b></button>
         <button class="pbtn" data-cmt="${p.id}" aria-label="댓글" onclick="focusPostComments(this)"><span>${I.comment}</span><b></b></button>
-        ${me && !isText(p) ? `<button class="pbtn deco" aria-label="스티커로 꾸미기" onclick="openDecorate('${p.id}')"><span>${I.sparkle}</span>꾸미기</button>` : ''}</div>` : ''}
+        ${me ? `<button class="pbtn deco" aria-label="스티커로 꾸미기" onclick="openDecorate('${p.id}')"><span>${I.sparkle}</span>꾸미기</button>` : ''}</div>` : ''}
       <div class="post-f">
         ${p.status === 'pending' ? `받은 지 ${ago(p.created_at)} · 승인 대기 중` : p.status === 'hidden' ? `${ago(p.hidden_at || p.created_at)} 피드에서 내림 · 나만 보여요` : `${ago(p.approved_at || p.created_at)} 피드에 올림`}
         <div class="sp"></div>
@@ -2047,7 +2055,7 @@ function openPost(id) {
   ov.onclick = e => { if (e.target === ov || e.target.closest('[data-close]')) ov.remove(); };
   document.body.appendChild(ov);
   if (p.status === 'approved') { loadSocial([p.id]).then(() => paintSoc(p.id)).catch(() => {}); mountComments(ov.querySelector('.pcmts'), p.id, p.owner_id); }
-  if (p.status === 'approved' && !isText(p)) loadStickers([p.id]).then(() => refreshStickerLayers(p.id)).catch(() => {});
+  if (p.status === 'approved') loadStickers([p.id]).then(() => refreshStickerLayers(p.id)).catch(() => {});
   initCarousels(ov, () => true);
   ov.querySelector('video')?.play().catch(() => {});
 }
@@ -3001,12 +3009,12 @@ async function openDecorate(postId, idx0) {
   if (!me) return toast('로그인하면 스티커로 꾸밀 수 있어요');
   const p = findAny(postId); if (!p) return;
   const idx = Number.isInteger(idx0) ? idx0 : +(document.querySelector('.overlay .carwrap')?.dataset.idx || 0);
-  const m = mediaOf(p)[idx]; if (!m) return;
+  const m = isText(p) ? null : mediaOf(p)[idx]; if (!m && !isText(p)) return;
   const isOwnerPost = p.owner_id === me.id;
   const MAX_MINE = 10;
   const el = pageOverlay('decor', `
     <header class="pov-h cmp-h"><button class="icon-btn" data-x aria-label="닫기">${I.close}</button><b>스티커 꾸미기</b><button class="cmp-send" id="dsave">저장</button></header>
-    <div class="dwrap"><div class="stage dstage" id="dstage"><img src="${photoUrl(m.k === 'video' ? (m.t || m.p) : m.p)}" alt="" draggable="false"><div class="dlayer" id="dlayer"></div></div></div>
+    <div class="dwrap"><div class="stage dstage${m ? '' : ' tstage'}" id="dstage">${m ? `<img src="${photoUrl(m.k === 'video' ? (m.t || m.p) : m.p)}" alt="" draggable="false">` : textCard(p)}<div class="dlayer" id="dlayer"></div></div></div>
     <div class="dtools" id="dtools" hidden>
       <div class="dsl" id="dszw"><small>크기</small><input type="range" id="dsize" min="0.4" max="3" step="0.05" aria-label="크기"></div>
       <div class="dsl" id="drotw"><small>회전</small><input type="range" id="drot" min="-180" max="180" step="1" aria-label="회전"></div>
