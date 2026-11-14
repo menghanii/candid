@@ -233,6 +233,12 @@
   .cbar .btn { flex:none; }
   /* 게시물 상세 좋아요·댓글 */
   .psoc { display:flex; gap:16px; padding:2px 16px 0; }
+  .pbtn.deco { margin-left:auto; gap:4px; font-size:13px; }
+  .pbtn.deco svg { width:24px; height:24px; }
+  /* 게시물 아래 댓글 목록 */
+  .pcmts { border-top:1px solid var(--line); padding:4px 16px 0; }
+  .pcmts .clist { min-height:0; }
+  .pcmts .cbar { position:sticky; bottom:0; z-index:1; background:var(--card); padding:10px 0 calc(12px + env(safe-area-inset-bottom)); }
   .pbtn { display:flex; align-items:center; gap:6px; background:none; border:0; padding:6px 4px; font-weight:700; font-size:14px; }
   .pbtn svg { width:24px; height:24px; }
 
@@ -603,6 +609,8 @@
   .pst { position:absolute; transform:translate(-50%,-50%); font-size:calc(var(--s, 1) * 13cqw); line-height:1; filter:drop-shadow(0 2px 4px rgba(0,0,0,.3)); user-select:none; -webkit-user-select:none; }
   .grid button { container-type:inline-size; }
   .grid .stk-layer .pst { font-size:calc(var(--s, 1) * 13cqw); }
+  .stk-layer .pst { pointer-events:auto; cursor:pointer; } /* 보는 화면: 누르면 누가 붙였는지 */
+  .grid .stk-layer .pst { pointer-events:none; }
   /* 상세 화면 */
   .post-media .stage > img, .post-media .stage > video { aspect-ratio:4/5; }
   /* 릴스: 4:5 사진 영역을 가운데에, 스티커 위치가 그리드·상세와 똑같이 보이도록 */
@@ -1213,7 +1221,8 @@ function paintProfile() {
     ${!isOwner && !me ? `<p style="text-align:center;margin:-6px 0 16px;font-size:13px;color:var(--sub)">나도 친구들한테 받아보고 싶다면? <a href="${location.pathname}" style="color:var(--fg);font-weight:600">내 피드 만들기</a></p>` : ''}
     <nav class="tabs">
       <button class="${S.tab === 'grid' ? 'on' : ''}" onclick="setTab('grid')">피드</button>
-      ${isOwner ? `<button class="${S.tab === 'inbox' ? 'on' : ''}" onclick="setTab('inbox')">대기 피드${pending.length ? `<span class="n">${pending.length}</span>` : ''}</button>` : ''}
+      ${isOwner ? `<button class="${S.tab === 'inbox' ? 'on' : ''}" onclick="setTab('inbox')">대기 피드${pending.length ? `<span class="n">${pending.length}</span>` : ''}</button>
+      <button class="${S.tab === 'friends' ? 'on' : ''}" onclick="setTab('friends')">친구</button>` : ''}
     </nav>
     <main id="body"></main>
     ${navBar(isOwner ? 'feed' : '')}`;
@@ -1355,7 +1364,7 @@ async function renderFriendsTab($b) {
   if (S.tab !== 'friends' || !document.body.contains($b)) return;
   if (error) return $b.innerHTML = `<div class="empty"><p>${esc(kerr(error))}</p></div>`;
   data.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-  const head = `<div class="fhead"><button onclick="setTab('grid')" aria-label="피드로 돌아가기">←</button><b>내 친구 ${data.length}</b></div>`;
+  const head = `<div class="fhead"><b>내 친구 ${data.length}</b><div style="flex:1"></div><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px" onclick="openSearch()">+ 친구 찾기</button></div>`;
   $b.innerHTML = head + `<div class="flist">${data.map(p => `
     <div class="frow"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b><small>${p.handle ? `@${esc(p.handle)}` : ''}${p.handle && p.bio ? ' · ' : ''}${esc(p.bio || '')}</small></span></a>
       <button class="btn" onclick="toggleFollow('${p.id}', this)">친구 ✓</button></div>`).join('')}</div>`;
@@ -1427,16 +1436,29 @@ async function toggleLike(id, only) {
     : await sb.from('likes').delete().eq('post_id', id).eq('user_id', me.id);
   if (error) { s.liked = !s.liked; s.likes += s.liked ? 1 : -1; paintSoc(id); toast(kerr(error)); }
 }
-async function openComments(id, ownerId) {
-  const w = sheet(`<h3>Comments<i class="pd">.</i></h3><div id="cl" class="clist"><p class="hint">불러오는 중…</p></div>
-    <div class="sheet-foot cbar">${me
-      ? `<input class="field" id="cin" maxlength="200" placeholder="따뜻한 한마디 남기기" style="margin:0"><button class="btn primary" id="cgo">게시</button>`
-      : `<button class="btn primary block" onclick="closeSheet();location.href=location.pathname">로그인하고 댓글 달기</button>`}</div>`);
+// 댓글 목록 + 입력칸 (릴스는 시트로, 게시물 상세는 사진 아래에 바로)
+const commentsHtml = (foot = '') => `<div class="clist" data-cl><p class="hint">불러오는 중…</p></div>
+    <div class="cbar ${foot}">${me
+      ? `<input class="field" data-cin maxlength="200" placeholder="따뜻한 한마디 남기기" style="margin:0"><button class="btn primary" data-cgo>게시</button>`
+      : `<button class="btn primary block" onclick="closeSheet();location.href=location.pathname">로그인하고 댓글 달기</button>`}</div>`;
+function openComments(id, ownerId) {
+  const w = sheet(`<h3>Comments<i class="pd">.</i></h3>${commentsHtml('sheet-foot')}`);
+  mountComments(w, id, ownerId);
+}
+// 게시물 상세의 💬: 아래 댓글로 스크롤 + 입력칸 포커스
+function focusPostComments(btn) {
+  const sec = btn.closest('.post')?.querySelector('.pcmts'); if (!sec) return;
+  sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  setTimeout(() => sec.querySelector('[data-cin]')?.focus({ preventScroll: true }), 350);
+}
+function mountComments(w, id, ownerId) {
+  if (!w) return;
   const paint = async () => {
     const { data, error } = await sb.from('comments').select('id, body, created_at, user_id, profiles(name, avatar_url)').eq('post_id', id).order('created_at', { ascending: true });
-    if (error) return w.querySelector('#cl').innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
+    if (!w.isConnected) return;
+    if (error) return w.querySelector('[data-cl]').innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
     const s = SOC.get(id); if (s) { s.comments = data.length; paintSoc(id); }
-    w.querySelector('#cl').innerHTML = data.length ? data.map(c => `
+    w.querySelector('[data-cl]').innerHTML = data.length ? data.map(c => `
       <div class="crow">${avatar(c.profiles, 'xs')}<div style="flex:1;min-width:0"><b>${esc(c.profiles?.name || '친구')}</b> <small>${ago(c.created_at)}</small><div>${esc(c.body)}</div></div>
         ${me && (c.user_id === me.id || ownerId === me.id) ? `<button class="cdel" data-del="${c.id}" aria-label="댓글 삭제">삭제</button>` : ''}</div>`).join('')
       : '<p class="hint" style="text-align:center;padding:24px 0">첫 댓글을 남겨 보세요</p>';
@@ -1446,7 +1468,7 @@ async function openComments(id, ownerId) {
     });
   };
   paint();
-  const go = w.querySelector('#cgo'), inp = w.querySelector('#cin');
+  const go = w.querySelector('[data-cgo]'), inp = w.querySelector('[data-cin]');
   if (go) {
     const send = async () => {
       const body = inp.value.trim(); if (!body) return;
@@ -1730,11 +1752,11 @@ function openPost(id) {
       ${p.text && !isText(p) ? `<div class="post-c"><div class="quote">${esc(p.text)}</div></div>` : ''}
       ${p.status === 'approved' ? `<div class="psoc">
         <button class="pbtn" data-like="${p.id}" aria-label="좋아요" onclick="toggleLike('${p.id}')"><span>${I.heart}</span><b></b></button>
-        <button class="pbtn" data-cmt="${p.id}" aria-label="댓글" onclick="openComments('${p.id}','${p.owner_id}')"><span>${I.comment}</span><b></b></button></div>` : ''}
+        <button class="pbtn" data-cmt="${p.id}" aria-label="댓글" onclick="focusPostComments(this)"><span>${I.comment}</span><b></b></button>
+        ${me && !isText(p) ? `<button class="pbtn deco" aria-label="스티커로 꾸미기" onclick="openDecorate('${p.id}')"><span>${I.sparkle}</span>꾸미기</button>` : ''}</div>` : ''}
       <div class="post-f">
         ${p.status === 'pending' ? `받은 지 ${ago(p.created_at)} · 승인 대기 중` : p.status === 'hidden' ? `${ago(p.hidden_at || p.created_at)} 피드에서 내림 · 나만 보여요` : `${ago(p.approved_at || p.created_at)} 피드에 올림`}
         <div class="sp"></div>
-        ${me && p.status === 'approved' && !isText(p) ? `<button class="icon-btn" aria-label="스티커로 꾸미기" onclick="openDecorate('${p.id}')">${I.stickerIc}</button>` : ''}
         ${S.isOwner && p.status === 'approved' ? `<button class="icon-btn" aria-label="스토리 이미지 저장" onclick="makeStory('${p.id}')">${I.share}</button>` : ''}
         ${S.isOwner ? `<button class="icon-btn" aria-label="더보기" onclick="postMenu('${p.id}')">${I.more}</button>` : ''}
       </div>
@@ -1744,10 +1766,11 @@ function openPost(id) {
       ${S.isOwner && p.status === 'hidden' ? `<div class="pending-acts">
         <button class="btn" onclick="removePost('${p.id}')">삭제</button>
         <button class="btn primary" onclick="restorePost('${p.id}')">다시 올리기</button></div>` : ''}
+      ${p.status === 'approved' ? `<section class="pcmts" aria-label="댓글">${commentsHtml()}</section>` : ''}
     </article>`;
   ov.onclick = e => { if (e.target === ov || e.target.closest('[data-close]')) ov.remove(); };
   document.body.appendChild(ov);
-  if (p.status === 'approved') loadSocial([p.id]).then(() => paintSoc(p.id)).catch(() => {});
+  if (p.status === 'approved') { loadSocial([p.id]).then(() => paintSoc(p.id)).catch(() => {}); mountComments(ov.querySelector('.pcmts'), p.id, p.owner_id); }
   if (p.status === 'approved' && !isText(p)) loadStickers([p.id]).then(() => refreshStickerLayers(p.id)).catch(() => {});
   initCarousels(ov, () => true);
   ov.querySelector('video')?.play().catch(() => {});
@@ -2354,6 +2377,20 @@ async function loadStickers(ids) {
 // 스티커 한 개: 이모지·미니 아이템 그림·텍스트 + 크기(--s)·회전(--r)
 const stickerSpan = (r, cls = '') => `<span class="pst${r.text ? ' tx' : ''} ${cls}" data-id="${r.id}" style="left:${r.x * 100}%;top:${r.y * 100}%;--s:${r.scale};--r:${r.rot || 0}deg">${r.text ? `<span class="ptxt ${r.style || 'plain'}">${esc(r.text)}</span>` : glyph(ITEM[r.item_id])}</span>`;
 const stickerLayer = (postId, idx) => `<div class="stk-layer" data-sl="${postId}:${idx}">${(STK.get(postId) || []).filter(r => r.media_idx === idx).map(r => stickerSpan(r)).join('')}</div>`;
+// 보는 화면(게시물·릴스)에서 스티커를 누르면 누가 붙였는지
+const STK_WHO = new Map(); // user_id → 이름
+document.addEventListener('click', async e => {
+  const s = e.target.closest('.stk-layer .pst'); if (!s) return;
+  e.stopPropagation(); e.preventDefault();
+  const postId = s.closest('[data-sl]').dataset.sl.split(':')[0];
+  const r = (STK.get(postId) || []).find(x => x.id === s.dataset.id); if (!r) return;
+  if (me && r.user_id === me.id) return toast('내가 붙인 스티커예요');
+  if (!STK_WHO.has(r.user_id)) {
+    const { data } = await sb.from('profiles').select('name, handle').eq('id', r.user_id).maybeSingle();
+    STK_WHO.set(r.user_id, data ? `${data.name}${data.handle ? ` @${data.handle}` : ''}` : '친구');
+  }
+  toast(`${STK_WHO.get(r.user_id)}님이 붙였어요`);
+}, true);
 function refreshStickerLayers(postId) {
   document.querySelectorAll(`[data-sl^="${postId}:"]`).forEach(el => { el.outerHTML = stickerLayer(postId, +el.dataset.sl.split(':')[1]); });
 }
