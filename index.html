@@ -708,18 +708,18 @@
   .row.hid .thumb { filter:grayscale(.4); }
   .empty.small { padding:20px 28px 24px; }
   .empty.small h2 { font-size:22px; }
-  /* 릴스: 사진은 위, 글(from·메시지·시간)은 사진 아래 전용 영역 → 글이 사진을 가리지 않음 */
-  :root { --rtop:calc(56px + var(--st)); --rbot:calc(84px + 104px + env(safe-area-inset-bottom)); }
-  .rcar { align-items:center; padding:var(--rtop) 0 var(--rbot); }
+  /* 릴스: 사진은 화면 가운데, 글(from·메시지·시간)은 하단 메뉴 바로 위 */
+  :root { --rpad:calc(56px + var(--st)); }
+  .rcar { align-items:center; padding:var(--rpad) 0; }
   .rcar .carwrap { width:100%; }
-  .rcar .stage { width:min(100%, calc((100dvh - var(--rtop) - var(--rbot)) * 0.8)); margin:0 auto; }
+  .rcar .stage { width:min(100%, calc((100dvh - 2 * var(--rpad)) * 0.8)); margin:0 auto; }
   .rcar .stage > img, .rcar .stage > video { max-height:none; aspect-ratio:4/5; }
   .rcar .car-n { top:8px; right:8px; }
-  .rcar .car-dots { bottom:-18px; }
-  .rinfo { bottom:calc(88px + env(safe-area-inset-bottom)); right:20px; }
+  .rcar .car-dots { display:none; } /* 릴스는 오른쪽 위 1/3 표시로 충분(글과 겹치지 않게) */
+  .rinfo { bottom:calc(74px + env(safe-area-inset-bottom)); right:20px; }
   .rinfo .rtext { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:16px; }
-  .reel::after { height:calc(var(--rbot) + 20px); background:linear-gradient(transparent, rgba(0,0,0,.55) 40%); }
-  .rside { bottom:calc(var(--rbot) + 8px); }
+  .reel::after { height:220px; background:linear-gradient(transparent, rgba(0,0,0,.6) 55%); }
+  .rside { bottom:calc(170px + env(safe-area-inset-bottom)); }
 </style>
 </head>
 <body>
