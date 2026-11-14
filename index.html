@@ -409,6 +409,37 @@
   .nrow .ntx small { display:block; margin-top:2px; color:var(--sub); font-size:12px; }
   .nthumb { flex:none; width:44px; height:44px; border-radius:8px; object-fit:cover; background:var(--soft); }
   .nfol { flex:none; width:auto; padding:7px 12px; font-size:13px; }
+  /* ===== 보내기 화면 (인스타 새 게시물 화면 참고) ===== */
+  .cmp-h .cmp-to { flex:1; display:flex; align-items:center; justify-content:center; gap:8px; min-width:0; }
+  .cmp-h .cmp-to span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cmp-h .cmp-to .av { width:26px; height:26px; font-size:12px; flex:none; }
+  .cmp-h .cmp-hsp { width:40px; flex:none; }
+  .composer .cmp-modes.top { position:static; transform:none; display:flex; width:100%; max-width:none; margin:0 0 14px; padding:3px; border-radius:12px; background:var(--soft); box-shadow:none; }
+  .composer .cmp-modes.top button { flex:1; padding:9px 0; border-radius:9px; color:var(--sub); }
+  .composer .cmp-modes.top button.on { background:var(--card); color:var(--fg); box-shadow:0 1px 4px rgba(0,0,0,.12); }
+  .composer .cmp-body { padding-bottom:12px; }
+  .caprow { display:flex; align-items:flex-start; gap:12px; margin-top:14px; padding:12px 0 6px; border-top:1px solid var(--line); }
+  .capav { flex:none; display:grid; place-items:center; width:36px; height:36px; border-radius:50%; background:var(--soft); color:var(--fg); font-size:17px; font-weight:700; overflow:hidden; }
+  .capav .av { width:36px; height:36px; }
+  .caprow textarea { flex:1; min-height:36px; max-height:140px; padding:7px 0; border:0; background:none; color:var(--fg); font:inherit; font-size:16px; line-height:1.45; resize:none; outline:none; }
+  .caprow textarea::placeholder { color:var(--sub); }
+  .capmeta { display:flex; align-items:center; gap:8px; padding-bottom:14px; border-bottom:1px solid var(--line); }
+  .cmp-sugs { flex:1; display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; margin-left:48px; -webkit-mask-image:linear-gradient(90deg,#000 85%,transparent); mask-image:linear-gradient(90deg,#000 85%,transparent); }
+  .cmp-sugs::-webkit-scrollbar { display:none; }
+  .cmp-sugs button { flex:none; padding:6px 11px; border:1px solid var(--line); border-radius:999px; background:none; color:var(--sub); font-size:12px; font-weight:600; white-space:nowrap; }
+  .cmp-sugs button.on { border-color:var(--accent); color:var(--accent); }
+  .capcnt { flex:none; color:var(--sub); font-size:11px; font-variant-numeric:tabular-nums; opacity:.6; }
+  .capcnt.on { opacity:1; }
+  .composer .cmp-who { margin-top:6px; padding:14px 0; border-bottom:1px solid var(--line); }
+  .cmp-whohead { display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:14px; font-weight:600; }
+  .cmp-whohead .cmp-seg { flex:none; width:auto; padding:3px; border-radius:10px; }
+  .cmp-whohead .cmp-seg button { flex:none; padding:7px 12px; border-radius:8px; font-size:13px; }
+  .composer .cmp-whoval { margin-top:12px; }
+  .composer .cmp-whoval:empty { display:none; }
+  .cmp-foot { position:sticky; bottom:0; z-index:3; margin-top:auto; padding:14px 16px calc(12px + env(safe-area-inset-bottom)); background:linear-gradient(to bottom, transparent, var(--bg) 22%); }
+  .cmp-foot p { margin:8px 0 0; color:var(--sub); font-size:11.5px; text-align:center; }
+  .cmp-go { height:52px; font-size:16px; font-weight:800; }
+  .cmp-go:disabled { opacity:.35; }
   .pflist { max-height:52vh; overflow:auto; margin:0 -4px; }
   .pfrow { display:flex; width:100%; align-items:center; gap:12px; padding:10px 4px; border:0; background:none; color:inherit; text-align:left; font:inherit; }
   .pfrow > span { flex:1; min-width:0; display:flex; flex-direction:column; }
@@ -2016,13 +2047,16 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
   const nick = (myProf?.name || saved).slice(0, 12);
   const name = esc(S.prof.name);
   const el = pageOverlay('composer', `
-    <header class="pov-h cmp-h"><button class="icon-btn" data-x aria-label="닫기">${I.close}</button><b>${name}에게</b><button class="cmp-send" id="send" disabled>보내기</button></header>
+    <header class="pov-h cmp-h"><button class="icon-btn" data-x aria-label="닫기">${I.close}</button><b class="cmp-to">${avatar(S.prof, 'xs')}<span>${name}에게</span></b><span class="cmp-hsp"></span></header>
     <div class="cmp-body">
+      <nav class="cmp-modes top" role="tablist"><button data-mode="media" role="tab">사진·영상</button><button data-mode="poll" role="tab">투표</button><button data-mode="question" role="tab">질문</button></nav>
       ${asked ? `<div class="asked">${name}님이 <b>'${esc(MISSIONS[mi])}'</b>을(를) 부탁했어요</div>` : ''}
       <section data-sec="media">
         <label class="cmp-media" id="pick"><span class="cmp-empty">${I.camera}<b>사진·영상 선택</b><small>여러 장 가능(최대 10장) · 영상은 10초까지</small></span><input type="file" accept="image/*,video/*" id="file" multiple hidden></label>
         <div class="trim" id="trim" hidden></div>
-        <input class="cmp-cap one" id="text" maxlength="80" placeholder="한마디 남기기… (예: 이 표정 레전드)" autocomplete="off" enterkeyhint="done">
+        <div class="caprow"><span class="capav" id="capav"></span>
+          <textarea id="text" maxlength="80" rows="1" placeholder="${name}에게 한마디…" enterkeyhint="done"></textarea></div>
+        <div class="capmeta"><div class="cmp-sugs" id="sugs">${['이 표정 레전드 ㅋㅋ', '인생샷 인정 📸', '몰래 찍음 🤫', '이거 기억나?', '너무 잘 나와서 보냄', '박제 완료'].map(t => `<button type="button">${t}</button>`).join('')}</div><span class="capcnt" id="capcnt">0/80</span></div>
       </section>
       <section data-sec="poll">
         <textarea class="cmp-cap big" id="pq" maxlength="80" rows="2" placeholder="무엇을 물어볼까요? (예: ${name} 다음 머리 스타일은?)"></textarea>
@@ -2035,13 +2069,13 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
         <p class="cmp-note">답은 ${name}님만 할 수 있고, 답하면 질문과 함께 피드에 올라가요.</p>
       </section>
       <div class="cmp-who">
-        <div class="label">보내는 사람</div>
-        <div class="cmp-seg" role="radiogroup"><button data-who="name" role="radio">이름으로 보내기</button><button data-who="anon" role="radio">🎭 익명으로 보내기</button></div>
+        <div class="cmp-whohead"><span>보내는 사람</span>
+          <div class="cmp-seg" role="radiogroup"><button data-who="name" role="radio">이름</button><button data-who="anon" role="radio">🎭 익명</button></div></div>
         <div class="cmp-whoval" id="whoval"></div>
       </div>
-      <p class="cmp-note">${name}님이 승인하면 피드에 올라가요 · 로그인 없이 보낼 수 있어요</p>
     </div>
-    <nav class="cmp-modes" role="tablist"><button data-mode="media" role="tab">사진·영상</button><button data-mode="poll" role="tab">투표</button><button data-mode="question" role="tab">질문</button></nav>`);
+    <div class="cmp-foot"><button class="btn primary block cmp-go" id="send" disabled>보내기</button>
+      <p>${name}님이 승인하면 피드에 올라가요${me ? '' : ' · 로그인 없이 보낼 수 있어요'}</p></div>`);
   const $ = s => el.querySelector(s);
   const $send = $('#send'), $file = $('#file');
   const dirty = () => media || [...el.querySelectorAll('#text, #pq, #qq, #opts input')].some(i => i.value.trim());
@@ -2159,7 +2193,19 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
         : `<input class="field" id="author" maxlength="12" placeholder="내 이름 (예: 지수)" value="${esc(typedNow ?? nick)}" autocomplete="off">`;
   };
   el.querySelectorAll('.cmp-seg button').forEach(b => b.onclick = () => setWho(b.dataset.who));
-  setWho('name');
+  // 한마디: 자동 높이 + 글자 수 + 추천 문구(누르면 채움) + 엔터는 입력 끝
+  const $t = $('#text');
+  const capFit = () => { $t.style.height = 'auto'; $t.style.height = $t.scrollHeight + 'px'; $('#capcnt').textContent = `${$t.value.length}/80`; $('#capcnt').classList.toggle('on', !!$t.value); };
+  $t.oninput = capFit;
+  $t.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); $t.blur(); } };
+  el.querySelectorAll('#sugs button').forEach(b => b.onclick = () => { $t.value = b.textContent; capFit(); el.querySelectorAll('#sugs button').forEach(x => x.classList.toggle('on', x === b)); });
+  const capAv = () => {
+    const typed = $('#author')?.value.trim();
+    $('#capav').innerHTML = who === 'anon' ? '🎭' : me ? avatar(myProf, 'xs') : esc((typed || '나').slice(0, 1));
+  };
+  el.addEventListener('input', e => { if (e.target.id === 'author') capAv(); });
+  el.querySelectorAll('.cmp-seg button').forEach(b => b.addEventListener('click', capAv));
+  setWho('name'); capAv();
   setMode(mode);
   if (mode === 'media' && pick) $file.click(); // 누르자마자 사진첩 (버튼 터치 안에서만 열 수 있음)
 
