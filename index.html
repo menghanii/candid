@@ -700,7 +700,7 @@
   .car-dots { position:absolute; left:0; right:0; bottom:10px; display:flex; justify-content:center; gap:5px; z-index:2; pointer-events:none; }
   .car-dots i { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.5); transition:background .2s, transform .2s; }
   .car-dots i.on { background:#fff; transform:scale(1.2); }
-  .stk-layer { position:absolute; inset:0; pointer-events:none; z-index:1; }
+  .stk-layer { position:absolute; inset:0; pointer-events:none; z-index:1; container-type:inline-size; } /* 스티커 크기는 이 영역 폭 기준 */
   .reels.hide-stk .stk-layer { display:none; }
   .pst { position:absolute; transform:translate(-50%,-50%); font-size:calc(var(--s, 1) * 13cqw); line-height:1; filter:drop-shadow(0 2px 4px rgba(0,0,0,.3)); user-select:none; -webkit-user-select:none; }
   .grid button { container-type:inline-size; }
@@ -826,6 +826,9 @@
   .rcar .carwrap { width:100%; }
   .rcar .stage { width:min(100%, calc((100dvh - 2 * var(--rpad)) * 0.8)); margin:0 auto; }
   .rcar .stage > img, .rcar .stage > video { max-height:none; aspect-ratio:4/5; }
+  /* 릴스: 사진·영상을 자르지 않고 원본 비율 그대로(남는 곳은 흐린 배경). 비율은 불러온 뒤 --ar 로 */
+  .rcar .stage.fit { width:min(100%, calc((100dvh - 2 * var(--rpad)) * var(--ar))); }
+  .rcar .stage.fit > img, .rcar .stage.fit > video { aspect-ratio:var(--ar); object-fit:cover; }
   .rcar .car-n { top:8px; right:8px; }
   .rcar .car-dots { display:none; } /* 릴스는 오른쪽 위 1/3 표시로 충분(글과 겹치지 않게) */
   .rinfo { bottom:calc(74px + env(safe-area-inset-bottom)); right:20px; }
@@ -1758,6 +1761,7 @@ function paintHome({ posts, owners }) {
     v.preload = 'auto'; v.muted = muted; v.play().catch(() => {});
   }), { threshold: 0.6 });
   initCarousels(document.getElementById('reels'), () => true);
+  document.querySelectorAll('.rcar .stage').forEach(watchReelRatio);
   document.querySelectorAll('.reel[data-id]').forEach(r => {
     io.observe(r);
     // 두 번 탭: 좋아요 + 하트 / 한 번 탭(영상): 소리 켜기·끄기
@@ -2789,7 +2793,22 @@ document.addEventListener('click', async e => {
   toast(`${STK_WHO.get(r.user_id)}님이 붙였어요`);
 }, true);
 function refreshStickerLayers(postId) {
-  document.querySelectorAll(`[data-sl^="${postId}:"]`).forEach(el => { el.outerHTML = stickerLayer(postId, +el.dataset.sl.split(':')[1]); });
+  document.querySelectorAll(`[data-sl^="${postId}:"]`).forEach(el => { const st = el.parentElement; el.outerHTML = stickerLayer(postId, +el.dataset.sl.split(':')[1]); if (st?.dataset.ar) fitStickerLayer(st); });
+}
+// 릴스 원본 비율: 사진(또는 영상 대표 이미지)을 불러온 뒤 그 비율로 칸을 맞춤
+function watchReelRatio(st) {
+  const m = st.querySelector('img, video'); if (!m) return;
+  const set = (w, h) => { if (!w || !h) return; st.dataset.ar = w / h; st.style.setProperty('--ar', w / h); st.classList.add('fit'); fitStickerLayer(st); };
+  if (m.tagName === 'IMG') { if (m.complete && m.naturalWidth) set(m.naturalWidth, m.naturalHeight); else m.addEventListener('load', () => set(m.naturalWidth, m.naturalHeight), { once: true }); return; }
+  if (m.videoWidth) return set(m.videoWidth, m.videoHeight);
+  m.addEventListener('loadedmetadata', () => set(m.videoWidth, m.videoHeight), { once: true });
+  if (m.poster) { const im = new Image(); im.onload = () => { if (!st.dataset.ar) set(im.naturalWidth, im.naturalHeight); }; im.src = m.poster; }
+}
+// 스티커 위치는 가운데 4:5 영역(꾸미기 화면 기준)에 저장됨 → 원본 비율 화면에서도 같은 자리에 오도록 그 영역에 맞춤
+function fitStickerLayer(st) {
+  const L = st.querySelector('.stk-layer'), r = +st.dataset.ar; if (!L || !r) return;
+  if (r < 0.8) { const h = r / 0.8 * 100; L.style.cssText = `inset:auto 0;top:${(100 - h) / 2}%;height:${h}%`; }
+  else { const w = 0.8 / r * 100; L.style.cssText = `inset:0 auto;left:${(100 - w) / 2}%;width:${w}%`; }
 }
 // 사진·영상 한 장
 function mediaEl(m, mode, alt) {
