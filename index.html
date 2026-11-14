@@ -280,7 +280,7 @@
   .bnav.dark { background:#000; border-top-color:#1c1c1f; } .bnav.dark button { color:#8e8e93; } .bnav.dark button.on { color:#fff; }
   .app.has-nav { padding-bottom:calc(64px + env(safe-area-inset-bottom)); }
   .has-nav ~ .toast, body:has(.bnav) .toast { bottom:calc(76px + env(safe-area-inset-bottom)); }
-  .reels:has(~ .bnav), .reels { bottom:calc(58px + env(safe-area-inset-bottom)); }
+  .reels:has(~ .bnav), .reels { bottom:0; } /* 릴스는 화면 끝까지(하단 메뉴는 위에 겹침) */
   .reel { height:100%; }
   /* 검색 */
   .sbox { position:relative; margin-bottom:8px; }
@@ -720,6 +720,38 @@
   .rinfo .rtext { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:16px; }
   .reel::after { height:220px; background:linear-gradient(transparent, rgba(0,0,0,.6) 55%); }
   .rside { bottom:calc(170px + env(safe-area-inset-bottom)); }
+  /* 텍스트 스티커 · 회전 */
+  .pst { transform:translate(-50%,-50%) rotate(var(--r, 0deg)); }
+  .pst.tx { font-size:calc(var(--s, 1) * 5.5cqw); white-space:nowrap; }
+  .ptxt { display:inline-block; font-weight:800; letter-spacing:-.02em; line-height:1.15; }
+  .ptxt.plain { color:#fff; text-shadow:0 0 3px rgba(0,0,0,.9), 0 2px 8px rgba(0,0,0,.6); }
+  .ptxt.box { color:#111; background:#fff; padding:.25em .55em; border-radius:.5em; box-shadow:0 2px 8px rgba(0,0,0,.25); }
+  .ptxt.hl { color:#111; background:#ffe14d; padding:.15em .45em; border-radius:.2em; transform:skew(-4deg); }
+  .dtools { flex-wrap:wrap; gap:8px; }
+  .dsl { display:flex; align-items:center; gap:10px; flex:1 1 45%; min-width:150px; padding:6px 14px; border-radius:999px; border:1px solid var(--line); background:var(--card); }
+  .dsl[hidden] { display:none; }
+  .dsl small { font-size:12px; font-weight:700; color:var(--sub); flex:none; }
+  .dsl input { flex:1; accent-color:var(--accent); }
+  .dbtns { display:flex; gap:8px; }
+  .dbtns button[hidden] { display:none; }
+  .dwho { flex:1; display:flex; align-items:center; gap:4px; padding:8px 14px; border-radius:999px; background:var(--soft); font-size:13px; }
+  .dwho[hidden] { display:none; }
+  .dwho small { color:var(--sub); }
+  .dtxt { padding:12px 16px 0; }
+  .dtxt[hidden] { display:none; }
+  .dtxt .field { margin:0 0 10px; }
+  .dtrow { display:flex; align-items:center; gap:8px; }
+  .dstyles { display:flex; gap:6px; flex:1; }
+  .dstyles button { padding:6px 8px; border-radius:12px; border:1.5px solid var(--line); background:#333; font-size:13px; }
+  .dstyles button.on { border-color:var(--accent); }
+  .dcount { font-size:12px; color:var(--sub); font-variant-numeric:tabular-nums; }
+  .dtrow .btn { flex:none; padding:9px 16px; }
+  .dtadd { display:flex; align-items:center; gap:8px; width:100%; margin-top:6px; padding:12px 14px; border-radius:14px; border:1.5px dashed var(--line); background:none; color:var(--fg); font-size:14px; font-weight:700; }
+  .dtadd b { font-family:var(--display); font-size:18px; color:var(--accent); }
+  .dtadd small { margin-left:auto; color:var(--sub); font-weight:500; font-size:12px; }
+  /* 릴스 글: 하단 메뉴(높이 = 54px + 홈 바 여백) 바로 위 8px */
+  .rinfo { bottom:calc(62px + max(env(safe-area-inset-bottom), 10px)) !important; }
+  .rside { bottom:calc(150px + max(env(safe-area-inset-bottom), 10px)) !important; }
 </style>
 </head>
 <body>
@@ -2282,13 +2314,14 @@ const mediaOf = p => Array.isArray(p.media) && p.media.length ? p.media
 const STK = new Map(); // postId → 스티커 행들
 async function loadStickers(ids) {
   if (!ids.length) return;
-  const { data, error } = await sb.from('post_stickers').select('id, post_id, media_idx, user_id, item_id, x, y, scale').in('post_id', ids);
+  const { data, error } = await sb.from('post_stickers').select('*').in('post_id', ids);
   if (error) return; // 09 SQL 실행 전이면 조용히 무시
   ids.forEach(id => STK.set(id, []));
   data.forEach(r => STK.get(r.post_id)?.push(r));
 }
-const stickerLayer = (postId, idx) => `<div class="stk-layer" data-sl="${postId}:${idx}">${(STK.get(postId) || []).filter(r => r.media_idx === idx)
-  .map(r => `<span class="pst" style="left:${r.x * 100}%;top:${r.y * 100}%;--s:${r.scale}">${glyph(ITEM[r.item_id])}</span>`).join('')}</div>`;
+// 스티커 한 개: 이모지·미니 아이템 그림·텍스트 + 크기(--s)·회전(--r)
+const stickerSpan = (r, cls = '') => `<span class="pst${r.text ? ' tx' : ''} ${cls}" data-id="${r.id}" style="left:${r.x * 100}%;top:${r.y * 100}%;--s:${r.scale};--r:${r.rot || 0}deg">${r.text ? `<span class="ptxt ${r.style || 'plain'}">${esc(r.text)}</span>` : glyph(ITEM[r.item_id])}</span>`;
+const stickerLayer = (postId, idx) => `<div class="stk-layer" data-sl="${postId}:${idx}">${(STK.get(postId) || []).filter(r => r.media_idx === idx).map(r => stickerSpan(r)).join('')}</div>`;
 function refreshStickerLayers(postId) {
   document.querySelectorAll(`[data-sl^="${postId}:"]`).forEach(el => { el.outerHTML = stickerLayer(postId, +el.dataset.sl.split(':')[1]); });
 }
@@ -2332,122 +2365,175 @@ async function openDecorate(postId) {
   const idx = +(document.querySelector('.overlay .carwrap')?.dataset.idx || 0);
   const m = mediaOf(p)[idx]; if (!m) return;
   const isOwnerPost = p.owner_id === me.id;
+  const MAX_MINE = 10;
   const el = pageOverlay('decor', `
     <header class="pov-h cmp-h"><button class="icon-btn" data-x aria-label="닫기">${I.close}</button><b>스티커 꾸미기</b><button class="cmp-send" id="dsave">저장</button></header>
     <div class="dwrap"><div class="stage dstage" id="dstage"><img src="${photoUrl(m.k === 'video' ? (m.t || m.p) : m.p)}" alt="" draggable="false"><div class="dlayer" id="dlayer"></div></div></div>
-    <div class="dtools" id="dtools" hidden><span class="dsz" id="dsz"><small>크기</small><input type="range" id="dsize" min="0.4" max="3" step="0.05" aria-label="스티커 크기"></span><button data-a="x" class="danger">떼기</button></div>
+    <div class="dtools" id="dtools" hidden>
+      <div class="dsl" id="dszw"><small>크기</small><input type="range" id="dsize" min="0.4" max="3" step="0.05" aria-label="크기"></div>
+      <div class="dsl" id="drotw"><small>회전</small><input type="range" id="drot" min="-180" max="180" step="1" aria-label="회전"></div>
+      <div class="dwho" id="dwho" hidden></div>
+      <div class="dbtns"><button data-a="edit" id="dedit">수정</button><button data-a="x" class="danger">떼기</button></div>
+    </div>
+    <div class="dtxt" id="dtxt" hidden>
+      <input class="field" id="dtin" maxlength="40" placeholder="하고 싶은 말 (최대 40자)" autocomplete="off" enterkeyhint="done">
+      <div class="dtrow"><div class="dstyles">${[['plain', '기본'], ['box', '박스'], ['hl', '형광']].map(([k, l]) => `<button data-st="${k}"><span class="ptxt ${k}">${l}</span></button>`).join('')}</div>
+        <span class="dcount" id="dcount">0/40</span><button class="btn primary" id="dtok">완료</button></div>
+    </div>
     <p class="hint dhint" id="dhint"></p>
     <div class="dtray" id="dtray"><p class="hint">불러오는 중…</p></div>`);
   const $ = s => el.querySelector(s);
-  // 최신 상태 불러오기(그 사이 다른 친구가 붙인 것도 보이게)
+  // 최신 상태 불러오기(그 사이 다른 친구가 붙인 것도 보이게) — select('*') 라 아직 안 생긴 칸이 있어도 동작
   const [st, inv] = await Promise.all([
-    sb.from('post_stickers').select('id, user_id, item_id, x, y, scale, media_idx').eq('post_id', postId),
-    sb.from('inventory').select('item_id').eq('user_id', me.id),
+    sb.from('post_stickers').select('*').eq('post_id', postId),
+    GACHA_ON ? sb.from('inventory').select('item_id').eq('user_id', me.id) : Promise.resolve({ data: [] }),
   ]);
-  if (st.error) { el.remove(); return toast(/post_stickers|relation/i.test(st.error.message) ? '스티커 기능 준비 중이에요(관리자: 09 SQL 실행 필요)' : kerr(st.error)); }
-  const rows = st.data.filter(r => r.media_idx === idx);
+  if (st.error) { el.remove(); return toast(/post_stickers|relation/i.test(st.error.message) ? '스티커 기능 준비 중이에요(관리자: SQL 실행 필요)' : kerr(st.error)); }
+  const rows = st.data.filter(r => r.media_idx === idx).map(r => ({ ...r, rot: r.rot || 0 }));
   const others = rows.filter(r => r.user_id !== me.id);
+  // 주인: 친구 스티커를 누르면 누가 붙였는지 보여주기 위해 이름 미리 불러옴
+  const who = new Map();
+  if (isOwnerPost && others.length) {
+    const { data } = await sb.from('profiles').select('id, name, handle').in('id', [...new Set(others.map(r => r.user_id))]);
+    (data || []).forEach(u => who.set(u.id, u));
+  }
   const orig = new Map(rows.filter(r => r.user_id === me.id).map(r => [r.id, { ...r }]));
   let mine = [...orig.values()].map(r => ({ ...r }));
-  const removed = new Set(); let sel = null;
-  // 무료 스티커(이모지 + 미니 아이템) — 가챠가 켜져 있으면 뽑은 스티커도 함께
+  const removed = new Set(); let sel = null, editing = null, txtStyle = 'plain';
   const owned = GACHA_ON ? (inv.data || []).map(r => ITEM[r.item_id]).filter(i => i?.kind === 'sticker' && !i.data.free) : [];
-  const MAX_MINE = 10;
+  const stage = $('#dstage');
 
   const paint = () => {
     $('#dlayer').innerHTML =
-      others.filter(r => !removed.has(r.id)).map(r => `<span class="pst other${isOwnerPost ? ' tap' : ''}${sel === r.id ? ' sel' : ''}" data-id="${r.id}" style="left:${r.x * 100}%;top:${r.y * 100}%;--s:${r.scale}">${glyph(ITEM[r.item_id])}</span>`).join('') +
-      mine.map(r => `<span class="pst mine${sel === r.id ? ' sel' : ''}" data-id="${r.id}" style="left:${r.x * 100}%;top:${r.y * 100}%;--s:${r.scale}">${glyph(ITEM[r.item_id])}</span>`).join('');
+      others.filter(r => !removed.has(r.id)).map(r => stickerSpan(r, `other${isOwnerPost ? ' tap' : ''}${sel === r.id ? ' sel' : ''}`)).join('') +
+      mine.map(r => stickerSpan(r, `mine${sel === r.id ? ' sel' : ''}`)).join('');
     const selMine = mine.find(r => r.id === sel), selOther = others.find(r => r.id === sel);
-    $('#dtools').hidden = !(selMine || selOther);
-    $('#dsz').hidden = !selMine;
-    if (selMine) $('#dsize').value = selMine.scale;
-    $('#dhint').textContent = `내 스티커 ${mine.length}/${MAX_MINE} · 끌어서 옮기고, 두 손가락으로 크기 조절${isOwnerPost ? ' · 내 피드라 친구 스티커도 눌러서 뗄 수 있어요' : ''}`;
+    $('#dtools').hidden = !(selMine || selOther) || !$('#dtxt').hidden;
+    $('#dszw').hidden = $('#drotw').hidden = !selMine;
+    $('#dedit').hidden = !(selMine && selMine.text);
+    const u = selOther && who.get(selOther.user_id);
+    $('#dwho').hidden = !selOther;
+    if (selOther) $('#dwho').innerHTML = `<b>${esc(u?.name || '친구')}</b>${u?.handle ? ` <small>@${esc(u.handle)}</small>` : ''}님이 붙였어요`;
+    if (selMine) { $('#dsize').value = selMine.scale; $('#drot').value = selMine.rot || 0; }
+    $('#dhint').textContent = `내 스티커 ${mine.length}/${MAX_MINE} · 끌어서 옮기고, 두 손가락으로 크기·회전${isOwnerPost ? ' · 내 피드라 친구 스티커도 눌러서 뗄 수 있어요' : ''}`;
   };
-  // 트레이: 미니 아이템 + 기본 이모지 (+ 가챠 스티커)
+  // 트레이: 텍스트 + 미니 아이템 + 이모지 (+ 가챠 스티커)
   const tile = i => `<button class="dts${i.data.mini ? ' mini' : ''}" data-item="${i.id}" aria-label="${esc(i.name)} 붙이기">${glyph(i)}</button>`;
   $('#dtray').innerHTML =
+    `<button class="dtadd" id="dtadd"><b>Aa</b> 텍스트 넣기 <small>최대 40자</small></button>` +
     `<div class="dsec">미니 아이템</div><div class="dgrid">${FREE_STICKERS.filter(i => i.data.mini).map(tile).join('')}</div>` +
     (owned.length ? `<div class="dsec">내가 뽑은 스티커</div><div class="dgrid">${owned.map(tile).join('')}</div>` : '') +
     `<div class="dsec">이모지</div><div class="dgrid">${FREE_STICKERS.filter(i => !i.data.mini).map(tile).join('')}</div>`;
-  $('#dtray').querySelectorAll('[data-item]').forEach(b => b.onclick = () => {
-    if (mine.length >= MAX_MINE) return toast(`한 사진에 내 스티커는 ${MAX_MINE}개까지예요`);
-    const r = { id: 'tmp' + Math.random().toString(36).slice(2), item_id: b.dataset.item, x: 0.5, y: 0.5, scale: 1, tmp: true };
-    mine.push(r); sel = r.id; paint();
-  });
-  // 끌어서 옮기기 (내 스티커만), 탭하면 선택
-  const stage = $('#dstage');
-  let drag = null;
+  const add = r => { if (mine.length >= MAX_MINE) { toast(`한 사진에 내 스티커는 ${MAX_MINE}개까지예요`); return false; } mine.push(r); sel = r.id; paint(); return true; };
+  const newId = () => 'tmp' + Math.random().toString(36).slice(2);
+  $('#dtray').querySelectorAll('[data-item]').forEach(b => b.onclick = () => add({ id: newId(), item_id: b.dataset.item, x: 0.5, y: 0.5, scale: 1, rot: 0, tmp: true }));
+
+  // 텍스트 입력창(새로 넣기 / 수정)
+  const openText = r => {
+    editing = r || null; txtStyle = r?.style || 'plain';
+    $('#dtin').value = r?.text || ''; $('#dcount').textContent = `${$('#dtin').value.length}/40`;
+    el.querySelectorAll('[data-st]').forEach(b => b.classList.toggle('on', b.dataset.st === txtStyle));
+    $('#dtxt').hidden = false; $('#dtools').hidden = true; setTimeout(() => $('#dtin').focus(), 50);
+  };
+  $('#dtadd').onclick = () => openText(null);
+  $('#dtin').oninput = () => { $('#dcount').textContent = `${[...$('#dtin').value].length}/40`; };
+  el.querySelectorAll('[data-st]').forEach(b => b.onclick = () => { txtStyle = b.dataset.st; el.querySelectorAll('[data-st]').forEach(x => x.classList.toggle('on', x === b)); });
+  const doneText = () => {
+    const t = $('#dtin').value.trim().slice(0, 40);
+    $('#dtxt').hidden = true; $('#dtin').blur();
+    if (!t) { paint(); return; }
+    if (editing) { editing.text = t; editing.style = txtStyle; sel = editing.id; paint(); }
+    else add({ id: newId(), item_id: 't_text', text: t, style: txtStyle, x: 0.5, y: 0.5, scale: 1, rot: 0, tmp: true });
+  };
+  $('#dtok').onclick = doneText;
+  $('#dtin').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) doneText(); };
+
+  // 한 손가락: 끌어서 옮기기 / 탭: 선택 · 두 손가락: 크기 + 회전
+  const pts = new Map(); let drag = null, pinch = null, tapEmpty = false, pinched = false;
+  const two = () => { const [a, b] = [...pts.values()]; return { d: Math.hypot(a.x - b.x, a.y - b.y), ang: Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI }; };
+  const spanOf = id => stage.querySelector(`.pst[data-id="${id}"]`);
+  const setScale = (r, s) => { r.scale = Math.min(3, Math.max(0.4, Math.round(s * 100) / 100)); spanOf(r.id)?.style.setProperty('--s', r.scale); };
+  const setRot = (r, a) => { a = ((a + 180) % 360 + 360) % 360 - 180; r.rot = Math.round(a); spanOf(r.id)?.style.setProperty('--r', r.rot + 'deg'); };
   stage.addEventListener('pointerdown', e => {
-    if (pts.size > 1) return; // 두 손가락(크기 조절) 중에는 선택 유지
-    const s = e.target.closest('.pst'); if (!s) { tapEmpty = true; return; } // 빈 곳은 '탭'으로 끝날 때만 선택 해제
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const r = mine.find(x => x.id === sel);
+    if (pts.size === 2) { drag = null; if (r) { pinched = true; const t = two(); pinch = { r, d0: t.d, a0: t.ang, s0: r.scale, r0: r.rot || 0 }; } return; }
+    if (pts.size > 2) return;
+    const s = e.target.closest('.pst'); if (!s) { tapEmpty = true; return; }
     const id = s.dataset.id;
     if (s.classList.contains('other')) { if (isOwnerPost) { sel = id; paint(); } return; }
     sel = id; paint();
-    drag = { id, moved: false }; stage.setPointerCapture(e.pointerId); e.preventDefault();
+    drag = { id }; stage.setPointerCapture(e.pointerId); e.preventDefault();
   });
   stage.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && pts.size === 2) {
+      const t = two(); setScale(pinch.r, pinch.s0 * t.d / pinch.d0); setRot(pinch.r, pinch.r0 + (t.ang - pinch.a0));
+      $('#dsize').value = pinch.r.scale; $('#drot').value = pinch.r.rot; return;
+    }
     if (!drag) return;
     const b = stage.getBoundingClientRect(), r = mine.find(x => x.id === drag.id); if (!r) return;
     r.x = Math.min(0.97, Math.max(0.03, (e.clientX - b.left) / b.width));
     r.y = Math.min(0.97, Math.max(0.03, (e.clientY - b.top) / b.height));
-    drag.moved = true;
-    const span = stage.querySelector(`.pst[data-id="${drag.id}"]`); if (span) { span.style.left = r.x * 100 + '%'; span.style.top = r.y * 100 + '%'; }
+    const sp = spanOf(drag.id); if (sp) { sp.style.left = r.x * 100 + '%'; sp.style.top = r.y * 100 + '%'; }
   });
-  const end = () => { drag = null; };
-  stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
-  $('#dtools').onclick = e => {
-    const a = e.target.dataset.a; if (a !== 'x' || !sel) return;
-    const r = mine.find(x => x.id === sel);
-    if (r) { mine = mine.filter(x => x !== r); if (!r.tmp) removed.add(r.id); } else removed.add(sel);
-    sel = null; paint();
-  };
-  // 크기 직접 조절 ① 슬라이더
-  const setScale = (r, s) => {
-    r.scale = Math.min(3, Math.max(0.4, Math.round(s * 100) / 100));
-    const span = stage.querySelector(`.pst[data-id="${r.id}"]`); if (span) span.style.setProperty('--s', r.scale);
-  };
-  $('#dsize').oninput = e => { const r = mine.find(x => x.id === sel); if (r) setScale(r, +e.target.value); };
-  // 크기 직접 조절 ② 두 손가락으로 벌리기·좁히기(선택한 내 스티커)
-  const pts = new Map(); let pinch = null, tapEmpty = false, pinched = false;
-  const dist = () => { const [a, b] = [...pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
-  stage.addEventListener('pointerdown', e => {
-    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    const r = mine.find(x => x.id === sel);
-    if (pts.size === 2 && r) { drag = null; pinched = true; pinch = { r, d0: dist(), s0: r.scale }; }
-  }, true);
-  stage.addEventListener('pointermove', e => {
-    if (!pts.has(e.pointerId)) return;
-    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (pinch && pts.size === 2) { setScale(pinch.r, pinch.s0 * dist() / pinch.d0); $('#dsize').value = pinch.r.scale; }
-  }, true);
   const lift = e => {
     pts.delete(e.pointerId); if (pts.size < 2) pinch = null;
-    if (pts.size === 0) { if (tapEmpty && !pinched) { sel = null; paint(); } tapEmpty = false; pinched = false; }
+    if (pts.size === 0) { drag = null; if (tapEmpty && !pinched) { sel = null; paint(); } tapEmpty = false; pinched = false; }
   };
-  stage.addEventListener('pointerup', lift, true); stage.addEventListener('pointercancel', lift, true);
-  const changed = () => removed.size || mine.some(r => r.tmp || (orig.get(r.id) && ['x', 'y', 'scale'].some(k => orig.get(r.id)[k] !== r[k])));
+  stage.addEventListener('pointerup', lift); stage.addEventListener('pointercancel', lift);
+  $('#dsize').oninput = e => { const r = mine.find(x => x.id === sel); if (r) setScale(r, +e.target.value); };
+  $('#drot').oninput = e => { const r = mine.find(x => x.id === sel); if (r) setRot(r, +e.target.value); };
+  $('#dtools').onclick = e => {
+    const a = e.target.closest('[data-a]')?.dataset.a; if (!a || !sel) return;
+    const r = mine.find(x => x.id === sel);
+    if (a === 'edit' && r?.text) return openText(r);
+    if (a === 'x') { if (r) { mine = mine.filter(x => x !== r); if (!r.tmp) removed.add(r.id); } else removed.add(sel); sel = null; paint(); }
+  };
+
+  const KEYS = ['x', 'y', 'scale', 'rot', 'text', 'style'];
+  const changed = () => removed.size || mine.some(r => r.tmp || KEYS.some(k => (orig.get(r.id)?.[k] ?? null) !== (r[k] ?? null)));
   $('[data-x]').onclick = () => { if (!changed() || confirm('저장하지 않은 꾸미기가 사라져요. 닫을까요?')) el.remove(); };
-  // 저장: 내 것만 추가·수정·삭제(+주인은 남의 것 삭제) → 서로 덮어쓰지 않음
+  // 저장: 내 것만 추가·수정·삭제(+주인은 남의 것 삭제) → 서로 덮어쓰지 않음. 실패하면 원인을 그대로 보여줌
   $('#dsave').onclick = async () => {
     const btn = $('#dsave'); btn.disabled = true; btn.textContent = '저장 중…';
+    let step = '';
     try {
+      step = '떼기';
       if (removed.size) { const { error } = await sb.from('post_stickers').delete().in('id', [...removed]); if (error) throw error; }
-      const adds = mine.filter(r => r.tmp).map(r => ({ post_id: postId, media_idx: idx, user_id: me.id, item_id: r.item_id, x: r.x, y: r.y, scale: r.scale }));
+      step = '붙이기';
+      const row = r => {
+        const o = { post_id: postId, media_idx: idx, user_id: me.id, item_id: r.item_id, x: +r.x.toFixed(4), y: +r.y.toFixed(4), scale: r.scale };
+        if (r.rot) o.rot = r.rot;                               // 회전·텍스트 칸은 쓸 때만 보냄
+        if (r.text) { o.text = r.text; o.style = r.style || 'plain'; }
+        return o;
+      };
+      const adds = mine.filter(r => r.tmp).map(row);
       if (adds.length) { const { error } = await sb.from('post_stickers').insert(adds); if (error) throw error; }
-      for (const r of mine.filter(r => !r.tmp && ['x', 'y', 'scale'].some(k => orig.get(r.id)?.[k] !== r[k]))) {
-        const { error } = await sb.from('post_stickers').update({ x: r.x, y: r.y, scale: r.scale, updated_at: new Date().toISOString() }).eq('id', r.id);
+      step = '옮기기';
+      for (const r of mine.filter(r => !r.tmp)) {
+        const o = orig.get(r.id), patch = {};
+        KEYS.forEach(k => { if ((o?.[k] ?? null) !== (r[k] ?? null)) patch[k] = k === 'x' || k === 'y' ? +r[k].toFixed(4) : r[k]; });
+        if (!Object.keys(patch).length) continue;
+        patch.updated_at = new Date().toISOString();
+        const { error } = await sb.from('post_stickers').update(patch).eq('id', r.id);
         if (error) throw error;
       }
       await loadStickers([postId]); refreshStickerLayers(postId);
       el.remove(); toast('꾸몄어요 ✨');
     } catch (err) {
       btn.disabled = false; btn.textContent = '저장';
-      toast(/row-level|42501/i.test(err.message) ? '스티커를 붙일 수 없어요(개수 제한이거나 가진 스티커가 아니에요)' : kerr(err));
+      const msg = String(err?.message || err), code = err?.code ? `[${err.code}] ` : '';
+      console.error('sticker save failed', step, err);
+      toast(/row-level|42501/i.test(msg) ? '스티커를 붙일 수 없어요(개수 제한이거나 권한이 없어요)'
+        : /column .*(rot|text|style)|t_text|foreign key/i.test(msg) ? '텍스트·회전 기능 준비 중이에요(관리자: 12 SQL 실행 필요)'
+        : `저장 실패(${step}): ${code}${msg}`.slice(0, 120));
     }
   };
   paint();
 }
+
 // iPhone 홈 화면 앱: 첫 실행 직후 화면 높이를 잘못 잡아 하단 고정 요소가 떠 보이는 현상 → 켜질 때·다시 보일 때 다시 계산
 (function fixViewport() {
   const fix = () => {
