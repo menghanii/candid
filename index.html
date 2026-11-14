@@ -927,10 +927,29 @@
 <div class="app" id="app"></div>
 <div class="splash" id="splash" aria-hidden="true"><span class="logo">candid<i>.</i></span></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+// 다국어: 기기 언어(또는 메뉴에서 고른 언어)로. 새 언어는 docs/I18N.md 참고 (여기 목록 + i18n/<코드>.js)
+(function () {
+  var L = window.CANDID_LANGS = { ko: '한국어', en: 'English', ja: '日本語' }, l;
+  try { l = localStorage.getItem('candid_lang'); } catch (e) {}
+  if (!L[l]) { l = 'en'; var a = navigator.languages || [navigator.language]; for (var i = 0; i < a.length; i++) { var b = String(a[i] || '').toLowerCase().split('-')[0]; if (L[b]) { l = b; break; } } }
+  window.CANDID_LANG = l; document.documentElement.lang = l;
+  if (l !== 'ko') document.write('<script src="i18n/' + l + '.js?v=1"><\/script>');
+})();
+</script>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 <script>
 const MISSIONS = ['제일 웃긴 사진', '제일 잘 나온 사진', '몰래 찍은 사진', '우리만 아는 흑역사', '나를 한 단어로', '자유'];
+// ---------- 다국어 ----------
+// t('한국어 원문', { 변수 }) → 지금 언어의 번역(없으면 원문). 원문 안의 {name} 같은 자리에 값을 넣음
+const LANG = window.CANDID_LANG || 'ko', LANGS = window.CANDID_LANGS || { ko: '한국어' };
+const DICT = (window.CANDID_I18N || {})[LANG] || {};
+function t(ko, v) { let s = (LANG !== 'ko' && DICT[ko]) || ko; if (v) s = s.replace(/\{(\w+)\}/g, (m, k) => v[k] ?? m); return s; }
+function openLang() {
+  menu(Object.entries(LANGS).map(([k, n]) => `<button class="menu-item" onclick="setLang('${k}')">${k === LANG ? '✓ ' : ''}${n}</button>`).join(''));
+}
+function setLang(k) { try { localStorage.setItem('candid_lang', k); } catch {} location.reload(); }
 const LOGO = 'candid<i>.</i>';
 const sv = (d, s = 22, w = 1.6) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const I = {
@@ -971,27 +990,27 @@ const $app = document.getElementById('app');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // 토스트: action={label, fn} 을 주면 5초간 버튼(되돌리기 등)과 함께 표시
 function toast(msg, action) {
-  const t = document.getElementById('toast');
-  t.innerHTML = esc(msg) + (action ? `<button class="toast-act">${esc(action.label)}</button>` : '');
-  t.classList.add('show'); t.classList.toggle('act', !!action);
-  if (action) t.querySelector('.toast-act').onclick = () => { t.classList.remove('show', 'act'); action.fn(); };
-  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show', 'act'), action ? 5000 : 2000);
+  const el = document.getElementById('toast');
+  el.innerHTML = esc(msg) + (action ? `<button class="toast-act">${esc(action.label)}</button>` : '');
+  el.classList.add('show'); el.classList.toggle('act', !!action);
+  if (action) el.querySelector('.toast-act').onclick = () => { el.classList.remove('show', 'act'); action.fn(); };
+  clearTimeout(el._h); el._h = setTimeout(() => el.classList.remove('show', 'act'), action ? 5000 : 2000);
 }
 // 사용자에게 보여줄 한국어 에러 문구
 function kerr(e) {
   const m = String(e?.message || e || '');
-  if (!navigator.onLine || /fetch|network|load failed|timeout/i.test(m)) return '인터넷 연결이 불안정해요. 잠시 후 다시 시도해 주세요';
-  if (/jwt|expired|session/i.test(m)) return '로그인이 만료됐어요. 다시 로그인해 주세요';
-  if (/row-level|permission|42501|unauthorized/i.test(m)) return '권한이 없어요. 다시 로그인해 주세요';
-  if (/too large|payload|413|size/i.test(m)) return '사진 용량이 너무 커요. 다른 사진을 골라 주세요';
-  return '문제가 생겼어요. 다시 시도해 주세요';
+  if (!navigator.onLine || /fetch|network|load failed|timeout/i.test(m)) return t('인터넷 연결이 불안정해요. 잠시 후 다시 시도해 주세요');
+  if (/jwt|expired|session/i.test(m)) return t('로그인이 만료됐어요. 다시 로그인해 주세요');
+  if (/row-level|permission|42501|unauthorized/i.test(m)) return t('권한이 없어요. 다시 로그인해 주세요');
+  if (/too large|payload|413|size/i.test(m)) return t('사진 용량이 너무 커요. 다른 사진을 골라 주세요');
+  return t('문제가 생겼어요. 다시 시도해 주세요');
 }
 const withTimeout = (p, ms) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error('timeout')), ms))]);
 function renderError(retry) {
   $app.innerHTML = `<div class="landing"><span class="logo">${LOGO}</span><div class="hero">
     <div style="margin-bottom:18px">${DOT('down', { size: 76, cls: 'float' })}</div>
-    <h1>Can't <em>connect.</em></h1><p class="tagline">인터넷 연결이 불안정해요.<br>연결되면 자동으로 다시 불러올게요.</p>
-    <button class="btn primary block" id="retry">다시 시도</button></div></div>`;
+    <h1>Can't <em>connect.</em></h1><p class="tagline">${t('인터넷 연결이 불안정해요.<br>연결되면 자동으로 다시 불러올게요.')}</p>
+    <button class="btn primary block" id="retry">${t('다시 시도')}</button></div></div>`;
   document.getElementById('retry').onclick = retry;
   addEventListener('online', retry, { once: true });
 }
@@ -1014,21 +1033,21 @@ function openExternal(url = location.href, noSafari) {
   if (isIPhone && !noSafari && /^https:/.test(url)) return tryOpen(safariUrl(url), () => openExternal(url, true));
   if (inKakao) { location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(url); return; }
   sheet(`<h3>Open in browser<i class="pd">.</i></h3>
-    <p class="hint">이 앱 안의 브라우저에서는 로그인과 알림이 막혀 있어요.</p>
+    <p class="hint">${t('이 앱 안의 브라우저에서는 로그인과 알림이 막혀 있어요.')}</p>
     <div class="ideas">
-      <div class="idea"><span class="k">1</span><span class="it">오른쪽 위(또는 아래) <b>⋯</b> 메뉴를 눌러요</span></div>
-      <div class="idea"><span class="k">2</span><span class="it"><b>'외부 브라우저로 열기'</b>(Safari/Chrome)를 눌러요</span></div>
+      <div class="idea"><span class="k">1</span><span class="it">${t('오른쪽 위(또는 아래) <b>⋯</b> 메뉴를 눌러요')}</span></div>
+      <div class="idea"><span class="k">2</span><span class="it">${t("<b>'외부 브라우저로 열기'</b>(Safari/Chrome)를 눌러요")}</span></div>
     </div>
-    <button class="btn primary block" id="cp">링크 복사해서 직접 열기</button>`).querySelector('#cp').onclick = async () => {
-      try { await navigator.clipboard.writeText(url); toast('링크를 복사했어요. Safari/Chrome에 붙여넣어 주세요'); } catch { prompt('이 링크를 복사해 주세요', url); }
+    <button class="btn primary block" id="cp">${t('링크 복사해서 직접 열기')}</button>`).querySelector('#cp').onclick = async () => {
+      try { await navigator.clipboard.writeText(url); toast(t('링크를 복사했어요. Safari/Chrome에 붙여넣어 주세요')); } catch { prompt(t('이 링크를 복사해 주세요'), url); }
     };
 }
 // 카톡 안에서는 카카오 로그인이 그 자리에서 되므로 배너 대신 작은 안내만
-const inAppBanner = () => inKakao ? '' : inApp ? `<div class="inapp"><div style="flex:1"><b>여기선 로그인이 안 될 수 있어요</b>Safari나 Chrome에서 열면 바로 돼요.</div><button class="btn" onclick="openExternal()">외부 브라우저</button></div>` : '';
+const inAppBanner = () => inKakao ? '' : inApp ? `<div class="inapp"><div style="flex:1"><b>${t('여기선 로그인이 안 될 수 있어요')}</b>${t('Safari나 Chrome에서 열면 바로 돼요.')}</div><button class="btn" onclick="openExternal()">${t('외부 브라우저')}</button></div>` : '';
 function ago(iso) {
   const s = (Date.now() - new Date(iso)) / 1000;
-  if (s < 60) return '방금 전'; if (s < 3600) return `${s / 60 | 0}분 전`;
-  if (s < 86400) return `${s / 3600 | 0}시간 전`; if (s < 604800) return `${s / 86400 | 0}일 전`;
+  if (s < 60) return t('방금 전'); if (s < 3600) return t('{n}분 전', { n: s / 60 | 0 });
+  if (s < 86400) return t('{n}시간 전', { n: s / 3600 | 0 }); if (s < 604800) return t('{n}일 전', { n: s / 86400 | 0 });
   return new Date(iso).toLocaleDateString('ko-KR', { month:'long', day:'numeric' });
 }
 // 기본 프로필 아이콘 (테마 색을 따라감)
@@ -1156,7 +1175,7 @@ async function renderHandle(h) {
     if (r.error) return renderError(() => renderHandle(h));
     if (!r.data) {
       $app.innerHTML = `<div class="landing"><span class="logo">${LOGO}</span><div class="hero"><div style="margin-bottom:18px">${DOT('look', { size: 76, cls: 'blink' })}</div><h1>Not found<i class="pd">.</i></h1>
-        <p class="tagline">@${esc(h)} 아이디를 가진 친구가 없어요. 아이디가 바뀌었을 수 있어요.</p><button class="btn primary block" onclick="go(location.pathname)">${me ? '홈으로' : '내 피드 만들기'}</button></div></div>`;
+        <p class="tagline">${t('@{handle} 아이디를 가진 친구가 없어요. 아이디가 바뀌었을 수 있어요.', { handle: esc(h) })}</p><button class="btn primary block" onclick="go(location.pathname)">${me ? t('홈으로') : t('내 피드 만들기')}</button></div></div>`;
       return;
     }
     id = r.data.id; HANDLES.set(h, id);
@@ -1313,20 +1332,20 @@ function renderSetup(first) {
 
 // ---------- 로그인 ----------
 let PREV_LOGIN = null;
-const PROVIDER_NAME = { kakao: '카카오', google: 'Google' };
+const PROVIDER_NAME = { kakao: t('카카오'), google: 'Google' };
 function login(provider) {
   // 카톡 안의 카카오 로그인: 이미 카톡에 로그인돼 있어 동의 한 번이면 끝 → 그 자리에서 진행
   // 그 외 인앱(인스타 등)·Google: 인앱에서 막히므로 외부 브라우저로
   if (inApp && !DEMO && !(inKakao && provider === 'kakao')) return openExternal();
   try { localStorage.setItem('candid_last_login', provider); sessionStorage.setItem('candid_oauth', '1'); } catch {}
-  showAuthWait(`${PROVIDER_NAME[provider] || ''} 로그인으로 이동 중…`);
+  showAuthWait(t('{provider} 로그인으로 이동 중…', { provider: PROVIDER_NAME[provider] || '' }));
   sb.auth.signInWithOAuth({ provider, options: { redirectTo: location.origin + location.pathname } });
 }
 // 로그인 중 화면: 버튼을 누른 뒤·로그인에서 돌아오는 동안 첫 화면(로그인 버튼)이 다시 비치지 않게
-function showAuthWait(msg = '로그인하는 중…') {
+function showAuthWait(msg = t('로그인하는 중…')) {
   document.documentElement.classList.remove('noscroll');
   $app.innerHTML = `<div class="authwait"><span class="logo">${LOGO_DOT}</span><div class="aw-sub"><p>${esc(msg)}</p>
-    <button class="aw-cancel" onclick="cancelAuthWait()">취소</button></div></div>`;
+    <button class="aw-cancel" onclick="cancelAuthWait()">${t('취소')}</button></div></div>`;
   setTimeout(() => document.querySelector('.aw-cancel')?.classList.add('show'), 4000); // 오래 걸리면 취소 버튼
 }
 function cancelAuthWait() { try { sessionStorage.removeItem('candid_oauth'); } catch {} route(); }
@@ -1339,43 +1358,44 @@ async function logout() { await sb.auth.signOut(); location.href = location.path
 function renderLanding(inviter) {
   document.documentElement.classList.add('noscroll'); // 첫 화면은 스크롤 없이 한 화면에 고정
   const all = cfg.PROVIDERS || ['kakao', 'google'];
-  const p = inKakao && all.includes('kakao') ? ['kakao'] : all; // 카톡 안: 카카오만(Google은 인앱에서 막힘)
+  // 카톡 안: 카카오만(Google은 인앱에서 막힘). 한국어가 아니면 Google 을 먼저
+  const p = inKakao && all.includes('kakao') ? ['kakao'] : LANG === 'ko' ? all : [...all].sort((a, b) => (a === 'google' ? -1 : 0) - (b === 'google' ? -1 : 0));
   // 홈 화면 앱 첫 실행: 브라우저와 로그인이 따로라 소개 대신 로그인만
   const appFirst = isStandalone && !DEMO;
   $app.innerHTML = `
     <div class="landing">
       <span class="logo">${LOGO}</span>
       ${inviter && !appFirst ? `<div class="hero app1 invite1">${avatar(inviter, 'lg')}
-        <h1><em>${esc(inviter.name)}</em>님이<br>초대했어요</h1>
-        <p class="tagline">친구들이 내 피드를 채워주는 앱, candid.<br>앱을 설치하면 친구가 사진을 보낼 때 바로 알림이 와요.</p></div>
-        <button class="btn primary block inv-install" onclick="installNow()">📲 앱 설치하고 시작하기</button>
-        <div class="inv-or">또는 웹에서 바로 시작</div>` : appFirst ? `<div class="hero app1"><img class="app1-ic" src="brand/icon-180.png?v=3" alt="">
-        <h1>거의 다 됐어요<em>!</em></h1>
-        <p class="tagline">홈 화면 앱은 브라우저와 로그인이 따로예요.<br>여기서 <b style="color:var(--fg)">한 번만</b> 다시 로그인해 주세요.</p></div>` : `
+        <h1>${t('{name}님이<br>초대했어요', { name: `<em>${esc(inviter.name)}</em>` })}</h1>
+        <p class="tagline">${t('친구들이 내 피드를 채워주는 앱, candid.<br>앱을 설치하면 친구가 사진을 보낼 때 바로 알림이 와요.')}</p></div>
+        <button class="btn primary block inv-install" onclick="installNow()">${t('📲 앱 설치하고 시작하기')}</button>
+        <div class="inv-or">${t('또는 웹에서 바로 시작')}</div>` : appFirst ? `<div class="hero app1"><img class="app1-ic" src="brand/icon-180.png?v=3" alt="">
+        <h1>${t('거의 다 됐어요')}<em>!</em></h1>
+        <p class="tagline">${t('홈 화면 앱은 브라우저와 로그인이 따로예요.<br>여기서 <b style="color:var(--fg)">한 번만</b> 다시 로그인해 주세요.')}</p></div>` : `
       <div class="hero">
         <div class="collage">
-          <div class="snap"><div class="ph"></div><span class="mt">제일 웃긴 사진</span><p>이 표정 레전드</p><small>— 지수</small></div>
-          <div class="snap"><div class="ph"></div><span class="mt">제일 잘 나온 사진</span><p>인생샷 인정</p><small>— 민호</small></div>
-          <div class="snap"><div class="ph"></div><span class="mt">몰래 찍은 사진</span><p>몰래 찍음 ㅋㅋ</p><small>— 익명의 친구</small></div>
+          <div class="snap"><div class="ph"></div><span class="mt">${t('제일 웃긴 사진')}</span><p>${t('이 표정 레전드')}</p><small>— ${t('지수')}</small></div>
+          <div class="snap"><div class="ph"></div><span class="mt">${t('제일 잘 나온 사진')}</span><p>${t('인생샷 인정')}</p><small>— ${t('민호')}</small></div>
+          <div class="snap"><div class="ph"></div><span class="mt">${t('몰래 찍은 사진')}</span><p>${t('몰래 찍음 ㅋㅋ')}</p><small>— ${t('익명의 친구')}</small></div>
         </div>
         <h1>Your feed,<br><em>by your friends.</em></h1>
-        <p class="tagline">내가 고른 사진 말고, 친구들이 본 진짜 나.<br>친구가 올리고, 내가 고르는 피드.</p>
+        <p class="tagline">${t('내가 고른 사진 말고, 친구들이 본 진짜 나.<br>친구가 올리고, 내가 고르는 피드.')}</p>
       </div>`}
       ${inAppBanner()}
       ${(() => {
         // 지난번에 쓴 로그인 방법을 맨 위로 올리고 배지 표시
         let last = null; try { last = localStorage.getItem('candid_last_login'); } catch {}
-        const badge = k => last === k ? '<span class="last-badge">지난번에 이걸로 로그인했어요</span>' : '';
+        const badge = k => last === k ? `<span class="last-badge">${t('지난번에 이걸로 로그인했어요')}</span>` : '';
         const btn = {
-          kakao: `<button class="social kakao" onclick="login('kakao')">${I.kakao} 카카오로 계속하기${badge('kakao')}</button>`,
-          google: `<button class="social google" onclick="login('google')">${I.google} Google로 계속하기${badge('google')}</button>`,
+          kakao: `<button class="social kakao" onclick="login('kakao')">${I.kakao} ${t('카카오로 계속하기')}${badge('kakao')}</button>`,
+          google: `<button class="social google" onclick="login('google')">${I.google} ${t('Google로 계속하기')}${badge('google')}</button>`,
         };
         const order = last && p.includes(last) ? [last, ...p.filter(k => k !== last)] : p;
         return order.filter(k => btn[k]).map(k => btn[k]).join('');
       })()}
-      ${inKakao && all.includes('google') ? `<button class="fine linkish" onclick="openExternal()">Google로 하려면 Safari·Chrome에서 열기</button>` : ''}
-      ${appFirst ? '' : '<p class="fine">친구는 로그인 없이 사진을 보낼 수 있어요.<br>내가 승인한 사진만 피드에 올라갑니다.</p>'}
-      ${inviter || appFirst ? '' : `<button class="wander" id="wander" aria-label="닷">${DOT3D(54)}</button>`}
+      ${inKakao && all.includes('google') ? `<button class="fine linkish" onclick="openExternal()">${t('Google로 하려면 Safari·Chrome에서 열기')}</button>` : ''}
+      ${appFirst ? '' : `<p class="fine">${t('친구는 로그인 없이 사진을 보낼 수 있어요.<br>내가 승인한 사진만 피드에 올라갑니다.')}</p>`}
+      ${inviter || appFirst ? '' : `<button class="wander" id="wander" aria-label="${t('닷')}">${DOT3D(54)}</button>`}
     </div>`;
   startWander();
 }
@@ -1481,7 +1501,7 @@ async function renderProfile(uid, fresh) {
   if (e1 || e2) return cached ? undefined : renderError(() => renderProfile(uid)); // 네트워크 오류를 '없는 피드'로 오인하지 않도록
   if (!prof) {
     $app.innerHTML = `<div class="landing"><span class="logo">${LOGO}</span><div class="hero"><div style="margin-bottom:18px">${DOT('look', { size: 76, cls: 'blink' })}</div><h1>Not found<i class="pd">.</i></h1>
-      <p class="tagline">존재하지 않는 피드예요. 링크가 정확한지 확인해 주세요.</p><button class="btn primary block" onclick="go(location.pathname)">내 피드 만들기</button></div></div>`;
+      <p class="tagline">${t('존재하지 않는 피드예요. 링크가 정확한지 확인해 주세요.')}</p><button class="btn primary block" onclick="go(location.pathname)">${t('내 피드 만들기')}</button></div></div>`;
     return;
   }
   const sig = JSON.stringify([prof, posts.map(p => [p.id, p.status, p.answer, p.approved_at])]);
@@ -1513,7 +1533,7 @@ function paintProfile() {
     <header class="top">
       <button class="logo" onclick="go(location.pathname)">${LOGO}</button>
       <div class="sp"></div>
-      ${isOwner ? topIcons() : me ? `<button class="icon-btn" aria-label="친구 검색" onclick="openSearch()">${I.search}</button>` : ''}
+      ${isOwner ? topIcons() : me ? `<button class="icon-btn" aria-label="${t('친구 검색')}" onclick="openSearch()">${I.search}</button>` : ''}
     </header>
     ${coverHTML(dc.theme)}
     <section class="head ${dc.theme ? 'has-cover' : ''}">
@@ -1526,10 +1546,10 @@ function paintProfile() {
         ? `<div class="desc bio">${esc(prof.bio)}</div>`
         : isOwner
           ? `<button class="desc bio-empty" onclick="renderSetup(false)">+ 프로필 메시지 추가</button>`
-          : `<div class="desc">친구들이 만들어주는 ${esc(prof.name)}의 피드</div>`}
+          : `<div class="desc">${t('친구들이 만들어주는 {name}의 피드', { name: esc(prof.name) })}</div>`}
       <div class="stats">
-        <div><b>${approved.length}</b><span>게시물</span></div>
-        <div><b>${friends}</b><span>참여한 친구</span></div>
+        <div><b>${approved.length}</b><span>${t('게시물')}</span></div>
+        <div><b>${friends}</b><span>${t('참여한 친구')}</span></div>
         ${isOwner ? `<button class="stat-btn${S.tab === 'friends' ? ' on' : ''}" onclick="setTab('friends')" aria-label="친구 목록 보기"><b>${myFollows.size}</b><span>친구</span></button>` : ''}
       </div>
     </section>
@@ -1539,13 +1559,13 @@ function paintProfile() {
            ${GACHA_ON ? '' : '<!--'}<button class="btn gbtn${TICKETS > 0 ? ' has' : ''}" id="gbtn" onclick="openGacha()" aria-label="뽑기권으로 꾸미기 아이템 뽑기"${TICKETS == null ? ' hidden' : ''}>🎁 <b data-tickets>${TICKETS ?? ''}</b></button>${GACHA_ON ? '' : '-->'}`
         : me
           // 로그인한 친구: 친구 추가만. 보내기는 하단 바 ⊕ 로
-          ? `<button class="btn ${myFollows.has(uid) ? '' : 'add'}" onclick="toggleFollow('${uid}', this)">${myFollows.has(uid) ? '친구 ✓' : '친구 추가'}</button>`
+          ? `<button class="btn ${myFollows.has(uid) ? '' : 'add'}" onclick="toggleFollow('${uid}', this)">${myFollows.has(uid) ? t('친구 ✓') : t('친구 추가')}</button>`
           // 로그인 안 한 친구(공유 링크로 들어옴): 하단 바가 없으니 보내기 버튼 유지
-          : `<button class="btn primary" onclick="openCompose()">📷 ${esc(prof.name)} 피드 채워주기</button>`}
+          : `<button class="btn primary" onclick="openCompose()">${t('📷 {name} 피드 채워주기', { name: esc(prof.name) })}</button>`}
     </div>
-    ${!isOwner && !me ? `<p style="text-align:center;margin:-6px 0 16px;font-size:13px;color:var(--sub)">나도 친구들한테 받아보고 싶다면? <a href="${location.pathname}" style="color:var(--fg);font-weight:600">내 피드 만들기</a></p>` : ''}
+    ${!isOwner && !me ? `<p style="text-align:center;margin:-6px 0 16px;font-size:13px;color:var(--sub)">${t('나도 친구들한테 받아보고 싶다면?')} <a href="${location.pathname}" style="color:var(--fg);font-weight:600">${t('내 피드 만들기')}</a></p>` : ''}
     <nav class="tabs">
-      <button class="${S.tab === 'grid' ? 'on' : ''}" onclick="setTab('grid')">피드</button>
+      <button class="${S.tab === 'grid' ? 'on' : ''}" onclick="setTab('grid')">${t('피드')}</button>
       ${isOwner ? `<button class="${S.tab === 'inbox' ? 'on' : ''}" onclick="setTab('inbox')">대기 피드${pending.length ? `<span class="n">${pending.length}</span>` : ''}</button>
       <button class="${S.tab === 'friends' ? 'on' : ''}" onclick="setTab('friends')">친구</button>` : ''}
     </nav>
@@ -1638,8 +1658,8 @@ function renderBody() {
         <div class="ideas">${MISSIONS.slice(0, 3).map((m, i) => `<div class="idea"><span class="k">${i + 1}</span><span class="it">내 ${m} 하나만 보내줘</span></div>`).join('')}</div>
         <button class="btn primary block" onclick="shareFeed()">친구에게 첫 사진 부탁하기</button></div>`
     : `<div class="empty"><div class="empty-dot">${DOT('wow', { cls: 'float' })}</div><h2>Be the <em>first.</em></h2>
-        <p>${esc(prof.name)}의 피드가 아직 비어 있어요.<br>첫 사진을 보내주세요.</p>
-        <button class="btn primary block" onclick="openCompose()">사진 보내기</button></div>`;
+        <p>${t('{name}의 피드가 아직 비어 있어요.<br>첫 사진을 보내주세요.', { name: esc(prof.name) })}</p>
+        <button class="btn primary block" onclick="openCompose()">${t('사진 보내기')}</button></div>`;
 }
 
 // ---------- 친구 ----------
@@ -1879,8 +1899,8 @@ async function pickFriendToSend() {
   if (error) return $l.innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
   const list = (data || []).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
   const paint = () => {
-    const t = $q.value.trim().toLowerCase().replace(/^@/, '');
-    const rows = list.filter(p => !t || p.name.toLowerCase().includes(t) || (p.handle || '').includes(t));
+    const kw = $q.value.trim().toLowerCase().replace(/^@/, '');
+    const rows = list.filter(p => !kw || p.name.toLowerCase().includes(kw) || (p.handle || '').includes(kw));
     $l.innerHTML = rows.length ? rows.map(p => `<button class="frow pfrow" data-id="${p.id}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b><small>${p.handle ? `@${esc(p.handle)}` : ''}</small></span><i class="pf-go">보내기</i></button>`).join('') : '<p class="hint" style="padding:12px 0">찾는 친구가 없어요</p>';
     $l.querySelectorAll('[data-id]').forEach(b => b.onclick = () => { const p = list.find(x => x.id === b.dataset.id); closeSheet(); setTimeout(() => composeTo(p), 200); });
   };
@@ -2216,6 +2236,7 @@ function openMenu() {
         ${!DEMO ? '<button class="menu-item" onclick="openLinks()">🔗 로그인 방법 연결</button>' : ''}
         ${!installed() && !DEMO ? '<button class="menu-item" onclick="closeSheet();setTimeout(startInstall,250)">📲 앱으로 설치 (홈 화면에 추가)</button>' : ''}
         ${DEMO ? '' : '<button class="menu-item" onclick="openPush()">푸시 알림 설정</button>'}
+        <button class="menu-item" onclick="closeSheet();setTimeout(openLang,250)">🌐 ${t('언어')} · ${LANGS[LANG]}</button>
         <button class="menu-item danger" onclick="logout()">로그아웃</button>`);
 }
 function postMenu(id) {
@@ -2238,42 +2259,42 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
   const nick = (myProf?.name || saved).slice(0, 12);
   const name = esc(S.prof.name);
   const el = pageOverlay('composer', `
-    <header class="pov-h cmp-h"><button class="icon-btn" data-x aria-label="닫기">${I.close}</button><b class="cmp-to">${avatar(S.prof, 'xs')}<span>${name}에게</span></b><span class="cmp-hsp"></span></header>
+    <header class="pov-h cmp-h"><button class="icon-btn" data-x aria-label="${t('닫기')}">${I.close}</button><b class="cmp-to">${avatar(S.prof, 'xs')}<span>${t('{name}에게', { name })}</span></b><span class="cmp-hsp"></span></header>
     <div class="cmp-body">
-      <nav class="cmp-modes top" role="tablist"><button data-mode="media" role="tab">사진·영상</button><button data-mode="poll" role="tab">투표</button><button data-mode="question" role="tab">질문</button></nav>
-      ${asked ? `<div class="asked">${name}님이 <b>'${esc(MISSIONS[mi])}'</b>을(를) 부탁했어요</div>` : ''}
+      <nav class="cmp-modes top" role="tablist"><button data-mode="media" role="tab">${t('사진·영상')}</button><button data-mode="poll" role="tab">${t('투표')}</button><button data-mode="question" role="tab">${t('질문')}</button></nav>
+      ${asked ? `<div class="asked">${t("{name}님이 <b>'{mission}'</b>을(를) 부탁했어요", { name, mission: esc(t(MISSIONS[mi])) })}</div>` : ''}
       <section data-sec="media">
-        <label class="cmp-media" id="pick"><span class="cmp-empty">${I.camera}<b>사진·영상 선택</b><small>여러 장 가능(최대 10장) · 영상은 10초까지</small></span><input type="file" accept="image/*,video/*" id="file" multiple hidden></label>
+        <label class="cmp-media" id="pick"><span class="cmp-empty">${I.camera}<b>${t('사진·영상 선택')}</b><small>${t('여러 장 가능(최대 10장) · 영상은 10초까지')}</small></span><input type="file" accept="image/*,video/*" id="file" multiple hidden></label>
         <div class="trim" id="trim" hidden></div>
         <div class="caprow"><span class="capav" id="capav"></span>
-          <textarea id="text" maxlength="80" rows="1" placeholder="${name}에게 한마디…" enterkeyhint="done"></textarea></div>
-        <div class="capmeta"><div class="cmp-sugs" id="sugs">${['이 표정 레전드 ㅋㅋ', '인생샷 인정 📸', '몰래 찍음 🤫', '이거 기억나?', '너무 잘 나와서 보냄', '박제 완료'].map(t => `<button type="button">${t}</button>`).join('')}</div><span class="capcnt" id="capcnt">0/80</span></div>
+          <textarea id="text" maxlength="80" rows="1" placeholder="${t('{name}에게 한마디…', { name })}" enterkeyhint="done"></textarea></div>
+        <div class="capmeta"><div class="cmp-sugs" id="sugs">${['이 표정 레전드 ㅋㅋ', '인생샷 인정 📸', '몰래 찍음 🤫', '이거 기억나?', '너무 잘 나와서 보냄', '박제 완료'].map(x => `<button type="button">${t(x)}</button>`).join('')}</div><span class="capcnt" id="capcnt">0/80</span></div>
       </section>
       <section data-sec="poll">
-        <textarea class="cmp-cap big" id="pq" maxlength="80" rows="2" placeholder="무엇을 물어볼까요? (예: ${name} 다음 머리 스타일은?)"></textarea>
+        <textarea class="cmp-cap big" id="pq" maxlength="80" rows="2" placeholder="${t('무엇을 물어볼까요? (예: {name} 다음 머리 스타일은?)', { name })}"></textarea>
         <div id="opts"></div>
-        <button class="cmp-add" id="addopt">+ 선택지 추가</button>
-        <p class="cmp-note">${name}님은 투표할 수 없고, 다른 친구들이 투표해요.</p>
+        <button class="cmp-add" id="addopt">${t('+ 선택지 추가')}</button>
+        <p class="cmp-note">${t('{name}님은 투표할 수 없고, 다른 친구들이 투표해요.', { name })}</p>
       </section>
       <section data-sec="question">
-        <textarea class="cmp-cap big" id="qq" maxlength="120" rows="3" placeholder="${name}님에게 궁금한 것 (예: 우리 처음 만난 날 기억나?)"></textarea>
-        <p class="cmp-note">답은 ${name}님만 할 수 있고, 답하면 질문과 함께 피드에 올라가요.</p>
+        <textarea class="cmp-cap big" id="qq" maxlength="120" rows="3" placeholder="${t('{name}님에게 궁금한 것 (예: 우리 처음 만난 날 기억나?)', { name })}"></textarea>
+        <p class="cmp-note">${t('답은 {name}님만 할 수 있고, 답하면 질문과 함께 피드에 올라가요.', { name })}</p>
       </section>
       <div class="cmp-who">
-        <div class="cmp-whohead"><span>보내는 사람</span>
-          <div class="cmp-seg" role="radiogroup"><button data-who="name" role="radio">이름</button><button data-who="anon" role="radio">🎭 익명</button></div></div>
+        <div class="cmp-whohead"><span>${t('보내는 사람')}</span>
+          <div class="cmp-seg" role="radiogroup"><button data-who="name" role="radio">${t('이름')}</button><button data-who="anon" role="radio">${t('🎭 익명')}</button></div></div>
         <div class="cmp-whoval" id="whoval"></div>
       </div>
     </div>
-    <div class="cmp-foot"><button class="btn primary block cmp-go" id="send" disabled>보내기</button>
-      <p>${name}님이 승인하면 피드에 올라가요${me ? '' : ' · 로그인 없이 보낼 수 있어요'}</p></div>`);
+    <div class="cmp-foot"><button class="btn primary block cmp-go" id="send" disabled>${t('보내기')}</button>
+      <p>${t('{name}님이 승인하면 피드에 올라가요', { name })}${me ? '' : t(' · 로그인 없이 보낼 수 있어요')}</p></div>`);
   const $ = s => el.querySelector(s);
   const $send = $('#send'), $file = $('#file');
   const dirty = () => media || [...el.querySelectorAll('#text, #pq, #qq, #opts input')].some(i => i.value.trim());
   // 닫기(✕ · 뒤로가기): 작성 중이면 확인
   history.pushState({ compose: 1 }, '');
   const close = (fromPop) => {
-    if (dirty() && !confirm('작성 중인 내용이 사라져요. 닫을까요?')) { if (fromPop) history.pushState({ compose: 1 }, ''); return; }
+    if (dirty() && !confirm(t('작성 중인 내용이 사라져요. 닫을까요?'))) { if (fromPop) history.pushState({ compose: 1 }, ''); return; }
     removeEventListener('popstate', onPop); el.remove();
     if (!fromPop && history.state?.compose) history.back();
     setTimeout(maybeShowInstall, 800); // 링크로 들어오면 작성 화면이 먼저 떠서 배너가 밀려 있었음 → 닫은 뒤에 보여줌
@@ -2297,7 +2318,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
   const addOpt = () => {
     const box = $('#opts'), n = box.children.length; if (n >= 5) return;
     const d = document.createElement('div'); d.className = 'optrow';
-    d.innerHTML = `<span>${n + 1}</span><input class="field" maxlength="30" placeholder="선택지 ${n + 1}">${n >= 2 ? '<button aria-label="선택지 삭제">✕</button>' : ''}`;
+    d.innerHTML = `<span>${n + 1}</span><input class="field" maxlength="30" placeholder="${t('선택지 {n}', { n: n + 1 })}">${n >= 2 ? `<button aria-label="${t('선택지 삭제')}">✕</button>` : ''}`;
     d.querySelector('input').oninput = refresh;
     const x = d.querySelector('button'); if (x) x.onclick = () => { d.remove(); [...box.children].forEach((r, i) => r.querySelector('span').textContent = i + 1); $('#addopt').hidden = false; refresh(); };
     box.appendChild(d); $('#addopt').hidden = box.children.length >= 5;
@@ -2309,29 +2330,29 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
   // 여러 장 선택(최대 10장): 한 장씩 준비하고, 2장 이상이면 좌우로 넘기는 미리보기
   $file.onchange = async () => {
     let files = [...$file.files]; if (!files.length) return;
-    if (files.length > 10) { files = files.slice(0, 10); toast('한 번에 10장까지 보낼 수 있어요. 앞 10장만 골랐어요'); }
+    if (files.length > 10) { files = files.slice(0, 10); toast(t('한 번에 10장까지 보낼 수 있어요. 앞 10장만 골랐어요')); }
     const pk = $('#pick');
     pk.classList.remove('has'); pk.classList.add('busy');
-    pk.innerHTML = `<span class="cmp-empty"><b>준비 중…</b></span>`; pk.appendChild($file);
+    pk.innerHTML = `<span class="cmp-empty"><b>${t('준비 중…')}</b></span>`; pk.appendChild($file);
     $send.disabled = true;
     const ready = [];
     for (const [i, f] of files.entries()) {
-      pk.querySelector('.cmp-empty b').textContent = files.length > 1 ? `준비 중 (${i + 1}/${files.length})` : `${f.type.startsWith('video/') ? '영상' : '사진'} 준비 중…`;
+      pk.querySelector('.cmp-empty b').textContent = files.length > 1 ? t('준비 중 ({i}/{n})', { i: i + 1, n: files.length }) : t(f.type.startsWith('video/') ? '영상 준비 중…' : '사진 준비 중…');
       try { ready.push(f.type.startsWith('video/') ? await prepareVideoMeta(f) : await prepareImage(f)); } catch {}
     }
     pk.classList.remove('busy');
-    if (!ready.length) { media = null; pk.querySelector('.cmp-empty').innerHTML = `${I.camera}<b>다시 선택해 주세요</b><small>이 파일은 열 수 없어요</small>`; return refresh(); }
-    if (ready.length < files.length) toast(`${files.length - ready.length}개는 열 수 없어서 뺐어요`);
+    if (!ready.length) { media = null; pk.querySelector('.cmp-empty').innerHTML = `${I.camera}<b>${t('다시 선택해 주세요')}</b><small>${t('이 파일은 열 수 없어요')}</small>`; return refresh(); }
+    if (ready.length < files.length) toast(t('{n}개는 열 수 없어서 뺐어요', { n: files.length - ready.length }));
     media = ready;
     media.forEach(m => { if (m.kind === 'video') { m.start = 0; m.end = Math.min(m.duration, MAX_VIDEO_SEC); } });
     const one = m => m.kind === 'video'
       ? `<video src="${m.previewUrl}" poster="${URL.createObjectURL(m.thumb)}" muted playsinline autoplay loop></video>
-         <span class="vbadge">${Math.round((m.end - m.start) * 10) / 10}초</span>`
-      : `<img src="${m.previewUrl}" alt="고른 사진">`;
+         <span class="vbadge">${t('{s}초', { s: Math.round((m.end - m.start) * 10) / 10 })}</span>`
+      : `<img src="${m.previewUrl}" alt="${t('고른 사진')}">`;
     pk.classList.add('has');
-    pk.innerHTML = media.length === 1 ? one(media[0]) + `<span class="repick">바꾸기</span>`
+    pk.innerHTML = media.length === 1 ? one(media[0]) + `<span class="repick">${t('바꾸기')}</span>`
       : `<div class="carwrap multi" data-idx="0"><div class="car" data-car>${media.map(m => `<div class="slide"><div class="stage">${one(m)}</div></div>`).join('')}</div>
-         <span class="car-n">1/${media.length}</span><div class="car-dots">${media.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div></div><span class="repick">다시 고르기</span>`;
+         <span class="car-n">1/${media.length}</span><div class="car-dots">${media.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div></div><span class="repick">${t('다시 고르기')}</span>`;
     pk.appendChild($file);
     initCarousels(pk, () => false);
     // 영상 구간 자르기: 지금 보이는 장이 영상이면 아래에 구간 선택 바 표시
@@ -2345,17 +2366,17 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
       if (!m || m.kind !== 'video' || !(m.duration > 1)) { box.hidden = true; return; }
       box.hidden = false;
       const D = m.duration, fmt = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
-      box.innerHTML = `<div class="trim-head"><b>영상 구간</b><span id="trimv"></span></div>
+      box.innerHTML = `<div class="trim-head"><b>${t('영상 구간')}</b><span id="trimv"></span></div>
         <div class="trim-bar"><div class="trim-sel" id="tsel"></div>
-          <input type="range" class="tr" id="ta" min="0" max="${D}" step="0.1" value="${m.start}" aria-label="시작">
-          <input type="range" class="tr" id="tb" min="0" max="${D}" step="0.1" value="${m.end}" aria-label="끝"></div>
-        <small>양쪽 손잡이를 끌어 올릴 부분을 골라요 · 최대 ${MAX_VIDEO_SEC}초</small>`;
+          <input type="range" class="tr" id="ta" min="0" max="${D}" step="0.1" value="${m.start}" aria-label="${t('시작')}">
+          <input type="range" class="tr" id="tb" min="0" max="${D}" step="0.1" value="${m.end}" aria-label="${t('끝')}"></div>
+        <small>${t('양쪽 손잡이를 끌어 올릴 부분을 골라요 · 최대 {n}초', { n: MAX_VIDEO_SEC })}</small>`;
       const ta = box.querySelector('#ta'), tb = box.querySelector('#tb'), v = curVideoEl();
       const paint = () => {
         box.querySelector('#tsel').style.left = (m.start / D * 100) + '%';
         box.querySelector('#tsel').style.width = ((m.end - m.start) / D * 100) + '%';
-        box.querySelector('#trimv').textContent = `${fmt(m.start)} – ${fmt(m.end)} · ${(Math.round((m.end - m.start) * 10) / 10)}초`;
-        const badge = (pk.querySelectorAll('.slide')[curIdx()] || pk).querySelector('.vbadge'); if (badge) badge.textContent = `${Math.round((m.end - m.start) * 10) / 10}초`;
+        box.querySelector('#trimv').textContent = `${fmt(m.start)} – ${fmt(m.end)} · ${t('{s}초', { s: Math.round((m.end - m.start) * 10) / 10 })}`;
+        const badge = (pk.querySelectorAll('.slide')[curIdx()] || pk).querySelector('.vbadge'); if (badge) badge.textContent = t('{s}초', { s: Math.round((m.end - m.start) * 10) / 10 });
       };
       const onMove = which => {
         let a = +ta.value, b = +tb.value;
@@ -2378,10 +2399,10 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
     who = w;
     el.querySelectorAll('.cmp-seg button').forEach(b => { b.classList.toggle('on', b.dataset.who === w); b.setAttribute('aria-checked', b.dataset.who === w); });
     $('#whoval').innerHTML = w === 'anon'
-      ? `<div class="who-card"><span class="who-ic">🎭</span><span><b>익명의 친구</b><small>누가 보냈는지 ${name}님도 알 수 없어요</small></span></div>`
+      ? `<div class="who-card"><span class="who-ic">🎭</span><span><b>${t('익명의 친구')}</b><small>${t('누가 보냈는지 {name}님도 알 수 없어요', { name })}</small></span></div>`
       : me
-        ? `<div class="who-card">${avatar(myProf, 'xs')}<span><b>${esc(myProf?.name || '')}</b><small>${myProf?.handle ? '@' + esc(myProf.handle) + ' · ' : ''}내 프로필 이름으로 보내요</small></span></div>`
-        : `<input class="field" id="author" maxlength="12" placeholder="내 이름 (예: 지수)" value="${esc(typedNow ?? nick)}" autocomplete="off">`;
+        ? `<div class="who-card">${avatar(myProf, 'xs')}<span><b>${esc(myProf?.name || '')}</b><small>${myProf?.handle ? '@' + esc(myProf.handle) + ' · ' : ''}${t('내 프로필 이름으로 보내요')}</small></span></div>`
+        : `<input class="field" id="author" maxlength="12" placeholder="${t('내 이름 (예: 지수)')}" value="${esc(typedNow ?? nick)}" autocomplete="off">`;
   };
   el.querySelectorAll('.cmp-seg button').forEach(b => b.onclick = () => setWho(b.dataset.who));
   // 한마디: 자동 높이 + 글자 수 + 추천 문구(누르면 채움) + 엔터는 입력 끝
@@ -2392,7 +2413,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
   el.querySelectorAll('#sugs button').forEach(b => b.onclick = () => { $t.value = b.textContent; capFit(); el.querySelectorAll('#sugs button').forEach(x => x.classList.toggle('on', x === b)); });
   const capAv = () => {
     const typed = $('#author')?.value.trim();
-    $('#capav').innerHTML = who === 'anon' ? '🎭' : me ? avatar(myProf, 'xs') : esc((typed || '나').slice(0, 1));
+    $('#capav').innerHTML = who === 'anon' ? '🎭' : me ? avatar(myProf, 'xs') : esc((typed || t('나')).slice(0, 1));
   };
   el.addEventListener('input', e => { if (e.target.id === 'author') capAv(); });
   el.querySelectorAll('.cmp-seg button').forEach(b => b.addEventListener('click', capAv));
@@ -2407,15 +2428,15 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
     const author = who === 'anon' ? '익명의 친구' : me ? (myProf?.name || '친구').slice(0, 12) : (typed || '익명의 친구');
     const by = who === 'anon' ? { author_name: '익명의 친구', author_id: null } : { author_name: author };
     $send.disabled = true;
-    const status = t => { $send.textContent = t; };
+    const status = x => { $send.textContent = x; };
     let ins;
     try {
       if (mode === 'poll') {
-        status('보내는 중…');
+        status(t('보내는 중…'));
         const opts = [...el.querySelectorAll('#opts input')].map(i => i.value.trim()).filter(Boolean);
         ins = await sb.from('posts').insert({ owner_id: S.uid, media_type: 'poll', mission: '투표', text: $('#pq').value.trim(), poll_options: opts, ...by });
       } else if (mode === 'question') {
-        status('보내는 중…');
+        status(t('보내는 중…'));
         ins = await sb.from('posts').insert({ owner_id: S.uid, media_type: 'question', mission: '질문', text: $('#qq').value.trim(), ...by });
       } else {
         // 한 장씩 (영상은 줄인 뒤) 올리고 media 배열로 저장. 첫 장은 image_path 에도 넣어 예전 화면과 호환
@@ -2424,11 +2445,11 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
           const tag = n > 1 ? ` (${i + 1}/${n})` : '';
           let main = m.main;
           if (m.kind === 'video') {
-            status(`영상 줄이는 중${tag} 0%`);
-            main = await compressVideo(m, p => status(`영상 줄이는 중${tag} ${Math.round(p * 100)}%`));
-            if (main.silent) toast('이 기기에서는 소리를 담지 못해 소리 없이 올라가요');
+            status(t('영상 줄이는 중{tag} {p}%', { tag, p: 0 }));
+            main = await compressVideo(m, p => status(t('영상 줄이는 중{tag} {p}%', { tag, p: Math.round(p * 100) })));
+            if (main.silent) toast(t('이 기기에서는 소리를 담지 못해 소리 없이 올라가요'));
           }
-          status(`올리는 중${tag}…`);
+          status(t('올리는 중{tag}…', { tag }));
           const id = crypto.randomUUID();
           const path = `${S.uid}/${id}.${extOf(main)}`, tpath = `${S.uid}/${id}_t.${extOf(m.thumb)}`;
           await Promise.all([uploadBlob(path, main), uploadBlob(tpath, m.thumb)]);
@@ -2441,19 +2462,19 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
         });
       }
     } catch (err) { ins = { error: err }; }
-    if (ins.error) { $send.disabled = false; status('다시 보내기'); return toast(/줄일 수 없어요/.test(ins.error.message) ? ins.error.message : kerr(ins.error)); }
+    if (ins.error) { $send.disabled = false; status(t('다시 보내기')); return toast(/줄일 수 없어요/.test(ins.error.message) ? ins.error.message : kerr(ins.error)); }
     try { if (!me && who === 'name' && typed) localStorage.setItem('candid_author', typed); } catch {}
     media = null; el.querySelectorAll('textarea, #opts input').forEach(i => i.value = '');
-    const what = mode === 'poll' ? '투표' : mode === 'question' ? '질문' : '사진·영상';
+    const what = t(mode === 'poll' ? '투표' : mode === 'question' ? '질문' : '사진·영상');
     removeEventListener('popstate', onPop);
     el.innerHTML = `<div class="cmp-done">
-      ${DOT('happy', { size: 88, cls: 'pop hop', label: '보냈어요' })}<h2>Sent<i class="pd">.</i></h2>
-      <p>${mode === 'question' ? `${name}님이 답하면 질문과 함께 피드에 올라가요.` : `${name}님이 승인하면 피드에 올라가요.`}<br>${who === 'anon' ? '🎭 익명으로 보냈어요' : `‘${esc(author)}’ 이름으로 보냈어요`}</p>
-      <button class="btn primary block" id="more">${what} 하나 더 보내기</button>
-      ${me && !S.isOwner && !myFollows.has(S.uid) ? `<button class="btn add block" id="fol">${name} 친구 추가 · 새 소식을 홈에서 보기</button>` : ''}
-      ${S.isOwner ? '' : me ? '' : `<button class="btn block" id="mine">나도 받아볼래 — 내 피드 만들기</button>`}
-      ${canInstall() ? `<button class="btn block" id="inst">📲 candid. 앱으로 쓰기</button>` : ''}
-      <button class="btn block" style="border:0;background:none;color:var(--sub)" id="done">닫기</button></div>`;
+      ${DOT('happy', { size: 88, cls: 'pop hop', label: t('보냈어요') })}<h2>Sent<i class="pd">.</i></h2>
+      <p>${mode === 'question' ? t('{name}님이 답하면 질문과 함께 피드에 올라가요.', { name }) : t('{name}님이 승인하면 피드에 올라가요.', { name })}<br>${who === 'anon' ? t('🎭 익명으로 보냈어요') : t('‘{author}’ 이름으로 보냈어요', { author: esc(author) })}</p>
+      <button class="btn primary block" id="more">${t('{what} 하나 더 보내기', { what })}</button>
+      ${me && !S.isOwner && !myFollows.has(S.uid) ? `<button class="btn add block" id="fol">${t('{name} 친구 추가 · 새 소식을 홈에서 보기', { name })}</button>` : ''}
+      ${S.isOwner ? '' : me ? '' : `<button class="btn block" id="mine">${t('나도 받아볼래 — 내 피드 만들기')}</button>`}
+      ${canInstall() ? `<button class="btn block" id="inst">${t('📲 candid. 앱으로 쓰기')}</button>` : ''}
+      <button class="btn block" style="border:0;background:none;color:var(--sub)" id="done">${t('닫기')}</button></div>`;
     const done = () => { el.remove(); if (history.state?.compose) history.back(); setTimeout(maybeShowInstall, 800); };
     $('#done').onclick = done;
     $('#more').onclick = () => { el.remove(); openCompose(0, false, mode); };
@@ -2575,9 +2596,9 @@ function maybeShowInstall() {
   try { if (sessionStorage.getItem('candid_install_closed')) return; } catch {} // 이번 방문에서 닫았으면 그만
   const b = document.createElement('div'); b.className = 'ibanner';
   b.innerHTML = `<img src="brand/icon-180.png?v=3" alt="">
-    <div><b>candid. 앱으로 쓰기</b><span>${kind === 'inapp' ? 'Safari·Chrome에서 열면 설치할 수 있어요' : '홈 화면에 추가하면 새 사진 알림도 받아요'}</span></div>
-    <button class="btn primary">${kind === 'android' ? '설치' : kind === 'ios' ? '방법 보기' : '열기'}</button>
-    <button class="ix" aria-label="닫기">${I.close}</button>`;
+    <div><b>${t('candid. 앱으로 쓰기')}</b><span>${t(kind === 'inapp' ? 'Safari·Chrome에서 열면 설치할 수 있어요' : '홈 화면에 추가하면 새 사진 알림도 받아요')}</span></div>
+    <button class="btn primary">${t(kind === 'android' ? '설치' : kind === 'ios' ? '방법 보기' : '열기')}</button>
+    <button class="ix" aria-label="${t('닫기')}">${I.close}</button>`;
   b.querySelector('.btn').onclick = () => { b.remove(); startInstall(); };
   b.querySelector('.ix').onclick = () => { b.remove(); try { sessionStorage.setItem('candid_install_closed', '1'); } catch {} };
   document.body.appendChild(b);
@@ -2588,12 +2609,12 @@ async function startInstall() {
     installEvt.prompt();
     const { outcome } = await installEvt.userChoice.catch(() => ({}));
     installEvt = null;
-    if (outcome !== 'accepted') toast('나중에 메뉴 → 앱으로 설치에서 다시 할 수 있어요');
+    if (outcome !== 'accepted') toast(t('나중에 메뉴 → 앱으로 설치에서 다시 할 수 있어요'));
     return;
   }
   if (kind === 'inapp') return openExternal(installUrl()); // 지금 보던 친구 피드가 아니라 설치 안내로
   if (kind === 'ios') return showInstallGuide(); // 공유 버튼 위치를 화살표로 가리키는 전체 화면 안내
-  toast(installed() ? '이미 앱으로 쓰고 있어요' : '브라우저 메뉴에서 "앱 설치" 또는 "홈 화면에 추가"를 눌러 주세요');
+  toast(t(installed() ? '이미 앱으로 쓰고 있어요' : '브라우저 메뉴에서 "앱 설치" 또는 "홈 화면에 추가"를 눌러 주세요'));
 }
 // ---------- 알림 (종 아이콘) ----------
 // 따로 저장하는 테이블 없이 모아서 보여줌: 받은 게시물(승인 대기)·좋아요·댓글·스티커 꾸미기·나를 친구 추가. 최근 30일
@@ -2622,9 +2643,9 @@ async function fetchNotis(force) {
   // 스티커: 같은 사람이 같은 사진에 10분 안에 붙인 건 하나로
   const grp = new Map();
   (st.data || []).forEach(r => {
-    const key = r.user_id + r.post_id, g = grp.get(key), t = new Date(r.created_at).getTime();
-    if (g && g.first - t < 6e5) { g.n++; g.first = t; return; }
-    const it = { k: 'sticker', at: r.created_at, uid: r.user_id, post: byId.get(r.post_id), n: 1, first: t };
+    const key = r.user_id + r.post_id, g = grp.get(key), ts = new Date(r.created_at).getTime();
+    if (g && g.first - ts < 6e5) { g.n++; g.first = ts; return; }
+    const it = { k: 'sticker', at: r.created_at, uid: r.user_id, post: byId.get(r.post_id), n: 1, first: ts };
     grp.set(key, it); items.push(it);
   });
   (fl.data || []).forEach(r => items.push({ k: 'follow', at: r.created_at, uid: r.follower_id }));
@@ -2705,11 +2726,11 @@ async function renderInvite(key) {
 }
 // 설치 버튼: 카톡 등 인앱 → Safari·Chrome 으로(설치 안내 + 초대 정보 유지), 그 외 → 바로 설치/안내
 function installNow() {
-  if (installed()) return toast('이미 앱으로 쓰고 있어요');
+  if (installed()) return toast(t('이미 앱으로 쓰고 있어요'));
   if (inApp) return openExternal(installUrl());
   if (installEvt) return startInstall();
   showInstallGuide();
-  if (!isIOS && !/android/i.test(UA)) toast('브라우저 메뉴에서 "앱 설치" 또는 "홈 화면에 추가"를 눌러 주세요');
+  if (!isIOS && !/android/i.test(UA)) toast(t('브라우저 메뉴에서 "앱 설치" 또는 "홈 화면에 추가"를 눌러 주세요'));
 }
 // 로그인 후: 초대한 친구를 내 친구로 (한 번만)
 async function applyInvite() {
@@ -2755,9 +2776,9 @@ function afterSignup() {
   if (DEMO || installed()) return;
   if (inApp) return setTimeout(() => {
     sheet(`<h3>Add to Home<i class="pd">.</i></h3>
-      <p class="hint">가입 완료! 홈 화면에 추가하면 앱처럼 바로 열리고, 친구가 사진을 보내면 알림도 와요.</p>
-      <button class="btn primary block" id="goext">📲 홈 화면에 추가하기</button>
-      <p class="hint" style="font-size:12px;text-align:center;margin-top:10px">${isIOS ? 'Safari' : 'Chrome'}가 열리면 안내를 따라 주세요</p>`)
+      <p class="hint">${t('가입 완료! 홈 화면에 추가하면 앱처럼 바로 열리고, 친구가 사진을 보내면 알림도 와요.')}</p>
+      <button class="btn primary block" id="goext">${t('📲 홈 화면에 추가하기')}</button>
+      <p class="hint" style="font-size:12px;text-align:center;margin-top:10px">${t('{browser}가 열리면 안내를 따라 주세요', { browser: isIOS ? 'Safari' : 'Chrome' })}</p>`)
       .querySelector('#goext').onclick = () => { closeSheet(); openExternal(installUrl()); };
   }, 700);
   setTimeout(showInstallGuide, 900);
@@ -2775,33 +2796,33 @@ function showInstallGuide() {
   const sh = `<b class="ib">${I.iosShare}</b>`;
   let steps, arrow = '';
   if (android) {
-    steps = step(1, '아래 <b>앱 설치</b> 버튼을 눌러요') + step(2, '홈 화면의 <b>candid.</b> 아이콘으로 열어요') + step(3, '카카오로 <b>한 번만</b> 로그인하면 끝!');
+    steps = step(1, t('아래 <b>앱 설치</b> 버튼을 눌러요')) + step(2, t('홈 화면의 <b>candid.</b> 아이콘으로 열어요')) + step(3, t('카카오로 <b>한 번만</b> 로그인하면 끝!'));
   } else if (chromeIOS) {
-    steps = step(1, `주소창 오른쪽 공유 ${sh} 를 눌러요`) + step(2, '<b>홈 화면에 추가</b>를 눌러요') + step(3, '홈 화면의 <b>candid.</b>을 열고 카카오로 <b>한 번만</b> 로그인');
+    steps = step(1, t('주소창 오른쪽 공유 {icon} 를 눌러요', { icon: sh })) + step(2, t('<b>홈 화면에 추가</b>를 눌러요')) + step(3, t('홈 화면의 <b>candid.</b>을 열고 카카오로 <b>한 번만</b> 로그인'));
     arrow = 'top';
   } else if (iosVer >= 26) {
-    steps = step(1, '오른쪽 아래 <b class="ib">⋯</b> 를 눌러요') + step(2, `<b>공유</b> ${sh} → <b>홈 화면에 추가</b>`) + step(3, '<b>추가</b>를 누르고, 홈 화면의 <b>candid.</b>을 열어 카카오로 <b>한 번만</b> 로그인');
+    steps = step(1, t('오른쪽 아래 <b class="ib">⋯</b> 를 눌러요')) + step(2, t('<b>공유</b> {icon} → <b>홈 화면에 추가</b>', { icon: sh })) + step(3, t('<b>추가</b>를 누르고, 홈 화면의 <b>candid.</b>을 열어 카카오로 <b>한 번만</b> 로그인'));
     arrow = 'right';
   } else {
-    steps = step(1, `아래 가운데 공유 ${sh} 를 눌러요`) + step(2, '목록을 내려 <b>홈 화면에 추가</b>') + step(3, '<b>추가</b>를 누르고, 홈 화면의 <b>candid.</b>을 열어 카카오로 <b>한 번만</b> 로그인');
+    steps = step(1, t('아래 가운데 공유 {icon} 를 눌러요', { icon: sh })) + step(2, t('목록을 내려 <b>홈 화면에 추가</b>')) + step(3, t('<b>추가</b>를 누르고, 홈 화면의 <b>candid.</b>을 열어 카카오로 <b>한 번만</b> 로그인'));
     arrow = 'center';
   }
-  el.innerHTML = `<button class="ig-x" aria-label="닫기">${I.close}</button>
+  el.innerHTML = `<button class="ig-x" aria-label="${t('닫기')}">${I.close}</button>
     <img class="ig-ic" src="brand/icon-180.png?v=3" alt="">
-    <h2>홈 화면에 추가하기</h2>
-    <p>앱처럼 바로 열리고, 친구가 사진을 보내면 알림이 와요.</p>
-    ${otherIOS ? `<button class="btn primary block" id="igsafari" style="margin-bottom:18px">Safari로 열기 (추천)</button><p class="ig-sub" style="margin:-8px 0 20px">안 열리면 아래 방법으로 여기서 바로 추가해도 돼요</p>` : ''}
+    <h2>${t('홈 화면에 추가하기')}</h2>
+    <p>${t('앱처럼 바로 열리고, 친구가 사진을 보내면 알림이 와요.')}</p>
+    ${otherIOS ? `<button class="btn primary block" id="igsafari" style="margin-bottom:18px">${t('Safari로 열기 (추천)')}</button><p class="ig-sub" style="margin:-8px 0 20px">${t('안 열리면 아래 방법으로 여기서 바로 추가해도 돼요')}</p>` : ''}
     <ol>${steps}</ol>
-    ${android ? `<button class="btn primary block" id="iginst"${installEvt ? '' : ' disabled'}>${installEvt ? '앱 설치' : '설치 준비 중…'}</button>
-      <p class="ig-sub" id="igalt"${installEvt ? ' hidden' : ''}>버튼이 계속 안 눌리면 오른쪽 위 <b>⋮</b> → <b>앱 설치</b> 또는 <b>홈 화면에 추가</b></p>` : ''}
+    ${android ? `<button class="btn primary block" id="iginst"${installEvt ? '' : ' disabled'}>${installEvt ? t('앱 설치') : t('설치 준비 중…')}</button>
+      <p class="ig-sub" id="igalt"${installEvt ? ' hidden' : ''}>${t('버튼이 계속 안 눌리면 오른쪽 위 <b>⋮</b> → <b>앱 설치</b> 또는 <b>홈 화면에 추가</b>')}</p>` : ''}
     ${arrow ? `<div class="ig-arrow ${arrow}" aria-hidden="true"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v15M5 12l7 7 7-7"/></svg></div>` : ''}`;
   el.querySelector('.ig-x').onclick = () => el.remove();
   const sf = el.querySelector('#igsafari');
-  if (sf) sf.onclick = () => tryOpen(safariUrl(installUrl()), () => toast('Safari를 열 수 없어요. 아래 방법으로 추가해 주세요'));
+  if (sf) sf.onclick = () => tryOpen(safariUrl(installUrl()), () => toast(t('Safari를 열 수 없어요. 아래 방법으로 추가해 주세요')));
   document.body.appendChild(el);
   if (android) {
     const btn = el.querySelector('#iginst');
-    const arm = () => { btn.disabled = false; btn.textContent = '앱 설치'; el.querySelector('#igalt').hidden = true; };
+    const arm = () => { btn.disabled = false; btn.textContent = t('앱 설치'); el.querySelector('#igalt').hidden = true; };
     if (!installEvt) addEventListener('beforeinstallprompt', () => setTimeout(arm), { once: true });
     btn.onclick = async () => { if (!installEvt) return; el.remove(); await startInstall(); };
   }

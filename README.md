@@ -90,6 +90,9 @@ python3 -m http.server 3000   # → http://localhost:3000
 ## 6. 프로필 설정 (이름/사진 직접 선택)
 SQL Editor 에서 `sql/03_profile.sql` 실행. 첫 로그인 시 프로필 설정 화면이 뜨고, 이후 메뉴 → 프로필 편집 또는 내 프로필 사진을 눌러 변경.
 
+## 다국어
+한국어·영어·일본어. 기기 언어에 맞춰 자동으로 바뀌고, ☰ 메뉴에서 직접 고를 수 있음. 구조와 새 언어 추가 방법은 [`docs/I18N.md`](docs/I18N.md).
+
 ## 캐릭터 닷(.)
 로고 끝 파란 점이 캐릭터가 된 '닷'. 모양·색·표정·크기·쓰는 곳은 [`docs/CHARACTER.md`](docs/CHARACTER.md), 원본은 `brand/dot-2d*.svg`(앱에서 사용) · `brand/dot-3d-clay.svg`(3D 질감 시안, 아직 미사용).
 
