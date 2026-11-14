@@ -2816,6 +2816,19 @@ function fitStickerLayer(st) {
   if (r < 0.8) { const h = r / 0.8 * 100; L.style.cssText = `inset:auto 0;top:${(100 - h) / 2}%;height:${h}%`; }
   else { const w = 0.8 / r * 100; L.style.cssText = `inset:0 auto;left:${(100 - w) / 2}%;width:${w}%`; }
 }
+// 영상 반복: 끝까지 간 뒤 처음으로 돌아갈 때(멈춤 → 다시 불러오기) 검은 화면이 비치는 문제
+// → 끝나기 직전에 미리 처음으로 넘겨서, 마지막 장면이 보이는 채로 바로 이어지게. 작성 화면 미리보기는 제외(구간 반복 따로 있음)
+function seamlessLoop(v) {
+  if (!v || v._sl || v.closest('.composer')) return; v._sl = true;
+  v.loop = false;
+  const near = () => v.duration && isFinite(v.duration) && v.currentTime >= v.duration - 0.15;
+  if ('requestVideoFrameCallback' in v) {
+    const tick = () => { if (!v.paused && near()) v.currentTime = 0; v.requestVideoFrameCallback(tick); };
+    v.requestVideoFrameCallback(tick);
+  } else v.addEventListener('timeupdate', () => { if (near()) v.currentTime = 0; });
+  v.addEventListener('ended', () => { v.currentTime = 0; v.play().catch(() => {}); }); // 길이를 모르는 영상 등 대비
+}
+document.addEventListener('play', e => { if (e.target.tagName === 'VIDEO') seamlessLoop(e.target); }, true);
 // 사진·영상 한 장
 function mediaEl(m, mode, alt) {
   if (m.k === 'video') return mode === 'reel'
