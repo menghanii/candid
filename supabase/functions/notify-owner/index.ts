@@ -4,7 +4,7 @@ import webpush from 'npm:web-push@3.6.7';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
 const env = (k: string) => (Deno.env.get(k) ?? '').trim();
-const SITE = env('SITE_URL') || 'https://menghanii.github.io/candid/';
+const SITE = env('SITE_URL') || 'https://candid.candidcrew.workers.dev/';
 let sb: ReturnType<typeof createClient> | null = null;
 
 // 시작 시 바로 죽지 않도록, 요청이 올 때 설정을 점검하고 빠진 항목 이름만 알려줌 (값은 노출하지 않음)
