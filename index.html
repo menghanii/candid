@@ -2364,7 +2364,7 @@ async function autoPush() {
   let until = 0; try { until = +localStorage.getItem('candid_push_ask') || 0; } catch {}
   if (Date.now() < until || document.querySelector('.sheet-wrap, .page-ov, .overlay, .iguide')) return;
   const w = sheet(`<div class="pask"><div class="pask-ic">🔔</div><h3>알림을 켜 둘까요?</h3>
-      <p class="hint">알림을 켜야 친구가 <b>내 피드에 사진을 보내거나</b>, <b>내 사진을 꾸몄을 때</b> 바로 알 수 있어요.<br>꺼 두면 앱을 열기 전까지 몰라요.</p></div>
+      <p class="hint">친구가 <b>내 피드에 사진을 보내거나</b>, <b>내 사진을 꾸몄을 때</b> 바로 알 수 있어요.<br>꺼 두면 앱을 열기 전까지 몰라요.</p></div>
     <button class="btn primary block" id="paskOn">알림 켜기</button>
     <button class="btn block" id="paskNo" style="margin-top:8px;border:0;background:none;color:var(--sub)">나중에</button>`, () => { snooze(); return true; });
   const snooze = () => { try { localStorage.setItem('candid_push_ask', Date.now() + 3 * 864e5); } catch {} };
