@@ -77,10 +77,11 @@ drop policy if exists "stickers move own" on public.post_stickers;
 create policy "stickers move own" on public.post_stickers for update to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 
--- 떼기: 자기 스티커 또는 피드 주인(승인 없는 대신 주인이 언제든 정리 가능)
+-- 떼기: 붙인 본인만 (피드 주인도 친구 스티커는 못 뗌 — 15 SQL 과 같음)
 drop policy if exists "stickers remove" on public.post_stickers;
-create policy "stickers remove" on public.post_stickers for delete to authenticated
-  using (user_id = auth.uid() or exists (select 1 from public.posts p where p.id = post_id and p.owner_id = auth.uid()));
+drop policy if exists "stickers remove own" on public.post_stickers;
+create policy "stickers remove own" on public.post_stickers for delete to authenticated
+  using (user_id = auth.uid());
 
 grant select on public.post_stickers to anon, authenticated;
 grant insert, delete on public.post_stickers to authenticated;

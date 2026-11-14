@@ -126,8 +126,8 @@
   .post-img { width:100%; aspect-ratio:4/5; object-fit:cover; display:block; background:var(--soft); }
   .post-c { padding:20px 20px 8px; }
   .quote { font-family:var(--display); font-weight:600; font-size:24px; line-height:1.3; letter-spacing:-.03em; margin:6px 0 10px; word-break:keep-all; }
-  .quote::before { content:"“"; color:var(--accent); }
-  .quote::after { content:"”"; color:var(--accent); }
+  .quote::before { content:"“"; }
+  .quote::after { content:"”"; }
   .by { color:var(--sub); font-size:13px; }
   .post-f { display:flex; align-items:center; padding:8px 12px 14px 20px; color:var(--sub); font-size:12px; }
   .post-f .sp { flex:1; }
@@ -705,7 +705,10 @@
   .pst { position:absolute; transform:translate(-50%,-50%); font-size:calc(var(--s, 1) * 13cqw); line-height:1; filter:drop-shadow(0 2px 4px rgba(0,0,0,.3)); user-select:none; -webkit-user-select:none; }
   .grid button { container-type:inline-size; }
   .grid .stk-layer .pst { font-size:calc(var(--s, 1) * 13cqw); }
-  .stk-layer .pst { pointer-events:auto; cursor:pointer; } /* 보는 화면: 누르면 누가 붙였는지 */
+  .stk-layer .pst { pointer-events:auto; cursor:pointer; -webkit-tap-highlight-color:transparent; } /* 보는 화면: 누르면 누가 붙였는지 */
+  .stk-layer .pst.ping { animation:stkPing .35s ease; }
+  @keyframes stkPing { 50% { transform:translate(-50%,-50%) rotate(var(--r, 0deg)) scale(1.18); } }
+  .stk-layer { z-index:3; }
   .grid .stk-layer .pst { pointer-events:none; }
   /* 상세 화면 */
   .post-media .stage > img, .post-media .stage > video { aspect-ratio:4/5; }
@@ -2779,22 +2782,22 @@ async function loadStickers(ids) {
   data.forEach(r => STK.get(r.post_id)?.push(r));
 }
 // 스티커 한 개: 이모지·미니 아이템 그림·텍스트 + 크기(--s)·회전(--r)
-const stickerSpan = (r, cls = '') => `<span class="pst${r.text ? ' tx' : ''} ${cls}" data-id="${r.id}" style="left:${r.x * 100}%;top:${r.y * 100}%;--s:${r.scale};--r:${r.rot || 0}deg">${r.text ? `<span class="ptxt ${r.style || 'plain'}">${esc(r.text)}</span>` : glyph(ITEM[r.item_id])}</span>`;
+const stickerSpan = (r, cls = '') => `<span class="pst${r.text ? ' tx' : ''} ${cls}" data-id="${r.id}"${cls ? '' : ' role="button" onclick="stkWho(event, this)"'} style="left:${r.x * 100}%;top:${r.y * 100}%;--s:${r.scale};--r:${r.rot || 0}deg">${r.text ? `<span class="ptxt ${r.style || 'plain'}">${esc(r.text)}</span>` : glyph(ITEM[r.item_id])}</span>`;
 const stickerLayer = (postId, idx) => `<div class="stk-layer" data-sl="${postId}:${idx}">${(STK.get(postId) || []).filter(r => r.media_idx === idx).map(r => stickerSpan(r)).join('')}</div>`;
 // 보는 화면(게시물·릴스)에서 스티커를 누르면 누가 붙였는지
 const STK_WHO = new Map(); // user_id → 이름
-document.addEventListener('click', async e => {
-  const s = e.target.closest('.stk-layer .pst'); if (!s) return;
-  e.stopPropagation(); e.preventDefault();
+async function stkWho(e, s) {
+  e.stopPropagation(); e.preventDefault(); // 릴스 두 번 탭(좋아요)·음소거로 넘어가지 않게
   const postId = s.closest('[data-sl]').dataset.sl.split(':')[0];
   const r = (STK.get(postId) || []).find(x => x.id === s.dataset.id); if (!r) return;
+  s.classList.remove('ping'); void s.offsetWidth; s.classList.add('ping');
   if (me && r.user_id === me.id) return toast('내가 붙인 스티커예요');
   if (!STK_WHO.has(r.user_id)) {
     const { data } = await sb.from('profiles').select('name, handle').eq('id', r.user_id).maybeSingle();
     STK_WHO.set(r.user_id, data ? `${data.name}${data.handle ? ` @${data.handle}` : ''}` : '친구');
   }
   toast(`${STK_WHO.get(r.user_id)}님이 붙였어요`);
-}, true);
+}
 function refreshStickerLayers(postId) {
   document.querySelectorAll(`[data-sl^="${postId}:"]`).forEach(el => { const st = el.parentElement; el.outerHTML = stickerLayer(postId, +el.dataset.sl.split(':')[1]); if (st?.dataset.ar) fitStickerLayer(st); });
 }
@@ -2846,7 +2849,7 @@ function initCarousels(root, autoplay) {
   });
 }
 
-// 스티커 꾸미기 편집기: 가챠로 뽑은 스티커만, 내 스티커만 옮기기·떼기(주인은 남의 것도 떼기 가능), 승인 없음
+// 스티커 꾸미기 편집기: 가챠로 뽑은 스티커만, 내 스티커만 옮기기·떼기(남의 스티커는 피드 주인도 못 건드림), 승인 없음
 async function openDecorate(postId, idx0) {
   if (!me) return toast('로그인하면 스티커로 꾸밀 수 있어요');
   const p = findAny(postId); if (!p) return;
@@ -2900,12 +2903,12 @@ async function openDecorate(postId, idx0) {
     $('#dszw').hidden = $('#drotw').hidden = !selMine;
     $('#dedit').hidden = !(selMine && selMine.text);
     // 떼기: 내 스티커, 또는 피드 주인만(친구는 남의 스티커를 누르면 정보만 보임)
-    $('#dtools [data-a="x"]').hidden = !(selMine || (selOther && isOwnerPost));
+    $('#dtools [data-a="x"]').hidden = !selMine; // 떼기·수정은 내가 붙인 스티커만(친구 스티커는 누가 붙였는지만 보임)
     const u = selOther && who.get(selOther.user_id);
     $('#dwho').hidden = !selOther;
     if (selOther) $('#dwho').innerHTML = `<b>${esc(u?.name || '친구')}</b>${u?.handle ? ` <small>@${esc(u.handle)}</small>` : ''}님이 붙였어요`;
     if (selMine) { $('#dsize').value = selMine.scale; $('#drot').value = selMine.rot || 0; }
-    $('#dhint').textContent = `내 스티커 ${mine.length}/${MAX_MINE} · 끌어서 옮기고, 두 손가락으로 크기·회전 · 친구 스티커를 누르면 누가 붙였는지 볼 수 있어요${isOwnerPost ? ' · 내 피드라 친구 스티커도 눌러서 뗄 수 있어요' : ''}`;
+    $('#dhint').textContent = `내 스티커 ${mine.length}/${MAX_MINE} · 끌어서 옮기고, 두 손가락으로 크기·회전 · 친구 스티커를 누르면 누가 붙였는지 볼 수 있어요`;
   };
   // 트레이: 텍스트 + 미니 아이템 + 이모지 (+ 가챠 스티커)
   const tile = i => `<button class="dts${i.data.mini ? ' mini' : ''}" data-item="${i.id}" aria-label="${esc(i.name)} 붙이기">${glyph(i)}</button>`;
@@ -2979,13 +2982,13 @@ async function openDecorate(postId, idx0) {
     const a = e.target.closest('[data-a]')?.dataset.a; if (!a || !sel) return;
     const r = mine.find(x => x.id === sel);
     if (a === 'edit' && r?.text) return openText(r);
-    if (a === 'x') { if (r) { mine = mine.filter(x => x !== r); if (!r.tmp) removed.add(r.id); } else removed.add(sel); sel = null; paint(); }
+    if (a === 'x') { if (!r) return; mine = mine.filter(x => x !== r); if (!r.tmp) removed.add(r.id); sel = null; paint(); }
   };
 
   const KEYS = ['x', 'y', 'scale', 'rot', 'text', 'style'];
   const changed = () => removed.size || mine.some(r => r.tmp || KEYS.some(k => (orig.get(r.id)?.[k] ?? null) !== (r[k] ?? null)));
   $('[data-x]').onclick = () => { if (!changed() || confirm('저장하지 않은 꾸미기가 사라져요. 닫을까요?')) el.remove(); };
-  // 저장: 내 것만 추가·수정·삭제(+주인은 남의 것 삭제) → 서로 덮어쓰지 않음. 실패하면 원인을 그대로 보여줌
+  // 저장: 내 것만 추가·수정·삭제 → 서로 덮어쓰지 않음. 실패하면 원인을 그대로 보여줌
   $('#dsave').onclick = async () => {
     const btn = $('#dsave'); btn.disabled = true; btn.textContent = '저장 중…';
     let step = '';
