@@ -156,12 +156,11 @@
   /* 랜딩 */
   .landing { position:relative; }
   .landing > *:not(.wander) { position:relative; z-index:1; }
-  .wander { position:absolute; left:0; top:0; z-index:2; padding:0; border:0; background:none; cursor:pointer; transition-property:transform; transition-timing-function:cubic-bezier(.45,.05,.4,1); -webkit-tap-highlight-color:transparent; }
-  .wander .dotc { display:block; transition:transform .2s; filter:drop-shadow(0 6px 10px rgba(0,0,0,.25)); }
-  .wander.walk .dotc-b { animation:dotHop .38s cubic-bezier(.3,.7,.4,1) infinite; }
-  .wander.jump .dotc-b { animation:dotJump .6s cubic-bezier(.3,.7,.4,1); }
-  @keyframes dotJump { 0% { transform:scale(1.1,.9); } 35% { transform:translateY(-55%) scale(.92,1.08); } 70% { transform:translateY(0) scale(1.12,.88); } 100% { transform:none; } }
-  @media (prefers-reduced-motion: reduce) { .wander { transition:none; } .wander .dotc-b { animation:none !important; } }
+  .wander { position:absolute; left:0; top:0; z-index:2; padding:0; border:0; background:none; cursor:pointer; will-change:transform; -webkit-tap-highlight-color:transparent; }
+  .wander svg { display:block; overflow:visible; }
+  .wander .d3-happy { display:none; }
+  .wander.happy .d3-happy { display:inline; }
+  .wander.happy .d3-eyes { display:none; }
   .landing { min-height:100vh; display:flex; flex-direction:column; padding:28px 24px calc(28px + env(safe-area-inset-bottom)); }
   .landing .hero { flex:1; display:flex; flex-direction:column; justify-content:center; }
   .snap:nth-child(2) { animation-delay:.1s; } .snap:nth-child(3) { animation-delay:.2s; }
@@ -1376,40 +1375,88 @@ function renderLanding(inviter) {
       })()}
       ${inKakao && all.includes('google') ? `<button class="fine linkish" onclick="openExternal()">Google로 하려면 Safari·Chrome에서 열기</button>` : ''}
       ${appFirst ? '' : '<p class="fine">친구는 로그인 없이 사진을 보낼 수 있어요.<br>내가 승인한 사진만 피드에 올라갑니다.</p>'}
-      ${inviter || appFirst ? '' : `<button class="wander" id="wander" aria-label="닷">${DOT('base', { size: 44 })}</button>`}
+      ${inviter || appFirst ? '' : `<button class="wander" id="wander" aria-label="닷">${DOT3D(54)}</button>`}
     </div>`;
   startWander();
 }
-// 첫 화면에서 닷이 여기저기 돌아다님: 잠깐 서 있다가 → 통통 튀며 다른 곳으로 → 가끔 두리번. 누르면 깡충 + 웃음
+// 첫 화면의 3D 닷: 꼬물꼬물 계속 걸어 다님(순간이동 없이 매 프레임 조금씩). 가끔 멈춰 두리번, 누르면 깡충 + 웃음
+function DOT3D(size = 56) {
+  const k = 'd3' + Date.now().toString(36);
+  const eye = cx => `<ellipse cx="${cx}" cy="48" rx="6.6" ry="9.4" fill="url(#${k}e)"/><circle class="d3-pupil" cx="${cx + 1.6}" cy="45.6" r="2.8" fill="#fff"/>`;
+  return `<svg class="dot3d" viewBox="-8 -10 126 116" width="${Math.round(size * 1.09)}" height="${size}" aria-hidden="true"><defs>
+    <radialGradient id="${k}b" cx="34%" cy="24%" r="85%"><stop offset="0" stop-color="#8aa2ff"/><stop offset=".5" stop-color="#3d5cff"/><stop offset="1" stop-color="#1a2fb0"/></radialGradient>
+    <radialGradient id="${k}t" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#8aa2ff"/><stop offset=".6" stop-color="#3d5cff"/><stop offset="1" stop-color="#1a2fb0"/></radialGradient>
+    <linearGradient id="${k}e" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a2a33"/><stop offset="1" stop-color="#050508"/></linearGradient>
+    <filter id="${k}s" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3.5"/></filter>
+    <filter id="${k}g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+    <clipPath id="${k}c"><path d="${DOT_BODY}"/></clipPath></defs>
+    <ellipse class="d3-shadow" cx="52" cy="95" rx="34" ry="5" fill="#000" opacity=".35" filter="url(#${k}g)"/>
+    <g class="d3-body">
+      <path d="${DOT_BODY}" fill="url(#${k}b)"/>
+      <g clip-path="url(#${k}c)"><ellipse cx="50" cy="98" rx="46" ry="15" fill="#000" opacity=".22" filter="url(#${k}g)"/><ellipse cx="92" cy="56" rx="9" ry="30" fill="#fff" opacity=".16" filter="url(#${k}g)"/></g>
+      <ellipse cx="33" cy="27" rx="13" ry="8" transform="rotate(-30 33 27)" fill="#fff" opacity=".38" filter="url(#${k}s)"/>
+      <g class="d3-eyes">${eye(38)}${eye(62)}</g>
+      <g class="d3-happy"><path d="M31 51 q7 -9 14 0 M55 51 q7 -9 14 0" fill="none" stroke="#0a0a0a" stroke-width="4.6" stroke-linecap="round"/></g>
+      <circle cx="101" cy="83" r="7.5" fill="url(#${k}t)"/><circle cx="98.6" cy="80.4" r="2.4" fill="#fff" opacity=".4" filter="url(#${k}s)"/>
+    </g></svg>`;
+}
 function startWander() {
   const w = document.getElementById('wander'); if (!w) return;
   const land = w.closest('.landing'), calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let x = 0, y = 0, face = 1, timer;
+  const svg = w.firstElementChild, body = svg.querySelector('.d3-body'), eyes = svg.querySelector('.d3-eyes'), shadow = svg.querySelector('.d3-shadow');
+  const pupils = [...svg.querySelectorAll('.d3-pupil')].map(p => [p, +p.getAttribute('cx'), +p.getAttribute('cy')]);
   const box = () => {
     const L = land.getBoundingClientRect(), stop = land.querySelector('.social, .inapp')?.getBoundingClientRect();
-    return { minX: 12, maxX: L.width - w.offsetWidth - 12, minY: 70, maxY: Math.max(90, (stop ? stop.top - L.top : L.height * .6) - w.offsetHeight - 16) };
+    return { x0: 8, x1: L.width - w.offsetWidth - 8, y0: 64, y1: Math.max(80, (stop ? stop.top - L.top : L.height * .6) - w.offsetHeight - 12) };
   };
-  const mood = m => { w.innerHTML = DOT(m, { size: 44 }); w.firstElementChild.style.transform = `scaleX(${face})`; };
-  const place = (dur = 0) => { w.style.transitionDuration = `${dur}ms`; w.style.transform = `translate(${x}px, ${y}px)`; };
-  const step = () => {
+  let B = box(), x = B.x0 + (B.x1 - B.x0) * .7, y = B.y0 + (B.y1 - B.y0) * .55;
+  let th = Math.PI, turn = 0, speed = 0, face = -1, phase = 0, mode = 'walk', modeT = 3 + Math.random() * 4, turnT = 0;
+  let gaze = [0, 0], gazeT = [0, 0], blinkT = 2 + Math.random() * 3, blink = 0, jump = 0, last = performance.now();
+  const set = () => {
+    const sp = speed / 34, wob = Math.sin(phase);
+    const sx = 1 + (.07 * sp + .015) * wob, sy = 1 - (.07 * sp + .015) * wob, tilt = 5 * sp * Math.sin(phase / 2);
+    const lift = jump > 0 ? Math.sin(Math.PI * (1 - jump / .6)) * 26 : 0;
+    w.style.transform = `translate(${x.toFixed(1)}px, ${(y - lift).toFixed(1)}px)`;
+    body.setAttribute('transform', `translate(50 90) rotate(${(tilt * face).toFixed(2)}) scale(${(sx * face).toFixed(3)} ${sy.toFixed(3)}) translate(-50 -90)`);
+    shadow.setAttribute('transform', `translate(${lift * .1} ${lift}) scale(${(1 - lift / 90).toFixed(3)} 1)`); shadow.style.opacity = (.35 - lift / 140).toFixed(2);
+    eyes.setAttribute('transform', `translate(0 48) scale(1 ${(1 - blink).toFixed(2)}) translate(0 -48)`);
+    pupils.forEach(([p, cx, cy]) => { p.setAttribute('cx', (cx + gaze[0]).toFixed(2)); p.setAttribute('cy', (cy + gaze[1]).toFixed(2)); });
+  };
+  const tick = now => {
     if (!w.isConnected) return;
-    const b = box();
-    if (Math.random() < .25) { // 두리번
-      mood('look'); timer = setTimeout(() => { if (w.isConnected) { mood('base'); step(); } }, 1200 + Math.random() * 900); return;
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    if ((turnT -= dt) <= 0) { turn = (Math.random() - .5) * 2.2; turnT = .6 + Math.random() * 1.4; }
+    if ((modeT -= dt) <= 0) { mode = mode === 'walk' ? 'pause' : 'walk'; modeT = mode === 'walk' ? 3 + Math.random() * 5 : 1.2 + Math.random() * 1.8; if (mode === 'pause') gazeT = [(Math.random() - .5) * 4, (Math.random() - .3) * 2.4]; }
+    // 벽 가까이 가면 가운데 쪽으로 서서히 방향을 틀기
+    const cx = (B.x0 + B.x1) / 2, cy = (B.y0 + B.y1) / 2, mx = 40;
+    let steer = turn;
+    if (x < B.x0 + mx || x > B.x1 - mx || y < B.y0 + mx * .6 || y > B.y1 - mx * .6) {
+      const want = Math.atan2(cy - y, cx - x); let d = want - th; d = Math.atan2(Math.sin(d), Math.cos(d)); steer = d * 2.4;
     }
-    const nx = b.minX + Math.random() * (b.maxX - b.minX), ny = b.minY + Math.random() * (b.maxY - b.minY);
-    const dist = Math.hypot(nx - x, ny - y), dur = Math.min(2600, Math.max(700, dist / .12));
-    face = nx < x ? -1 : 1; w.firstElementChild.style.transform = `scaleX(${face})`;
-    x = nx; y = ny; w.classList.add('walk'); place(dur);
-    timer = setTimeout(() => { w.classList.remove('walk'); timer = setTimeout(step, 900 + Math.random() * 2200); }, dur);
+    th += steer * dt;
+    const target = mode === 'walk' && jump <= 0 ? 34 : 0;
+    speed += (target - speed) * Math.min(1, dt * 2.2);
+    x = Math.min(B.x1, Math.max(B.x0, x + Math.cos(th) * speed * dt));
+    y = Math.min(B.y1, Math.max(B.y0, y + Math.sin(th) * speed * dt * .55));
+    phase += dt * (speed > 2 ? 7 + speed / 6 : 2.2);
+    if (Math.abs(Math.cos(th)) > .2 && speed > 4) face += ((Math.cos(th) > 0 ? 1 : -1) - face) * Math.min(1, dt * 5); // 방향 바꿀 때 몸이 납작해졌다 뒤집힘
+    if (mode === 'walk') gazeT = [1.4 * Math.abs(Math.cos(th)), 1.6 * Math.sin(th)];
+    gaze = gaze.map((g, i) => g + (gazeT[i] - g) * Math.min(1, dt * 4));
+    if ((blinkT -= dt) <= 0) { blink = 1; blinkT = 2.5 + Math.random() * 3.5; }
+    blink = Math.max(0, blink - dt * 7);
+    if (jump > 0) jump = Math.max(0, jump - dt);
+    set(); requestAnimationFrame(tick);
   };
-  const b0 = box(); x = b0.maxX * .82; y = b0.minY + (b0.maxY - b0.minY) * .5; place();
+  set();
   w.onclick = () => {
-    clearTimeout(timer); w.classList.remove('walk'); mood('happy');
-    w.classList.remove('jump'); void w.offsetWidth; w.classList.add('jump'); navigator.vibrate?.(8);
-    timer = setTimeout(() => { if (w.isConnected) { mood('base'); w.classList.remove('jump'); step(); } }, 1100);
+    if (jump > 0) return;
+    jump = .6; w.classList.add('happy'); navigator.vibrate?.(8);
+    setTimeout(() => w.classList.remove('happy'), 1100);
+    if (calm) { set(); }
   };
-  if (!calm) timer = setTimeout(step, 1200);
+  addEventListener('resize', () => { B = box(); }, { passive: true });
+  setTimeout(() => { B = box(); }, 400); // 글꼴·이미지 뒤에 버튼 위치가 바뀌는 경우
+  if (!calm) requestAnimationFrame(t => { last = t; tick(t); });
 }
 
 // ---------- 프로필 ----------
