@@ -215,6 +215,14 @@
   .mchip { display:inline-block; padding:3px 9px; border-radius:999px; background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); font-size:11px; font-weight:700; }
   .msg-box { width:100%; min-height:84px; resize:none; line-height:1.5; font-size:15px; }
   .spin { display:flex; justify-content:center; padding:120px 0; }
+  .authwait { min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; padding:24px; text-align:center; }
+  .authwait p { margin:0; color:var(--sub); font-size:14px; }
+  .aw-dots { display:flex; gap:6px; }
+  .aw-dots i { width:8px; height:8px; border-radius:50%; background:var(--accent); animation:awb 1s ease-in-out infinite; }
+  .aw-dots i:nth-child(2) { animation-delay:.15s; } .aw-dots i:nth-child(3) { animation-delay:.3s; }
+  @keyframes awb { 0%, 100% { opacity:.3; transform:translateY(0); } 50% { opacity:1; transform:translateY(-5px); } }
+  .aw-cancel { margin-top:8px; border:0; background:none; color:var(--sub); font-size:13px; text-decoration:underline; text-underline-offset:3px; opacity:0; pointer-events:none; transition:opacity .3s; }
+  .aw-cancel.show { opacity:1; pointer-events:auto; }
   /* 친구 추가 버튼 */
   .btn.add { background:transparent; color:var(--accent); border-color:var(--accent); }
   .av.xs { width:30px; height:30px; flex:none; font-size:13px; }
@@ -933,6 +941,7 @@ async function boot() {
       // 카카오·Google 로그인에서 막 돌아온 경우: 로그인 처리가 끝날 때까지 기다림(첫 화면이 잠깐 보이는 깜빡임 방지)
       const fromOAuth = /[#&?](access_token|code|error_description)=/.test(location.href) || sessionStorage.getItem('candid_oauth') === '1';
       try { sessionStorage.removeItem('candid_oauth'); } catch {}
+      if (fromOAuth && !DEMO) showAuthWait(); // 로그인에서 돌아오는 중: 로고만 있는 화면 대신 '로그인하는 중…'
       if (!me && fromOAuth && !DEMO) {
         me = await new Promise(res => {
           const t = setTimeout(() => res(null), 6000);
@@ -1151,8 +1160,21 @@ function login(provider) {
   // 그 외 인앱(인스타 등)·Google: 인앱에서 막히므로 외부 브라우저로
   if (inApp && !DEMO && !(inKakao && provider === 'kakao')) return openExternal();
   try { localStorage.setItem('candid_last_login', provider); sessionStorage.setItem('candid_oauth', '1'); } catch {}
+  showAuthWait(`${PROVIDER_NAME[provider] || ''} 로그인으로 이동 중…`);
   sb.auth.signInWithOAuth({ provider, options: { redirectTo: location.origin + location.pathname } });
 }
+// 로그인 중 화면: 버튼을 누른 뒤·로그인에서 돌아오는 동안 첫 화면(로그인 버튼)이 다시 비치지 않게
+function showAuthWait(msg = '로그인하는 중…') {
+  document.documentElement.classList.remove('noscroll');
+  $app.innerHTML = `<div class="authwait"><span class="logo">${LOGO}</span><div class="aw-dots"><i></i><i></i><i></i></div><p>${esc(msg)}</p>
+    <button class="aw-cancel" onclick="cancelAuthWait()">취소</button></div>`;
+  setTimeout(() => document.querySelector('.aw-cancel')?.classList.add('show'), 4000); // 오래 걸리면 취소 버튼
+}
+function cancelAuthWait() { try { sessionStorage.removeItem('candid_oauth'); } catch {} route(); }
+// 카카오 로그인 화면에서 '뒤로' 등으로 그냥 돌아온 경우(이전 화면 복원): 잠시 뒤 원래 화면으로
+addEventListener('pageshow', e => {
+  if (e.persisted && document.querySelector('.authwait')) setTimeout(() => { if (document.querySelector('.authwait') && !me) cancelAuthWait(); }, 2500);
+});
 async function logout() { await sb.auth.signOut(); location.href = location.pathname; }
 
 function renderLanding(inviter) {
@@ -2890,6 +2912,7 @@ function shareFeed() {
     <div class="sheet-foot">
       <button class="btn primary block" id="copy">메시지 + 링크 복사</button>
       ${navigator.share ? '<div style="height:8px"></div><button class="btn block" id="native">카톡·인스타로 바로 보내기</button>' : ''}
+      ${me ? '<button class="btn block" style="margin-top:8px;border:0;background:var(--soft)" onclick="closeSheet();setTimeout(openInvite,250)">💌 앱에 친구 초대하기</button>' : ''}
     </div>`);
   const $msg = w.querySelector('#msg');
   w.querySelectorAll('.chip').forEach(c => c.onclick = () => {
