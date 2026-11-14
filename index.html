@@ -460,6 +460,91 @@
   @keyframes floaty { 50% { transform:translateY(-4px); } }
   @media (prefers-reduced-motion: reduce) { .last-badge { animation:none; } }
   .social:has(.last-badge) { margin-top:30px; }
+  /* ===== 가챠 꾸미기 ===== */
+  /* 프로필 장식: 커버·프레임·스티커·이름 효과 */
+  .cover { height:132px; margin:4px 12px 0; border-radius:22px; position:relative; overflow:hidden; }
+  .cover.mini { height:56px; width:100%; margin:0; border-radius:12px; }
+  .cover.stars::after { content:""; position:absolute; inset:0; background-image:radial-gradient(1.5px 1.5px at 12% 30%,#fff,transparent),radial-gradient(1px 1px at 30% 70%,#fff,transparent),radial-gradient(1.5px 1.5px at 55% 25%,#fff,transparent),radial-gradient(1px 1px at 70% 60%,#fff,transparent),radial-gradient(2px 2px at 88% 35%,#fff,transparent),radial-gradient(1px 1px at 45% 85%,#fff,transparent); animation:twinkle 3s ease-in-out infinite; }
+  @keyframes twinkle { 50% { opacity:.4; } }
+  .cover.film::before, .cover.film::after { content:""; position:absolute; left:0; right:0; height:12px; background:repeating-linear-gradient(90deg,transparent 0 10px,rgba(255,255,255,.75) 10px 18px); background-size:28px 8px; background-repeat:repeat-x; background-position:0 2px; }
+  .cover.film::before { top:6px; } .cover.film::after { bottom:6px; }
+  .head.has-cover { margin-top:-58px; position:relative; }
+  .head.has-cover .ring:not(.fx) { background:var(--bg); }
+  .avwrap { position:relative; display:inline-block; }
+  .ring { background:none; }
+  .ring.fx { border:0; padding:4px; position:relative; isolation:isolate; }
+  .ring.fx::before { content:""; position:absolute; inset:0; border-radius:50%; background:var(--ring); z-index:-1; }
+  .ring.fx.spin::before { animation:rot 5s linear infinite; }
+  .ring.fx.glow { filter:drop-shadow(0 0 10px var(--glow)); }
+  .ring.fx .av { box-shadow:0 0 0 3px var(--bg); }
+  .stk { position:absolute; font-size:28px; line-height:1; filter:drop-shadow(0 2px 4px rgba(0,0,0,.25)); pointer-events:none; }
+  .stk.s0 { left:-14px; top:-6px; transform:rotate(-14deg); } .stk.s1 { right:-14px; top:-4px; transform:rotate(12deg); } .stk.s2 { right:-10px; bottom:-6px; transform:rotate(-6deg); }
+  .stk.big { position:static; font-size:44px; }
+  .name.fxn { background-size:200% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .name.fxn.holo { animation:holo 3s linear infinite; }
+  @keyframes holo { to { background-position:200% 0; } }
+  .name.fxglow { text-shadow:0 0 14px var(--glow), 0 0 2px var(--glow); }
+  /* 🎁 뽑기 버튼 */
+  .btn.gbtn { flex:none; padding:12px 16px; }
+  .btn.gbtn.has { border-color:var(--accent); color:var(--accent); }
+  .btn.gbtn.pop { animation:pop .5s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes pop { 40% { transform:scale(1.25); } }
+  /* 전체 화면 페이지(뽑기·옷장) */
+  .page-ov { position:fixed; inset:0; z-index:22; overflow:auto; background:var(--bg); animation:fade .2s; padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
+  .page-ov > * { max-width:480px; margin-left:auto; margin-right:auto; }
+  .pov-h { position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:8px; height:calc(56px + env(safe-area-inset-top)); padding:env(safe-area-inset-top) 12px 0; background:var(--bg); }
+  .pov-h b { flex:1; font-family:var(--display); font-weight:800; font-size:22px; letter-spacing:-.04em; }
+  /* 뽑기 */
+  .gacha { text-align:center; }
+  .gacha h2 { font-family:var(--display); font-weight:800; font-size:38px; letter-spacing:-.05em; margin:4px 0 6px; }
+  .gsub { color:var(--sub); margin:0 0 8px; } .gsub b { color:var(--accent); font-size:18px; }
+  .machine { position:relative; height:230px; display:flex; align-items:center; justify-content:center; }
+  .capsule { position:relative; width:130px; height:130px; }
+  .capsule i { position:absolute; left:0; right:0; }
+  .capsule .ct { top:0; height:65px; border-radius:65px 65px 0 0; background:linear-gradient(160deg,#7d97ff,var(--accent)); transition:transform .45s cubic-bezier(.2,1.4,.4,1); }
+  .capsule .cb { bottom:0; height:65px; border-radius:0 0 65px 65px; background:linear-gradient(160deg,#f2f2f7,#c7c7cc); transition:transform .45s cubic-bezier(.2,1.4,.4,1); }
+  .capsule .cl { top:61px; height:8px; background:var(--fg); opacity:.15; border-radius:4px; }
+  .capsule.shake { animation:shake 1.2s ease-in-out; }
+  @keyframes shake { 10%,30%,50%,70%,90% { transform:rotate(-12deg); } 20%,40%,60%,80% { transform:rotate(12deg); } 100% { transform:none; } }
+  .capsule.open .ct { transform:translateY(-46px) rotate(-18deg); background:linear-gradient(160deg,var(--rc),#000 260%); }
+  .capsule.open .cb { transform:translateY(40px) rotate(10deg); }
+  .capsule.open .cl { opacity:0; }
+  .burst { position:absolute; left:50%; top:50%; width:20px; height:20px; border-radius:50%; transform:translate(-50%,-50%) scale(0); background:radial-gradient(circle, var(--rc) 0, transparent 70%); opacity:0; pointer-events:none; }
+  .burst.go { animation:burstGo .9s ease-out forwards; }
+  .burst.big.go { animation:burstGo 1.4s ease-out forwards; }
+  @keyframes burstGo { 0% { opacity:1; transform:translate(-50%,-50%) scale(0); } 100% { opacity:0; transform:translate(-50%,-50%) scale(22); } }
+  .gcard { position:relative; margin:-40px 20px 16px; padding:20px 16px 18px; border-radius:22px; background:var(--card); border:2px solid var(--rc); box-shadow:0 10px 40px color-mix(in srgb, var(--rc) 35%, transparent); animation:cardUp .5s cubic-bezier(.2,1.3,.4,1); }
+  @keyframes cardUp { from { transform:translateY(30px) scale(.9); opacity:0; } }
+  .gcard .rl { display:inline-block; padding:3px 10px; border-radius:999px; background:var(--rc); color:#fff; font-size:11px; font-weight:800; margin:10px 0 6px; }
+  .gcard b { display:block; font-size:20px; font-weight:800; letter-spacing:-.03em; }
+  .gcard small { display:block; color:var(--sub); margin:4px 0 12px; }
+  .gprev { min-height:92px; display:flex; align-items:center; justify-content:center; }
+  .gprev .ring .av { width:72px; height:72px; }
+  .gprev .name { font-size:26px; font-family:var(--display); font-weight:800; margin:0; }
+  .gfoot { padding:0 20px; display:flex; flex-direction:column; gap:8px; }
+  .grules { text-align:left; margin-top:8px; padding:12px 14px; border-radius:14px; background:var(--soft); font-size:13px; color:var(--sub); line-height:1.6; }
+  .grules summary { font-weight:700; color:var(--fg); cursor:pointer; }
+  .grules b { color:var(--fg); }
+  .rates { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
+  .rates span { padding:4px 10px; border-radius:999px; border:1.5px solid var(--c); color:var(--c); font-size:12px; font-weight:700; }
+  /* 옷장 */
+  .cprev { padding:4px 0 8px; text-align:center; }
+  .cprev .head { padding-top:12px; }
+  .cprev .name { font-size:24px; }
+  .ctabs { margin-top:4px; }
+  .cgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:12px 16px; }
+  .ctile { position:relative; display:flex; flex-direction:column; align-items:center; gap:4px; padding:12px 6px 10px; border-radius:16px; border:1.5px solid color-mix(in srgb, var(--rc) 45%, var(--line)); background:var(--card); text-align:center; min-width:0; }
+  .ctile .gprev { min-height:70px; width:100%; }
+  .ctile .gprev .ring .av { width:50px; height:50px; }
+  .ctile .gprev .name { font-size:16px; }
+  .ctile .gprev .stk.big { font-size:34px; }
+  .ctile b { font-size:12px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  .ctile small { font-size:10px; color:var(--rc); font-weight:700; }
+  .ctile.on { border-width:2.5px; border-color:var(--rc); background:color-mix(in srgb, var(--rc) 10%, var(--card)); }
+  .ctile .ceq { position:absolute; top:6px; right:8px; font-style:normal; font-weight:800; color:var(--rc); }
+  .ctile.lock { opacity:.55; }
+  .ctile .q { font-family:var(--display); font-size:34px; font-weight:800; color:var(--rc); }
+  @media (prefers-reduced-motion: reduce) { .ring.fx.spin::before, .name.fxn.holo, .cover.stars::after, .capsule.shake { animation:none; } }
 </style>
 </head>
 <body>
@@ -862,6 +947,7 @@ function paintProfile() {
   const pending = S.pending;
   const friends = new Set(approved.map(p => p.author_name)).size;
   const y = scrollY;
+  const dc = deco(prof), rf = ringFx(dc.frame), nf = nameFx(dc.name); // 가챠로 장착한 꾸미기
 
   $app.innerHTML = `
     <header class="top">
@@ -873,11 +959,12 @@ function paintProfile() {
            <button class="icon-btn" aria-label="메뉴" onclick="openMenu()">${I.menu}</button>`
         : ''}
     </header>
-    <section class="head">
-      ${isOwner
-        ? `<button class="ring" onclick="renderSetup(false)" aria-label="프로필 편집" style="cursor:pointer;background:none">${avatar(prof)}</button>`
-        : `<div class="ring">${avatar(prof)}</div>`}
-      <div class="name">${esc(prof.name)}</div>
+    ${coverHTML(dc.theme)}
+    <section class="head ${dc.theme ? 'has-cover' : ''}">
+      <div class="avwrap">${isOwner
+        ? `<button class="ring${rf.cls}"${rf.style} onclick="renderSetup(false)" aria-label="프로필 편집">${avatar(prof)}</button>`
+        : `<div class="ring${rf.cls}"${rf.style}>${avatar(prof)}</div>`}${stickersHTML(dc.stickers)}</div>
+      <div class="name${nf.cls}"${nf.style}>${esc(prof.name)}</div>
       ${prof.handle ? `<div class="handle">@${esc(prof.handle)}</div>` : ''}
       ${prof.bio
         ? `<div class="desc bio">${esc(prof.bio)}</div>`
@@ -892,7 +979,8 @@ function paintProfile() {
     </section>
     <div class="actions">
       ${isOwner
-        ? `<button class="btn primary" onclick="shareFeed()">친구에게 피드 부탁하기</button>`
+        ? `<button class="btn primary" onclick="shareFeed()">친구에게 피드 부탁하기</button>
+           <button class="btn gbtn${TICKETS > 0 ? ' has' : ''}" id="gbtn" onclick="openGacha()" aria-label="뽑기권으로 꾸미기 아이템 뽑기"${TICKETS == null ? ' hidden' : ''}>🎁 <b data-tickets>${TICKETS ?? ''}</b></button>`
         : me
           // 로그인한 친구: 친구 추가만. 보내기는 하단 바 ⊕ 로
           ? `<button class="btn ${myFollows.has(uid) ? '' : 'add'}" onclick="toggleFollow('${uid}', this)">${myFollows.has(uid) ? '친구 ✓' : '친구 추가'}</button>`
@@ -908,8 +996,8 @@ function paintProfile() {
     ${navBar(isOwner ? 'feed' : '')}`;
   $app.classList.toggle('has-nav', !!me);
   renderBody();
-
   scrollTo(0, y);
+  if (isOwner) refreshTickets();
 }
 
 function setTab(t) { S.tab = t; paintProfile(); }
@@ -1446,6 +1534,8 @@ const menu = items => sheet(`<div class="menu">${items}</div><div class="menu"><
 
 function openMenu() {
   menu(`<button class="menu-item" onclick="closeSheet();renderSetup(false)">프로필 편집</button>
+        <button class="menu-item" onclick="closeSheet();openCloset()">🎨 꾸미기</button>
+        <button class="menu-item" onclick="closeSheet();openGacha()">🎁 뽑기</button>
         <button class="menu-item" onclick="closeSheet();setTab('friends')">친구 목록</button>
         <button class="menu-item" onclick="closeSheet();shareFeed()">내 피드 링크 공유</button>
         ${!DEMO ? '<button class="menu-item" onclick="openLinks()">🔗 로그인 방법 연결</button>' : ''}
@@ -1764,6 +1854,141 @@ async function openLinks() {
   const d = h.get('error_description');
   if (d) setTimeout(() => toast(/already|exists|linked/i.test(d) ? '이미 다른 계정에서 사용 중인 로그인이라 연결하지 못했어요' : '로그인 연결에 실패했어요: ' + d), 1500);
 })();
+// ---------- 가챠 꾸미기 ----------
+// @@CATALOG-BEGIN (tools/items.js 에서 자동 생성 — 직접 고치지 말 것)
+const ITEM_CATALOG = [{"id":"frame_mint","kind":"frame","name":"민트 링","rarity":"common","data":{"bg":"#3ee8b5"}},{"id":"frame_peach","kind":"frame","name":"피치 링","rarity":"common","data":{"bg":"#ffb199"}},{"id":"frame_mono","kind":"frame","name":"체커 링","rarity":"common","data":{"bg":"repeating-conic-gradient(#fff 0 15deg,#111 0 30deg)"}},{"id":"frame_sunset","kind":"frame","name":"선셋","rarity":"rare","data":{"bg":"linear-gradient(135deg,#ff7e5f,#feb47b)"}},{"id":"frame_ocean","kind":"frame","name":"오션","rarity":"rare","data":{"bg":"linear-gradient(135deg,#2b50ff,#00d2ff)"}},{"id":"frame_neon","kind":"frame","name":"네온","rarity":"epic","data":{"bg":"#39ff14","glow":"#39ff14"}},{"id":"frame_rainbow","kind":"frame","name":"레인보우","rarity":"epic","data":{"bg":"conic-gradient(#ff3b30,#ff9500,#ffcc00,#34c759,#00c7be,#2b50ff,#af52de,#ff3b30)","spin":true}},{"id":"frame_aurora","kind":"frame","name":"오로라","rarity":"legendary","data":{"bg":"conic-gradient(#00ffa3,#03e1ff,#dc1fff,#ff6ec7,#00ffa3)","spin":true,"glow":"#dc1fff"}},{"id":"theme_sky","kind":"theme","name":"하늘","rarity":"common","data":{"bg":"linear-gradient(160deg,#a1c4fd,#c2e9fb)"}},{"id":"theme_peach","kind":"theme","name":"복숭아","rarity":"common","data":{"bg":"linear-gradient(160deg,#ffecd2,#fcb69f)"}},{"id":"theme_mint","kind":"theme","name":"풀잎","rarity":"common","data":{"bg":"linear-gradient(160deg,#d4fc79,#96e6a1)"}},{"id":"theme_night","kind":"theme","name":"밤하늘","rarity":"rare","data":{"bg":"linear-gradient(160deg,#0f2027,#203a43,#2c5364)","stars":true}},{"id":"theme_berry","kind":"theme","name":"베리","rarity":"rare","data":{"bg":"linear-gradient(160deg,#8e2de2,#4a00e0)"}},{"id":"theme_film","kind":"theme","name":"필름","rarity":"epic","data":{"bg":"linear-gradient(160deg,#1c1c1c,#3a3a3a)","film":true}},{"id":"theme_galaxy","kind":"theme","name":"갤럭시","rarity":"legendary","data":{"bg":"radial-gradient(circle at 20% 30%,#ff6ec7 0,transparent 38%),radial-gradient(circle at 80% 20%,#2b50ff 0,transparent 42%),radial-gradient(circle at 60% 95%,#00ffa3 0,transparent 38%),#0b0b2a","stars":true}},{"id":"sticker_daisy","kind":"sticker","name":"데이지","rarity":"common","data":{"e":"🌼"}},{"id":"sticker_star","kind":"sticker","name":"별","rarity":"common","data":{"e":"⭐"}},{"id":"sticker_clover","kind":"sticker","name":"네잎클로버","rarity":"common","data":{"e":"🍀"}},{"id":"sticker_camera","kind":"sticker","name":"카메라","rarity":"common","data":{"e":"📸"}},{"id":"sticker_cat","kind":"sticker","name":"고양이","rarity":"rare","data":{"e":"🐱"}},{"id":"sticker_berry","kind":"sticker","name":"딸기","rarity":"rare","data":{"e":"🍓"}},{"id":"sticker_unicorn","kind":"sticker","name":"유니콘","rarity":"epic","data":{"e":"🦄"}},{"id":"sticker_fire","kind":"sticker","name":"불꽃","rarity":"epic","data":{"e":"🔥"}},{"id":"sticker_crown","kind":"sticker","name":"왕관","rarity":"legendary","data":{"e":"👑"}},{"id":"name_blue","kind":"name","name":"블루 네임","rarity":"common","data":{"color":"#2b50ff"}},{"id":"name_sunset","kind":"name","name":"선셋 네임","rarity":"rare","data":{"grad":"linear-gradient(90deg,#ff7e5f,#feb47b)"}},{"id":"name_glow","kind":"name","name":"글로우 네임","rarity":"epic","data":{"glow":"#5c7cff"}},{"id":"name_holo","kind":"name","name":"홀로그램 네임","rarity":"legendary","data":{"grad":"linear-gradient(90deg,#00ffa3,#03e1ff,#dc1fff,#ff6ec7,#00ffa3)","anim":true}}];
+// @@CATALOG-END
+const ITEM = Object.fromEntries(ITEM_CATALOG.map(i => [i.id, i]));
+const RARITY = { common: { label: '일반', color: '#8e8e93' }, rare: { label: '레어', color: '#2b50ff' }, epic: { label: '에픽', color: '#af52de' }, legendary: { label: '전설', color: '#ff9f0a' } };
+const KIND_LABEL = { frame: '프레임', theme: '커버', sticker: '스티커', name: '네임' };
+let TICKETS = null;
+
+// 장착 장식 → HTML 조각
+function deco(prof) {
+  const eq = prof?.equipped || {};
+  return { frame: ITEM[eq.frame], theme: ITEM[eq.theme], name: ITEM[eq.name], stickers: (eq.stickers || []).map(id => ITEM[id]).filter(Boolean) };
+}
+const ringFx = fr => fr ? { cls: ` fx${fr.data.spin ? ' spin' : ''}${fr.data.glow ? ' glow' : ''}`, style: ` style="--ring:${fr.data.bg};${fr.data.glow ? `--glow:${fr.data.glow}` : ''}"` } : { cls: '', style: '' };
+const nameFx = nm => {
+  if (!nm) return { cls: '', style: '' };
+  const d = nm.data;
+  if (d.grad) return { cls: ` fxn${d.anim ? ' holo' : ''}`, style: ` style="background-image:${d.grad}"` };
+  if (d.glow) return { cls: ' fxglow', style: ` style="--glow:${d.glow}"` };
+  return { cls: '', style: ` style="color:${d.color}"` };
+};
+const coverHTML = (th, mini) => th ? `<div class="cover${mini ? ' mini' : ''}${th.data.stars ? ' stars' : ''}${th.data.film ? ' film' : ''}" style="background:${th.data.bg}"></div>` : '';
+const stickersHTML = list => list.map((s, i) => `<span class="stk s${i}">${s.data.e}</span>`).join('');
+
+// 아이템 하나 미리보기(뽑기 결과·옷장 타일)
+function itemPreview(it) {
+  if (it.kind === 'frame') { const f = ringFx(it); return `<div class="ring${f.cls}"${f.style}>${avatar(myProf)}</div>`; }
+  if (it.kind === 'theme') return coverHTML(it, true);
+  if (it.kind === 'sticker') return `<span class="stk big">${it.data.e}</span>`;
+  const n = nameFx(it); return `<span class="name${n.cls}"${n.style}>${esc(myProf?.name || '이름')}</span>`;
+}
+
+async function refreshTickets(pulse) {
+  if (!me) return;
+  const before = TICKETS;
+  const { data, error } = await sb.rpc('gacha_status');
+  const btn = document.getElementById('gbtn');
+  if (error) { if (btn) btn.hidden = true; return; } // 08_gacha.sql 실행 전
+  TICKETS = data.tickets;
+  document.querySelectorAll('[data-tickets]').forEach(el => el.textContent = TICKETS);
+  if (btn) { btn.hidden = false; btn.classList.toggle('has', TICKETS > 0); if (pulse && before != null && TICKETS > before) { btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop'); } }
+}
+
+function pageOverlay(cls, html) {
+  document.querySelector('.page-ov')?.remove();
+  const el = document.createElement('div'); el.className = 'page-ov ' + cls; el.innerHTML = html;
+  document.body.appendChild(el); return el;
+}
+
+// 뽑기 화면
+function openGacha() {
+  const el = pageOverlay('gacha', `
+    <header class="pov-h"><button class="icon-btn" aria-label="닫기" data-x>${I.close}</button></header>
+    <h2>Lucky capsule<i class="pd">.</i></h2>
+    <p class="gsub">뽑기권 <b data-tickets>${TICKETS ?? '…'}</b>장</p>
+    <div class="machine"><div class="capsule" id="cap"><i class="ct"></i><i class="cb"></i><i class="cl"></i></div><div class="burst" id="burst"></div></div>
+    <div id="grev"></div>
+    <div class="gfoot">
+      <button class="btn primary block" id="gpull">뽑기 · 1장</button>
+      <button class="btn block" id="gcloset">🎨 내 아이템으로 꾸미기</button>
+      <details class="grules"><summary>뽑기권 받는 법 · 확률</summary>
+        <p>처음 가입하면 <b>3장</b> 선물! 이후 내 피드에 친구가 보낸 게시물을 <b>승인할 때마다 1장</b>을 받아요. (하루 최대 3장, 같은 친구 이름은 하루 1장)</p>
+        <div class="rates">${Object.entries(RARITY).map(([k, r]) => `<span style="--c:${r.color}">${r.label} <b>${{ common: 60, rare: 30, epic: 9, legendary: 1 }[k]}%</b></span>`).join('')}</div>
+        <p>이미 가진 아이템이 나오면 보유 개수가 늘어나요.</p>
+      </details>
+    </div>`);
+  el.querySelector('[data-x]').onclick = () => el.remove();
+  el.querySelector('#gcloset').onclick = () => openCloset();
+  const $pull = el.querySelector('#gpull'), $cap = el.querySelector('#cap'), $rev = el.querySelector('#grev'), $burst = el.querySelector('#burst');
+  const setBtn = () => { $pull.disabled = !(TICKETS > 0); $pull.textContent = TICKETS > 0 ? ($rev.innerHTML ? '한 번 더 · 1장' : '뽑기 · 1장') : '뽑기권이 없어요 · 친구 게시물을 승인해 보세요'; };
+  refreshTickets().then(setBtn); setBtn();
+  $pull.onclick = async () => {
+    $pull.disabled = true; $rev.innerHTML = ''; $cap.className = 'capsule shake'; $burst.className = 'burst';
+    const [res] = await Promise.all([sb.rpc('pull_gacha'), new Promise(r => setTimeout(r, 1200))]);
+    if (res.error) { $cap.className = 'capsule'; toast(/no_ticket/.test(res.error.message) ? '뽑기권이 없어요' : kerr(res.error)); return refreshTickets().then(setBtn); }
+    const it = ITEM[res.data.id] || res.data, rar = RARITY[res.data.rarity];
+    TICKETS = res.data.tickets; document.querySelectorAll('[data-tickets]').forEach(x => x.textContent = TICKETS);
+    $cap.className = 'capsule open'; $cap.style.setProperty('--rc', rar.color);
+    $burst.style.setProperty('--rc', rar.color); $burst.className = 'burst go' + (res.data.rarity === 'legendary' ? ' big' : '');
+    navigator.vibrate?.(res.data.rarity === 'legendary' ? [30, 40, 60] : 12);
+    const equippedNow = isEquipped(it);
+    $rev.innerHTML = `<div class="gcard" style="--rc:${rar.color}">
+      <div class="gprev">${itemPreview(it)}</div>
+      <span class="rl">${rar.label} · ${KIND_LABEL[it.kind]}</span><b>${esc(it.name)}</b>
+      <small>${res.data.count > 1 ? `이미 가진 아이템이에요 (x${res.data.count})` : '✨ NEW!'}</small>
+      <button class="btn ${equippedNow ? '' : 'primary'}" data-eq>${equippedNow ? '장착 중' : '바로 장착하기'}</button></div>`;
+    $rev.querySelector('[data-eq]').onclick = e => equip(it, e.currentTarget);
+    setBtn(); refreshTickets(); // 버튼 숫자 갱신
+  };
+}
+const isEquipped = it => { const eq = myProf?.equipped || {}; return it.kind === 'sticker' ? (eq.stickers || []).includes(it.id) : eq[it.kind] === it.id; };
+
+async function equip(it, btn) {
+  if (btn) btn.disabled = true;
+  const { data, error } = await sb.rpc('equip_item', { p_kind: it.kind, p_item: it.id });
+  if (btn) btn.disabled = false;
+  if (error) return toast(/not_owned/.test(error.message) ? '아직 없는 아이템이에요' : kerr(error));
+  myProf.equipped = data;
+  if (S.prof && S.prof.id === me.id) S.prof.equipped = data;
+  const c = CACHE.prof.get(me.id); if (c) c.prof = { ...c.prof, equipped: data };
+  if (btn) { const on = isEquipped(it); btn.textContent = on ? '장착 중' : '바로 장착하기'; btn.classList.toggle('primary', !on); }
+  if (S.isOwner && !document.querySelector('.reels')) paintProfile();
+  return data;
+}
+
+// 꾸미기(옷장) 화면
+async function openCloset(kind = 'frame') {
+  const el = pageOverlay('closet', `
+    <header class="pov-h"><button class="icon-btn" aria-label="닫기" data-x>${I.close}</button><b>Closet<i class="pd">.</i></b>
+      <button class="btn gbtn has" data-g>🎁 <b data-tickets>${TICKETS ?? ''}</b></button></header>
+    <div class="cprev" id="cprev"></div>
+    <nav class="tabs ctabs">${Object.entries(KIND_LABEL).map(([k, l]) => `<button data-k="${k}">${l}</button>`).join('')}</nav>
+    <p class="hint" id="chint" style="padding:10px 20px 0"></p>
+    <div class="cgrid" id="cgrid"><p class="hint">불러오는 중…</p></div>`);
+  el.querySelector('[data-x]').onclick = () => el.remove();
+  el.querySelector('[data-g]').onclick = () => openGacha();
+  const { data, error } = await sb.from('inventory').select('item_id, count').eq('user_id', me.id);
+  if (error) return el.querySelector('#cgrid').innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
+  const own = new Map(data.map(r => [r.item_id, r.count]));
+  const paint = () => {
+    const d = deco(myProf), f = ringFx(d.frame), n = nameFx(d.name);
+    el.querySelector('#cprev').innerHTML = `${coverHTML(d.theme)}<div class="head ${d.theme ? 'has-cover' : ''}"><div class="avwrap"><div class="ring${f.cls}"${f.style}>${avatar(myProf)}</div>${stickersHTML(d.stickers)}</div>
+      <div class="name${n.cls}"${n.style}>${esc(myProf.name)}</div></div>`;
+    el.querySelectorAll('.ctabs button').forEach(b => b.classList.toggle('on', b.dataset.k === kind));
+    const list = ITEM_CATALOG.filter(i => i.kind === kind);
+    el.querySelector('#chint').textContent = `${list.filter(i => own.has(i.id)).length}/${list.length}개 보유${kind === 'sticker' ? ' · 스티커는 최대 3개까지 붙일 수 있어요' : ''} · 다시 누르면 해제`;
+    el.querySelector('#cgrid').innerHTML = list.map(i => own.has(i.id)
+      ? `<button class="ctile ${isEquipped(i) ? 'on' : ''}" data-id="${i.id}" style="--rc:${RARITY[i.rarity].color}"><div class="gprev">${itemPreview(i)}</div><b>${esc(i.name)}</b><small>${RARITY[i.rarity].label}${own.get(i.id) > 1 ? ` · x${own.get(i.id)}` : ''}</small>${isEquipped(i) ? '<i class="ceq">✓</i>' : ''}</button>`
+      : `<div class="ctile lock" style="--rc:${RARITY[i.rarity].color}"><div class="gprev"><span class="q">?</span></div><b>???</b><small>${RARITY[i.rarity].label}</small></div>`).join('');
+    el.querySelectorAll('.ctile[data-id]').forEach(b => b.onclick = async () => { await equip(ITEM[b.dataset.id]); paint(); });
+  };
+  el.querySelectorAll('.ctabs button').forEach(b => b.onclick = () => { kind = b.dataset.k; paint(); });
+  paint(); refreshTickets();
+}
 // ---------- 주인장 액션 ----------
 const closeLayers = () => { closeSheet(); document.querySelector('.overlay')?.remove(); };
 const leaveRow = id => new Promise(r => {
@@ -1783,6 +2008,7 @@ async function approve(id) {
   Object.assign(p, { status: 'approved', approved_at: at }); S.approved.push(p);
   S.justApproved = id; paintProfile();
   navigator.vibrate?.(8);
+  setTimeout(() => refreshTickets(true), 400); // 승인하면 뽑기권 +1 → 🎁 버튼이 톡 튐
   toast(`${p.author_name}의 사진을 피드에 올렸어요`, { label: '되돌리기', fn: async () => {
     const { error } = await sb.from('posts').update({ status: 'pending', approved_at: null }).eq('id', id);
     if (error) return toast(kerr(error));
@@ -1942,6 +2168,29 @@ function demoClient() {
     };
     return b;
   }
+  // 가챠 함수(RPC) 흉내: 데모는 뽑기권 5장으로 시작
+  async function rpc(fn, args = {}) {
+    db.inventory = db.inventory || []; if (db.gtix == null) db.gtix = 5;
+    const prof = db.profiles.find(p => p.id === ME.id); prof.equipped = prof.equipped || {};
+    await new Promise(r => setTimeout(r, 150));
+    if (fn === 'gacha_status') return { data: { tickets: db.gtix, earned: 0, used: 0, bonus: 5 }, error: null };
+    if (fn === 'pull_gacha') {
+      if (db.gtix < 1) return { data: null, error: { message: 'no_ticket' } };
+      const r = Math.random(), rar = r < 0.01 ? 'legendary' : r < 0.10 ? 'epic' : r < 0.40 ? 'rare' : 'common';
+      const pool = ITEM_CATALOG.filter(i => i.rarity === rar), it = pool[Math.floor(Math.random() * pool.length)];
+      let inv = db.inventory.find(x => x.item_id === it.id); if (inv) inv.count++; else db.inventory.push(inv = { user_id: ME.id, item_id: it.id, count: 1 });
+      db.gtix--; persist();
+      return { data: { id: it.id, kind: it.kind, name: it.name, rarity: rar, count: inv.count, tickets: db.gtix }, error: null };
+    }
+    if (fn === 'equip_item') {
+      const { p_kind: k, p_item: id } = args, eq = { ...prof.equipped };
+      if (id && !db.inventory.some(x => x.item_id === id)) return { data: null, error: { message: 'not_owned' } };
+      if (k === 'sticker') { let a = [...(eq.stickers || [])]; if (a.includes(id)) a = a.filter(x => x !== id); else { if (a.length >= 3) a.shift(); a.push(id); } eq.stickers = a; }
+      else if (!id || eq[k] === id) delete eq[k]; else eq[k] = id;
+      prof.equipped = eq; persist(); return { data: eq, error: null };
+    }
+    return { data: null, error: { message: 'unknown rpc' } };
+  }
   const toDataUrl = blob => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
   // 데모 전용 하단 바: 시점 전환
   setTimeout(() => {
@@ -1963,7 +2212,7 @@ function demoClient() {
       signInWithOAuth: async () => { ss.set('demo_login', '1'); location.href = location.pathname; },
       signOut: async () => ss.set('demo_login', '0'),
     },
-    from,
+    from, rpc,
     storage: { from: () => ({
       getPublicUrl: p => ({ data: { publicUrl: files[p] || p } }),
       upload: async (p, blob) => { files[p] = await toDataUrl(blob); return { error: null }; },
