@@ -35,20 +35,28 @@ supabase/functions/notify-owner/  푸시 발송 서버 함수
 하나만 쓸 거면 `config.js` 의 `PROVIDERS` 에서 다른 하나를 지우기.
 
 **Authentication → URL Configuration**
-- Site URL: 배포 주소 (예: `https://내아이디.github.io/friendgram/`)
+- Site URL: 배포 주소 (예: `https://candid.pages.dev/`)
 - Redirect URLs: 배포 주소와 `http://localhost:3000/**` 추가
+
+> 배포 도메인을 바꾸면(예: GitHub Pages → Cloudflare Pages) Site URL / Redirect URLs 도 새 도메인으로 바꿔야 로그인이 됩니다.
 
 ## 3. 로컬 실행
 ```bash
 python3 -m http.server 3000   # → http://localhost:3000
 ```
 
-## 4. 무료 배포 (빌드 없음, 파일 3개만 올리면 끝)
-- **Netlify Drop**: https://app.netlify.com/drop 에 폴더 드래그 → 바로 URL 발급
-- **GitHub Pages**: 저장소에 push → Settings → Pages → Branch: main
-- **Vercel / Cloudflare Pages**: 저장소 연결, 빌드 명령 없음
+## 4. 무료 배포 — Cloudflare Pages (권장)
+1. Cloudflare Dashboard → **Workers & Pages → Create → Pages → Connect to Git** → 이 저장소 선택
+2. Framework preset **None**, **Build command 비움**, **Build output directory `/`** → Deploy
+3. `https://<프로젝트>.pages.dev` 발급 (원하면 Custom domains 에서 내 도메인 연결)
+4. 그 주소를 Supabase **Authentication → URL Configuration** 의 Site URL / Redirect URLs 에 추가
+5. `index.html` 의 `og:image` 절대 URL 도 새 도메인으로 교체
 
-배포 후 그 주소를 Supabase의 Site URL / Redirect URLs 에 꼭 추가.
+- `_headers` 로 index.html·config.js·sw.js 는 캐시하지 않고 `brand/` 는 7일 캐시합니다.
+- `secrets.local.env` 는 `.gitignore` 에 있어 Git 배포에는 안 올라갑니다. 폴더를 통째로 드래그 업로드하면 올라갈 수 있으니 **Git 연동**을 권장합니다.
+- PWA 설치·푸시 구독은 도메인(origin)에 묶이므로 이전 후 다시 설치·알림 켜기가 필요합니다.
+
+대안: Netlify(월 100GB), Render(월 100GB), GitHub Pages(월 100GB 소프트 한도). Vercel Hobby는 비상업용만 허용.
 
 ## 권한 구조 (sql/01_schema.sql 의 RLS)
 | 누가 | 할 수 있는 것 |

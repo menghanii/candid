@@ -1,0 +1,21 @@
+# Cloudflare Pages 응답 헤더 (GitHub Pages에서는 무시됨)
+# index.html 한 파일이 앱 전체라서 캐시를 짧게, 아이콘·OG 이미지는 길게
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/config.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/manifest.json
+  Cache-Control: public, max-age=3600
+
+/brand/*
+  Cache-Control: public, max-age=604800
