@@ -422,6 +422,21 @@
   .acct-check b { display:block; color:var(--fg); font-size:14px; margin-bottom:2px; }
   .acct-check .btn { display:block; margin-top:10px; padding:9px 14px; font-size:13px; }
   .acct-check.warn { background:color-mix(in srgb, #ff9f0a 14%, var(--soft)); border:1px solid color-mix(in srgb, #ff9f0a 40%, transparent); }
+  /* 앱 설치 배너 */
+  .ibanner { position:fixed; left:50%; bottom:calc(86px + env(safe-area-inset-bottom)); z-index:25; transform:translateX(-50%); width:calc(100% - 24px); max-width:440px; display:flex; align-items:center; gap:12px; padding:12px 10px 12px 12px; border-radius:20px; background:var(--card); border:1px solid var(--line); box-shadow:0 10px 30px rgba(0,0,0,.25); animation:ibIn .35s cubic-bezier(.32,.72,0,1); }
+  body:not(:has(.bnav)) .ibanner { bottom:calc(16px + env(safe-area-inset-bottom)); }
+  @keyframes ibIn { from { transform:translate(-50%, 30px); opacity:0; } }
+  .ibanner img { width:44px; height:44px; border-radius:11px; flex:none; }
+  .ibanner div { flex:1; min-width:0; line-height:1.35; }
+  .ibanner b { display:block; font-size:14px; }
+  .ibanner span { display:block; font-size:12px; color:var(--sub); }
+  .ibanner .btn { flex:none; padding:9px 14px; font-size:13px; }
+  .ibanner .ix { flex:none; border:0; background:none; color:var(--sub); padding:6px; }
+  .ibanner .ix svg { width:18px; height:18px; }
+  .ishare { display:inline-flex; vertical-align:-4px; color:var(--accent); }
+  /* iPhone: 하단 가운데 공유 버튼을 가리키는 화살표 */
+  body.ios-hint::after { content:"↓"; position:fixed; left:50%; bottom:calc(4px + env(safe-area-inset-bottom)); z-index:60; transform:translateX(-50%); font-size:34px; font-weight:800; color:var(--accent); animation:bob .9s ease-in-out infinite; pointer-events:none; }
+  @keyframes bob { 50% { transform:translate(-50%, 8px); } }
 </style>
 </head>
 <body>
@@ -442,6 +457,7 @@ const I = {
   more: sv('<circle cx="5" cy="12" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="19" cy="12" r=".6"/>', 22, 2.4),
   close: sv('<path d="M18 6 6 18M6 6l12 12"/>'),
   search: sv('<circle cx="11" cy="11" r="7"/><path d="m20.5 20.5-4.2-4.2"/>'),
+  iosShare: sv('<path d="M12 3v12M8 7l4-4 4 4"/><path d="M7 10H5.5A1.5 1.5 0 0 0 4 11.5v8A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5v-8a1.5 1.5 0 0 0-1.5-1.5H17"/>', 18, 1.9),
   reelsNav: sv('<rect x="4" y="2.5" width="16" height="19" rx="4"/><path d="M10 9v6l5-3z" fill="currentColor"/>', 26, 1.9),
   usersNav: sv('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18.5 14.8c1.7.8 2.8 2.5 3 5.2"/>', 26, 1.9),
   create: sv('<circle cx="12" cy="12" r="9.5"/><path d="M12 7.5v9M7.5 12h9"/>', 28, 1.9),
@@ -544,6 +560,7 @@ async function boot() {
   } catch { return renderError(boot); }
   if (me && myProf && !myProf.onboarded) return renderSetup(true); // 첫 로그인: 프로필 설정
   route();
+  setTimeout(maybeShowInstall, 2500); // 화면이 뜬 뒤 조금 있다가 설치 권유
 }
 boot();
 
@@ -1397,6 +1414,7 @@ function openMenu() {
   menu(`<button class="menu-item" onclick="closeSheet();renderSetup(false)">프로필 편집</button>
         <button class="menu-item" onclick="closeSheet();setTab('friends')">친구 목록</button>
         <button class="menu-item" onclick="closeSheet();shareFeed()">내 피드 링크 공유</button>
+        ${!installed() && !DEMO ? '<button class="menu-item" onclick="closeSheet();setTimeout(startInstall,250)">📲 앱으로 설치 (홈 화면에 추가)</button>' : ''}
         ${DEMO ? '' : '<button class="menu-item" onclick="openPush()">푸시 알림 설정</button>'}
         <button class="menu-item danger" onclick="logout()">로그아웃</button>`);
 }
@@ -1625,6 +1643,60 @@ async function openPush() {
   };
 }
 
+// ---------- 홈 화면에 추가(앱 설치) 유도 ----------
+// 안드로이드 크롬·삼성인터넷: 브라우저가 주는 설치 이벤트를 잡아 두었다가 우리 버튼으로 기본 설치 팝업을 띄움
+// iPhone: 앱이 설치 팝업을 띄울 수 없어서 '공유 → 홈 화면에 추가' 안내만 가능
+let installEvt = null;
+const installed = () => isStandalone || matchMedia('(display-mode: standalone)').matches;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; maybeShowInstall(); });
+addEventListener('appinstalled', () => { installEvt = null; document.querySelector('.ibanner')?.remove(); toast('설치했어요! 홈 화면의 candid. 아이콘으로 열어 보세요'); });
+
+function canInstall() {
+  if (installed() || DEMO) return null;
+  if (inApp) return 'inapp';
+  if (installEvt) return 'android';
+  if (isIOS) return 'ios';
+  return null;
+}
+// 로그인 사용자에게 하단 배너 (닫으면 7일간 안 뜸)
+function maybeShowInstall() {
+  const kind = canInstall();
+  if (!kind || !me || document.querySelector('.ibanner')) return;
+  let until = 0; try { until = +localStorage.getItem('candid_install_snooze') || 0; } catch {}
+  if (Date.now() < until) return;
+  const b = document.createElement('div'); b.className = 'ibanner';
+  b.innerHTML = `<img src="brand/icon-180.png" alt="">
+    <div><b>candid. 앱으로 쓰기</b><span>${kind === 'inapp' ? 'Safari·Chrome에서 열면 설치할 수 있어요' : '홈 화면에 추가하면 새 사진 알림도 받아요'}</span></div>
+    <button class="btn primary">${kind === 'android' ? '설치' : kind === 'ios' ? '방법 보기' : '열기'}</button>
+    <button class="ix" aria-label="닫기">${I.close}</button>`;
+  b.querySelector('.btn').onclick = () => { b.remove(); startInstall(); };
+  b.querySelector('.ix').onclick = () => { b.remove(); try { localStorage.setItem('candid_install_snooze', Date.now() + 7 * 864e5); } catch {} };
+  document.body.appendChild(b);
+}
+async function startInstall() {
+  const kind = canInstall();
+  if (kind === 'android') {
+    installEvt.prompt();
+    const { outcome } = await installEvt.userChoice.catch(() => ({}));
+    installEvt = null;
+    if (outcome !== 'accepted') toast('나중에 메뉴 → 앱으로 설치에서 다시 할 수 있어요');
+    return;
+  }
+  if (kind === 'inapp') return openExternal();
+  if (kind === 'ios') {
+    sheet(`<h3>Add to Home<i class="pd">.</i></h3>
+      <p class="hint">홈 화면에 추가하면 앱처럼 열리고, 친구가 사진을 보내면 알림도 받을 수 있어요.</p>
+      <div class="ideas">
+        <div class="idea"><span class="k">1</span>Safari 공유 버튼 <b class="ishare">${I.iosShare}</b>을 눌러요</div>
+        <div class="idea"><span class="k">2</span>목록을 내려 <b>'홈 화면에 추가'</b>를 눌러요</div>
+        <div class="idea"><span class="k">3</span>오른쪽 위 <b>'추가'</b>를 누르고, 홈 화면의 candid. 아이콘으로 열어요</div>
+      </div>
+      <p class="hint" style="font-size:12px">공유 버튼은 보통 화면 아래쪽 가운데에 있어요. 안 보이면 화면을 살짝 위로 올려 보세요.</p>`);
+    document.body.classList.add('ios-hint'); setTimeout(() => document.body.classList.remove('ios-hint'), 8000); // 하단 가운데를 가리키는 화살표
+    return;
+  }
+  toast(installed() ? '이미 앱으로 쓰고 있어요' : '브라우저 메뉴에서 "앱 설치" 또는 "홈 화면에 추가"를 눌러 주세요');
+}
 // ---------- 주인장 액션 ----------
 const closeLayers = () => { closeSheet(); document.querySelector('.overlay')?.remove(); };
 const leaveRow = id => new Promise(r => {
