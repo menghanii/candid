@@ -20,7 +20,7 @@
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="candid.">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
@@ -668,7 +668,6 @@
   .ibanner { bottom:calc(80px + env(safe-area-inset-bottom)); }
   .rinfo { bottom:calc(84px + env(safe-area-inset-bottom)); }
   .rside { bottom:calc(88px + env(safe-area-inset-bottom)); }
-  html.ios-app .bnav { bottom:auto !important; }
 </style>
 </head>
 <body>
@@ -2309,20 +2308,7 @@ async function openDecorate(postId) {
   visualViewport?.addEventListener('resize', () => document.documentElement.style.setProperty('--app-h', innerHeight + 'px'));
 })();
 
-// iPhone 홈 화면 앱: 첫 실행 때 '화면 바닥' 기준(뷰포트)을 짧게 잡아 하단 바가 떠 보임
-// → 바닥 기준 대신 기기 화면의 실제 높이(screen.height)로 하단 바 위치를 직접 계산 (세로 고정 앱이라 가능)
-const iosApp = () => isIOS && (navigator.standalone === true || matchMedia('(display-mode: standalone)').matches);
-function placeNav() {
-  const nav = document.querySelector('.bnav'); if (!nav || !iosApp()) return;
-  // 세로 화면이고 차이가 상식적인 범위(상태바 높이 정도)일 때만 적용, 아니면 원래대로 바닥 고정
-  const ok = screen.height > screen.width && screen.height >= innerHeight && screen.height - innerHeight < 140;
-  document.documentElement.classList.toggle('ios-app', ok);
-  nav.style.top = ok ? (screen.height - nav.offsetHeight) + 'px' : '';
-  nav.style.bottom = ok ? 'auto' : '';
-}
-new MutationObserver(() => placeNav()).observe(document.getElementById('app'), { childList: true });
-['load', 'pageshow', 'resize', 'orientationchange'].forEach(ev => addEventListener(ev, () => setTimeout(placeNav, 30)));
-document.addEventListener('visibilitychange', () => setTimeout(placeNav, 30));
+
 
 // ---------- 주인장 액션 ----------
 const closeLayers = () => { closeSheet(); document.querySelector('.overlay')?.remove(); };
