@@ -681,6 +681,12 @@
   .trim-bar .tr::-webkit-slider-thumb { -webkit-appearance:none; pointer-events:auto; width:18px; height:40px; border-radius:6px; background:var(--accent); border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,.3); cursor:ew-resize; }
   .trim-bar .tr::-moz-range-thumb { pointer-events:auto; width:18px; height:40px; border-radius:6px; background:var(--accent); border:2px solid #fff; cursor:ew-resize; }
   .trim-bar .tr::-webkit-slider-runnable-track { background:none; height:100%; }
+  /* 릴스: 하트 위 피드 주인 프로필 (누르면 친구 피드로) */
+  .rav { display:flex; flex-direction:column; align-items:center; gap:5px; margin-bottom:6px; color:#fff; text-decoration:none; font-size:11px; font-weight:700; filter:drop-shadow(0 1px 6px rgba(0,0,0,.35)); }
+  .rav .av.xs { width:46px; height:46px; box-shadow:0 0 0 2px #fff; }
+  .rav b { max-width:64px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rav:active .av { transform:scale(.92); }
+  .rfrom { margin-top:0; }
 </style>
 </head>
 <body>
@@ -1414,12 +1420,13 @@ function paintHome({ posts, owners }) {
         ${mediaOf(p).some(m => m.k === 'video') ? `<button class="rmute" aria-label="소리 켜기/끄기">${muted ? I.mute : I.sound}</button>` : ''}`}
       <div class="rburst">${I.heartOn}</div>
       <div class="rinfo">
-        <a class="rowner" href="${feedUrl(p.owner_id)}">${avatar(o, 'xs')}<b>${esc(o.name)}</b><span>의 피드</span></a>
+
         <div class="rfrom">from <b>${esc(p.author_name)}</b> ${p.mission ? `<span class="mchip">${esc(p.mission)}</span>` : ''}</div>
         ${p.text && !isText(p) ? `<div class="rtext">“${esc(p.text)}”</div>` : ''}
         <small>${ago(p.approved_at)}</small>
       </div>
       <div class="rside">
+        <a class="rav" href="${feedUrl(p.owner_id)}" aria-label="${esc(o.name)} 피드로 가기">${avatar(o, 'xs')}<b>${esc(o.name)}</b></a>
         <button class="rbtn" data-like="${p.id}" aria-label="좋아요" aria-pressed="${s.liked}" onclick="toggleLike('${p.id}')"><span>${s.liked ? I.heartOn : I.heart}</span><b>${s.likes || ''}</b></button>
         <button class="rbtn" data-cmt="${p.id}" aria-label="댓글" onclick="openComments('${p.id}','${p.owner_id}')"><span>${I.comment}</span><b>${s.comments || ''}</b></button>
 
