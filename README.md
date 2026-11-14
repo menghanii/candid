@@ -115,7 +115,8 @@ SQL Editor 에서 `sql/03_profile.sql` 실행. 첫 로그인 시 프로필 설�
 | `14_indexes.sql` | 조회 성능용 인덱스 |
 | `15_sticker_own_only.sql` | 스티커 떼기·수정은 붙인 본인만 |
 | `16_text_stickers.sql` | 투표·질문 게시물에도 스티커 |
+| `17_profile_lang.sql` | 프로필 언어(푸시 알림을 받는 사람 언어로) |
 | `demo/seed.sql` | (선택) 데모 친구 4명 + 게시물 |
 | `demo/cleanup.sql` | (선택) 데모 친구 전부 삭제 |
 
-새 SQL을 추가할 때는 다음 번호(`17_...sql`)로 만듭니다.
+새 SQL을 추가할 때는 다음 번호(`18_...sql`)로 만듭니다.
