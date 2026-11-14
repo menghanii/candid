@@ -282,6 +282,11 @@
   .has-nav ~ .toast, body:has(.bnav) .toast { bottom:calc(76px + env(safe-area-inset-bottom)); }
   .reels:has(~ .bnav), .reels { bottom:0; } /* 릴스는 화면 끝까지(하단 메뉴는 위에 겹침) */
   .reel { height:100%; }
+  /* 데스크톱 웹(마우스 휠): 한 칸(≈120px)이 화면 절반보다 작아 스냅이 매번 되돌리던 문제 → 휠은 자유 스크롤 */
+  @media (hover:hover) and (pointer:fine) {
+    .reels { scroll-snap-type:none; }
+    .reel { scroll-snap-stop:normal; }
+  }
   /* 검색 */
   .sbox { position:relative; margin-bottom:8px; }
   .sbox svg { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--sub); pointer-events:none; }
@@ -592,6 +597,7 @@
   .car-dots i { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.5); transition:background .2s, transform .2s; }
   .car-dots i.on { background:#fff; transform:scale(1.2); }
   .stk-layer { position:absolute; inset:0; pointer-events:none; z-index:1; }
+  .reels.hide-stk .stk-layer { display:none; }
   .pst { position:absolute; transform:translate(-50%,-50%); font-size:calc(var(--s, 1) * 13cqw); line-height:1; filter:drop-shadow(0 2px 4px rgba(0,0,0,.3)); user-select:none; -webkit-user-select:none; }
   .grid button { container-type:inline-size; }
   .grid .stk-layer .pst { font-size:calc(var(--s, 1) * 13cqw); }
@@ -783,6 +789,8 @@ const I = {
   heart: sv('<path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.4 4.5 7 4.5c2.1 0 3.6 1.2 5 3 1.4-1.8 2.9-3 5-3 3.6 0 5.6 3.5 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/>', 30, 1.8),
   heartOn: '<svg width="30" height="30" viewBox="0 0 24 24" fill="#ff3040" stroke="#ff3040" stroke-width="1.8" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.4 4.5 7 4.5c2.1 0 3.6 1.2 5 3 1.4-1.8 2.9-3 5-3 3.6 0 5.6 3.5 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg>',
   comment: sv('<path d="M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3.5 20l1.2-4.1A8.5 8.5 0 1 1 20.5 11.5z"/>', 30, 1.8),
+  eye: sv('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>', 30, 1.8),
+  eyeOff: sv('<path d="m3 3 18 18"/><path d="M10.6 5.1A10.9 10.9 0 0 1 12 5c6.5 0 10 7 10 7a17.3 17.3 0 0 1-3.2 4.1M6.6 6.6A17.3 17.3 0 0 0 2 12s3.5 7 10 7a10.9 10.9 0 0 0 4.1-.8"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>', 30, 1.8),
   send: sv('<path d="M21 3 10 14M21 3l-7 18-4-7-7-4z"/>', 28, 1.8),
   sound: sv('<path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>', 20, 1.8),
   mute: sv('<path d="M11 5 6 9H3v6h3l5 4z"/><path d="m22 9-6 6M16 9l6 6"/>', 20, 1.8),
@@ -1268,7 +1276,7 @@ function renderBody() {
     return;
   }
   if (approved.length) {
-    $b.innerHTML = `<div class="grid">${approved.map(p => `<button onclick="openPost('${p.id}')" class="${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${esc(p.author_name)}가 보낸 ${esc(p.mission)}${p.text ? ': ' + esc(p.text) : ''}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">${stickerLayer(p.id, 0)}`}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}<span class="from">${p.text && !isText(p) ? `<q>“${esc(p.text)}”</q>` : ''}from<i class="pd">.</i> ${esc(p.author_name)}</span></button>`).join('')}</div>`;
+    $b.innerHTML = `<div class="grid">${approved.map(p => `<button onclick="openPost('${p.id}')" class="${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${esc(p.author_name)}가 보낸 ${esc(p.mission)}${p.text ? ': ' + esc(p.text) : ''}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">`}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}<span class="from">${p.text && !isText(p) ? `<q>“${esc(p.text)}”</q>` : ''}from<i class="pd">.</i> ${esc(p.author_name)}</span></button>`).join('')}</div>`;
     S.justApproved = null;
     return;
   }
@@ -1448,7 +1456,7 @@ async function openComments(id, ownerId) {
 }
 
 // ---------- 홈: 친구 피드의 최신 사진을 릴스로 ----------
-let muted = true;
+let muted = true, HIDE_STK = false; // HIDE_STK: 릴스에서 스티커 숨김(세션 동안 유지)
 async function fetchHome() {
   const ids = [...myFollows];
   const r = await withTimeout(sb.from('posts').select('*').in('owner_id', ids).eq('status', 'approved').order('approved_at', { ascending: false }).limit(40), 10000);
@@ -1512,6 +1520,7 @@ function paintHome({ posts, owners }) {
         <a class="rav" href="${feedUrl(p.owner_id)}" aria-label="${esc(o.name)} 피드로 가기">${avatar(o, 'xs')}<b>${esc(o.name)}</b></a>
         <button class="rbtn" data-like="${p.id}" aria-label="좋아요" aria-pressed="${s.liked}" onclick="toggleLike('${p.id}')"><span>${s.liked ? I.heartOn : I.heart}</span><b>${s.likes || ''}</b></button>
         <button class="rbtn" data-cmt="${p.id}" aria-label="댓글" onclick="openComments('${p.id}','${p.owner_id}')"><span>${I.comment}</span><b>${s.comments || ''}</b></button>
+        <button class="rbtn" aria-label="${HIDE_STK ? '스티커 보이기' : '스티커 숨기기'}" aria-pressed="${HIDE_STK}" onclick="toggleReelStickers(this)"><span>${HIDE_STK ? I.eyeOff : I.eye}</span><b>${HIDE_STK ? '숨김' : '스티커'}</b></button>
 
       </div>
     </section>`;
@@ -1523,6 +1532,7 @@ function paintHome({ posts, owners }) {
   let last = null; try { last = localStorage.getItem('candid_reel'); } catch {}
   const lastEl = last && document.querySelector(`.reel[data-id="${last}"]`);
   const $reels = document.getElementById('reels');
+  $reels.classList.toggle('hide-stk', HIDE_STK);
   if (lastEl && lastEl.offsetTop > 0) {
     $reels.scrollTop = lastEl.offsetTop;
     const up = document.createElement('button'); up.className = 'rtop-pill'; up.textContent = '↑ 최신으로';
@@ -1557,6 +1567,17 @@ function toggleMute() {
   muted = !muted;
   document.querySelectorAll('.reel video').forEach(v => v.muted = muted);
   document.querySelectorAll('.rmute').forEach(b => b.innerHTML = muted ? I.mute : I.sound);
+}
+// 릴스에서 붙은 스티커 전체 보이기/숨기기(새로 그려져도 상태 유지)
+function toggleReelStickers(btn) {
+  HIDE_STK = !HIDE_STK;
+  document.querySelector('.reels')?.classList.toggle('hide-stk', HIDE_STK);
+  if (btn) {
+    btn.setAttribute('aria-pressed', HIDE_STK);
+    btn.setAttribute('aria-label', HIDE_STK ? '스티커 보이기' : '스티커 숨기기');
+    const sp = btn.querySelector('span'); if (sp) sp.innerHTML = HIDE_STK ? I.eyeOff : I.eye;
+    const b = btn.querySelector('b'); if (b) b.textContent = HIDE_STK ? '숨김' : '스티커';
+  }
 }
 function shareOther(uid, handle) {
   const url = `${handle ? shareUrl({ handle }) : feedUrl(uid)}&m=0`;
@@ -2391,9 +2412,9 @@ async function openDecorate(postId) {
   if (st.error) { el.remove(); return toast(/post_stickers|relation/i.test(st.error.message) ? '스티커 기능 준비 중이에요(관리자: SQL 실행 필요)' : kerr(st.error)); }
   const rows = st.data.filter(r => r.media_idx === idx).map(r => ({ ...r, rot: r.rot || 0 }));
   const others = rows.filter(r => r.user_id !== me.id);
-  // 주인: 친구 스티커를 누르면 누가 붙였는지 보여주기 위해 이름 미리 불러옴
+  // 친구 스티커를 누르면 누가 붙였는지 보여주기 위해 이름 미리 불러옴(주인·친구 모두)
   const who = new Map();
-  if (isOwnerPost && others.length) {
+  if (others.length) {
     const { data } = await sb.from('profiles').select('id, name, handle').in('id', [...new Set(others.map(r => r.user_id))]);
     (data || []).forEach(u => who.set(u.id, u));
   }
@@ -2405,17 +2426,19 @@ async function openDecorate(postId) {
 
   const paint = () => {
     $('#dlayer').innerHTML =
-      others.filter(r => !removed.has(r.id)).map(r => stickerSpan(r, `other${isOwnerPost ? ' tap' : ''}${sel === r.id ? ' sel' : ''}`)).join('') +
+      others.filter(r => !removed.has(r.id)).map(r => stickerSpan(r, `other tap${sel === r.id ? ' sel' : ''}`)).join('') +
       mine.map(r => stickerSpan(r, `mine${sel === r.id ? ' sel' : ''}`)).join('');
     const selMine = mine.find(r => r.id === sel), selOther = others.find(r => r.id === sel);
     $('#dtools').hidden = !(selMine || selOther) || !$('#dtxt').hidden;
     $('#dszw').hidden = $('#drotw').hidden = !selMine;
     $('#dedit').hidden = !(selMine && selMine.text);
+    // 떼기: 내 스티커, 또는 피드 주인만(친구는 남의 스티커를 누르면 정보만 보임)
+    $('#dtools [data-a="x"]').hidden = !(selMine || (selOther && isOwnerPost));
     const u = selOther && who.get(selOther.user_id);
     $('#dwho').hidden = !selOther;
     if (selOther) $('#dwho').innerHTML = `<b>${esc(u?.name || '친구')}</b>${u?.handle ? ` <small>@${esc(u.handle)}</small>` : ''}님이 붙였어요`;
     if (selMine) { $('#dsize').value = selMine.scale; $('#drot').value = selMine.rot || 0; }
-    $('#dhint').textContent = `내 스티커 ${mine.length}/${MAX_MINE} · 끌어서 옮기고, 두 손가락으로 크기·회전${isOwnerPost ? ' · 내 피드라 친구 스티커도 눌러서 뗄 수 있어요' : ''}`;
+    $('#dhint').textContent = `내 스티커 ${mine.length}/${MAX_MINE} · 끌어서 옮기고, 두 손가락으로 크기·회전 · 친구 스티커를 누르면 누가 붙였는지 볼 수 있어요${isOwnerPost ? ' · 내 피드라 친구 스티커도 눌러서 뗄 수 있어요' : ''}`;
   };
   // 트레이: 텍스트 + 미니 아이템 + 이모지 (+ 가챠 스티커)
   const tile = i => `<button class="dts${i.data.mini ? ' mini' : ''}" data-item="${i.id}" aria-label="${esc(i.name)} 붙이기">${glyph(i)}</button>`;
@@ -2461,7 +2484,7 @@ async function openDecorate(postId) {
     if (pts.size > 2) return;
     const s = e.target.closest('.pst'); if (!s) { tapEmpty = true; return; }
     const id = s.dataset.id;
-    if (s.classList.contains('other')) { if (isOwnerPost) { sel = id; paint(); } return; }
+    if (s.classList.contains('other')) { sel = id; paint(); return; }
     sel = id; paint();
     drag = { id }; stage.setPointerCapture(e.pointerId); e.preventDefault();
   });
