@@ -1419,11 +1419,7 @@ function paintProfile() {
     <header class="top">
       <button class="logo" onclick="go(location.pathname)">${LOGO}</button>
       <div class="sp"></div>
-      ${me ? `<button class="icon-btn" aria-label="친구 검색" onclick="openSearch()">${I.search}</button>` : ''}
-      ${isOwner
-        ? `<button class="icon-btn" id="notibtn" aria-label="알림" onclick="openNotis()">${I.bell}<span class="dot red" id="notidot"${NOTI.unread ? '' : ' hidden'}></span></button>
-           <button class="icon-btn" aria-label="메뉴" onclick="openMenu()">${I.menu}</button>`
-        : ''}
+      ${isOwner ? topIcons() : me ? `<button class="icon-btn" aria-label="친구 검색" onclick="openSearch()">${I.search}</button>` : ''}
     </header>
     ${coverHTML(dc.theme)}
     <section class="head ${dc.theme ? 'has-cover' : ''}">
@@ -1470,7 +1466,19 @@ function paintProfile() {
 
 function setTab(t) { S.tab = t; paintProfile(); }
 // 🔔 새 소식: 승인함 탭을 열고 탭 위치로 스크롤
+// 상단 오른쪽 아이콘(검색 · 알림 · 메뉴): 내 피드와 릴스에서 똑같이
+const topIcons = () => `<button class="icon-btn" aria-label="친구 검색" onclick="openSearch()">${I.search}</button>
+  <button class="icon-btn" id="notibtn" aria-label="알림" onclick="openNotis()">${I.bell}<span class="dot red" id="notidot"${NOTI.unread ? '' : ' hidden'}></span></button>
+  <button class="icon-btn" aria-label="메뉴" onclick="openMenu()">${I.menu}</button>`;
+// 내 피드가 아닌 화면(릴스 등)에서 내 피드 기능을 쓸 때: 내 피드로 이동해 다 그려진 뒤 실행
+const onMyFeed = () => me && S.uid === me.id && S.isOwner && !document.querySelector('.reels') && document.querySelector('.tabs');
+function withMyFeed(fn, tab) {
+  if (onMyFeed()) { if (tab) setTab(tab); return fn && fn(); }
+  go(feedUrl(me.id) + (tab ? `&tab=${tab}` : ''));
+  const t0 = Date.now(), iv = setInterval(() => { if (onMyFeed() && S.approved) { clearInterval(iv); fn && fn(); } else if (Date.now() - t0 > 8000) clearInterval(iv); }, 100);
+}
 function openInbox() {
+  if (!onMyFeed()) return withMyFeed(() => openInbox());
   setTab('inbox');
   const tabs = document.querySelector('.tabs');
   if (tabs) scrollTo({ top: tabs.getBoundingClientRect().top + scrollY - 64, behavior: 'smooth' });
@@ -1786,8 +1794,9 @@ async function pickFriendToSend() {
 }
 function paintHome({ posts, owners }) {
   HOME.posts = posts; HOME.owners = owners;
+  if (me) setTimeout(refreshNotiDot, 0); // 상단 종 빨간 점
   const top = `<header class="rtop"><button class="logo" onclick="go(location.pathname)">${LOGO}</button><div class="sp"></div>
-    <button class="icon-btn" aria-label="친구 검색" onclick="openSearch()">${I.search}</button></header>`;
+    ${topIcons()}</header>`;
   if (!posts.length) {
     $app.innerHTML = `<div class="reels">${top}<section class="reel rempty"><div><div class="empty-dot">${DOT('sleepy', { size: 80, cls: 'float' })}</div>
       <h2>Quiet for now<i class="pd">.</i></h2><p>친구들 피드에 새 사진이 올라오면 여기 떠요.<br>친구 피드에 사진을 먼저 보내 보는 건 어때요?</p>
@@ -2106,8 +2115,8 @@ function openMenu() {
   menu(`<button class="menu-item" onclick="closeSheet();renderSetup(false)">프로필 편집</button>
         ${GACHA_ON ? '<button class="menu-item" onclick="closeSheet();openCloset()">🎨 꾸미기</button><button class="menu-item" onclick="closeSheet();openGacha()">🎁 뽑기</button>' : ''}
         <button class="menu-item" onclick="closeSheet();setTimeout(openInvite,250)">💌 친구 초대하기</button>
-        <button class="menu-item" onclick="closeSheet();setTab('friends')">친구 목록</button>
-        <button class="menu-item" onclick="closeSheet();shareFeed()">내 피드 링크 공유</button>
+        <button class="menu-item" onclick="closeSheet();withMyFeed(null, 'friends')">친구 목록</button>
+        <button class="menu-item" onclick="closeSheet();withMyFeed(shareFeed)">내 피드 링크 공유</button>
         ${!DEMO ? '<button class="menu-item" onclick="openLinks()">🔗 로그인 방법 연결</button>' : ''}
         ${!installed() && !DEMO ? '<button class="menu-item" onclick="closeSheet();setTimeout(startInstall,250)">📲 앱으로 설치 (홈 화면에 추가)</button>' : ''}
         ${DEMO ? '' : '<button class="menu-item" onclick="openPush()">푸시 알림 설정</button>'}
@@ -2571,9 +2580,13 @@ async function openNotis() {
     const i = items[+b.dataset.i];
     if (i.k === 'follow') { closeSheet(); return go(feedUrl(i.uid)); }
     if (i.k === 'post') { closeSheet(); return openInbox(); }
-    if (!i.post || !findPost(i.post.id)) return toast('지금은 볼 수 없는 게시물이에요');
-    closeSheet(); openPost(i.post.id);
-    if (i.k === 'comment') setTimeout(() => { const c = document.querySelector('.overlay .pbtn[data-cmt]'); if (c) focusPostComments(c); }, 300);
+    if (!i.post) return toast('지금은 볼 수 없는 게시물이에요');
+    closeSheet();
+    withMyFeed(() => {
+      if (!findPost(i.post.id)) return toast('지금은 볼 수 없는 게시물이에요');
+      openPost(i.post.id);
+      if (i.k === 'comment') setTimeout(() => { const c = document.querySelector('.overlay .pbtn[data-cmt]'); if (c) focusPostComments(c); }, 300);
+    });
   });
 }
 
