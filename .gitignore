@@ -1,3 +1,5 @@
 .DS_Store
 secrets.local.env
 tools/decor-preview.png
+.wrangler/
+node_modules/
