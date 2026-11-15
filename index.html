@@ -762,6 +762,8 @@
   @keyframes stkPing { 50% { transform:translate(-50%,-50%) rotate(var(--r, 0deg)) scale(1.18); } }
   .stk-layer { z-index:3; }
   .grid .stk-layer .pst { pointer-events:none; }
+  .grid .stk-layer { z-index:1; } /* 썸네일: 스티커는 사진 위, 'from.' 글씨 아래 */
+  .grid .from, .grid .vplay, .grid .gpin, .grid .gflag { z-index:2; }
   /* 상세 화면 */
   .post-media .stage > img, .post-media .stage > video { aspect-ratio:4/5; }
   /* 게시물 크게 보기: 원본 비율 그대로(잘림 없음). 너무 긴 사진은 화면 높이 72% 안에 맞추고 양옆은 검은 여백 */
@@ -1847,7 +1849,7 @@ function renderBody() {
     return;
   }
   if (approved.length) {
-    $b.innerHTML = `<div class="grid">${approved.map(p => `<button onclick="openPost('${p.id}')" class="${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${t('{name}가 보낸 사진', { name: aname(p.author_name) })}${p.text ? ': ' + esc(p.text) : ''}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">`}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}<span class="from">${p.text && !isText(p) ? `<q>“${esc(p.text)}”</q>` : ''}from<i class="pd">.</i> ${aname(p.author_name)}</span></button>`).join('')}</div>`;
+    $b.innerHTML = `<div class="grid">${approved.map(p => `<button onclick="openPost('${p.id}')" class="${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${t('{name}가 보낸 사진', { name: aname(p.author_name) })}${p.text ? ': ' + esc(p.text) : ''}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">`}${gridStickers(p)}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}<span class="from">${p.text && !isText(p) ? `<q>“${esc(p.text)}”</q>` : ''}from<i class="pd">.</i> ${aname(p.author_name)}</span></button>`).join('')}</div>`;
     S.justApproved = null;
     return;
   }
@@ -3389,14 +3391,19 @@ const mediaOf = p => Array.isArray(p.media) && p.media.length ? p.media
 const STK = new Map(); // postId → 스티커 행들
 async function loadStickers(ids) {
   if (!ids.length) return;
-  const { data, error } = await sb.from('post_stickers').select('*').in('post_id', ids);
-  if (error) return; // 09 SQL 실행 전이면 조용히 무시
+  // 게시물이 많으면(그룹 수백 개) 주소가 너무 길어지지 않게 150개씩 나눠 받기
+  const parts = []; for (let i = 0; i < ids.length; i += 150) parts.push(ids.slice(i, i + 150));
+  const res = await Promise.all(parts.map(part => sb.from('post_stickers').select('*').in('post_id', part)));
+  if (res.some(r => r.error)) return; // 09 SQL 실행 전이면 조용히 무시
   ids.forEach(id => STK.set(id, []));
-  data.forEach(r => STK.get(r.post_id)?.push(r));
+  res.forEach(r => r.data.forEach(x => STK.get(x.post_id)?.push(x)));
 }
 // 스티커 한 개: 이모지·미니 아이템 그림·텍스트 + 크기(--s)·회전(--r)
 const stickerSpan = (r, cls = '') => `<span class="pst${r.text ? ' tx' : ''} ${cls}" data-id="${r.id}"${cls ? '' : ' role="button" onclick="stkWho(event, this)"'} style="left:${r.x * 100}%;top:${r.y * 100}%;--s:${r.scale};--r:${r.rot || 0}deg">${r.text ? `<span class="ptxt ${r.style || 'plain'}">${esc(r.text)}</span>` : glyph(ITEM[r.item_id])}</span>`;
 const stickerLayer = (postId, idx) => `<div class="stk-layer" data-sl="${postId}:${idx}">${(STK.get(postId) || []).filter(r => r.media_idx === idx).map(r => stickerSpan(r)).join('')}</div>`;
+// 피드 격자 썸네일의 스티커: 칸이 4:5 가운데 잘라 보기(cover)라 꾸미기 화면(4:5)과 보이는 영역이 같음 → 같은 좌표·같은 비율 크기
+// 첫 장(썸네일 사진)의 스티커만. 투표·질문 카드는 칸 비율이 카드와 달라 위치가 어긋나므로 표시하지 않음
+const gridStickers = p => isText(p) ? '' : stickerLayer(p.id, 0);
 // 보는 화면(게시물·릴스)에서 스티커를 누르면 누가 붙였는지
 const STK_WHO = new Map(); // user_id → 프로필 {id, name, handle} | null
 // 보는 화면에서 스티커를 누르면: 스티커 오른쪽 위에 붙인 사람 이름표. 누르면 그 친구 피드로
@@ -3896,6 +3903,7 @@ async function renderGroup(key, fresh) {
     if (mem.data || fol.data) MYG.groups.set(g.id, g); else MYG.groups.delete(g.id);
   }
   paintGroup();
+  loadStickers(ps.data.filter(p => p.status === 'approved').map(p => p.id)).then(() => { if (G.g?.id === g.id) ps.data.forEach(p => STK.has(p.id) && refreshStickerLayers(p.id)); }).catch(() => {});
   const q = new URLSearchParams(location.search);
   if (q.has('manage') && me?.id === g.owner_id && !S.autoOpened) { S.autoOpened = true; openGroupManage(); }
   if (q.has('new') && me?.id === g.owner_id && !S.autoOpened) { S.autoOpened = true; history.replaceState(history.state, '', `?g=${g.handle}`); CUR = pageKey(); setTimeout(() => openGroupInvite(true), 300); }
@@ -3919,7 +3927,7 @@ function paintGroup() {
   else if (g.visibility === 'public') acts = `<button class="btn ${fol ? '' : 'add'}" onclick="toggleGroupFollow()">${fol ? II.check + t('팔로잉') : t('팔로우')}</button><button class="btn primary" onclick="joinGroup()">${t('멤버 신청')}</button>`;
   else acts = `<button class="btn" disabled>${t('초대받은 멤버만 참여할 수 있어요')}</button>`;
   const tile = p => `<button onclick="openPost('${p.id}')" class="${p.flagged ? 'gflagged' : ''}" aria-label="${t('{name}님이 올린 사진', { name: esc(p.author_name) })}">
-      <img src="${thumbUrl(p)}" alt="" loading="lazy">${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}
+      <img src="${thumbUrl(p)}" alt="" loading="lazy">${gridStickers(p)}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}
       ${p.pinned_at ? `<span class="gpin" aria-label="${t('고정됨')}">${II.pin}</span>` : ''}${p.flagged ? `<span class="gflag">${t('신고로 가려짐')}</span>` : ''}
       <span class="from">${p.text ? `<q>“${esc(p.text)}”</q>` : ''}by<i class="pd">.</i> ${esc(p.author_name)}</span></button>`;
   const body = !canSee
