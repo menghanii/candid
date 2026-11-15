@@ -644,5 +644,7 @@
  "내가 고른 사진 말고, 친구들 눈에 비친 나.<br>친구가 보내고, 내가 골라 올리는 피드.": "Not the photos you pick — you, as your friends see you.<br>Friends send, you choose what goes up.",
  "내 피드는<br>친구가 채웁니다": "My feed,<br>filled by friends",
  "친구가 찍어 보내고, 나는 고르기만.": "Friends shoot and send. I just pick.",
- "친구들이 채워주는<br>내 피드": "My feed,<br>filled by friends"
+ "친구들이 채워주는<br>내 피드": "My feed,<br>filled by friends",
+ "서로 찍어주고,<br>우리끼리 채우는 피드": "We shoot each other,<br>and fill our feeds together",
+ "내 피드는 친구가, 그룹 앨범은 다 같이.": "Friends fill my feed. Group albums, we fill together."
 };
