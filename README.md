@@ -121,7 +121,13 @@ SQL Editor 에서 `sql/03_profile.sql` 실행. 첫 로그인 시 프로필 설�
 | `16_text_stickers.sql` | 투표·질문 게시물에도 스티커 |
 | `17_profile_lang.sql` | 프로필 언어(푸시 알림을 받는 사람 언어로) |
 | `18_groups.sql` | 그룹(공유 앨범): 공개/비공개, 멤버·팔로우, 99개 자동 정리, 고정, 신고, 도배 방지 |
+| `19_private_feed.sql` | 비공개 피드(내가 친구로 추가한 사람만 보기), 한 게시물 사진·영상 10개 서버 확인 |
+| `20_stickers_v2.sql` | 스티커 개편: 움직이는 이모지 71 + 이모지 53, 텍스트·미니 그림 은퇴, 1인 1개·게시물당 100개 (`tools/stickers.js` 로 생성) |
 | `demo/seed.sql` | (선택) 데모 친구 4명 + 게시물 |
 | `demo/cleanup.sql` | (선택) 데모 친구 전부 삭제 |
 
 새 SQL을 추가할 때는 다음 번호(`19_...sql`)로 만듭니다.
+
+## 사용한 외부 자료
+
+- 움직이는 이모지 스티커(`brand/stk/*.webp`): [Google Noto Emoji 애니메이션](https://googlefonts.github.io/noto-emoji-animation/), CC BY 4.0. 128px·15fps 로 줄여서 사용. 꾸미기 화면 아래에 출처 표시

@@ -9,7 +9,7 @@
 <meta property="og:site_name" content="candid.">
 <meta property="og:title" content="내 피드 좀 채워줘 📸 — candid.">
 <meta property="og:description" content="로그인 없이 10초. 네 폰에 있는 내 사진 한 장만 보내줘.">
-<meta property="og:image" content="https://candid.candidcrew.workers.dev/brand/og.png">
+<meta property="og:image" content="https://candid.candidcrew.workers.dev/brand/og-v2.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -907,18 +907,11 @@
   .dwho { flex:1; display:flex; align-items:center; gap:4px; padding:8px 14px; border-radius:999px; background:var(--soft); font-size:13px; }
   .dwho[hidden] { display:none; }
   .dwho small { color:var(--sub); }
-  .dtxt { padding:12px 16px 0; }
-  .dtxt[hidden] { display:none; }
-  .dtxt .field { margin:0 0 10px; }
-  .dtrow { display:flex; align-items:center; gap:8px; }
-  .dstyles { display:flex; gap:6px; flex:1; }
-  .dstyles button { padding:6px 8px; border-radius:12px; border:1.5px solid var(--line); background:#333; font-size:13px; }
-  .dstyles button.on { border-color:var(--accent); }
-  .dcount { font-size:12px; color:var(--sub); font-variant-numeric:tabular-nums; }
-  .dtrow .btn { flex:none; padding:9px 16px; }
-  .dtadd { display:flex; align-items:center; gap:8px; width:100%; margin-top:6px; padding:12px 14px; border-radius:14px; border:1.5px dashed var(--line); background:none; color:var(--fg); font-size:14px; font-weight:700; }
-  .dtadd b { font-family:var(--display); font-size:18px; color:var(--accent); }
-  .dtadd small { margin-left:auto; color:var(--sub); font-weight:500; font-size:12px; }
+  /* 움직이는 이모지 스티커(webp 애니메이션): 이모지 글자와 비슷한 크기 */
+  .pst .sti { display:block; width:1.2em; height:1.2em; pointer-events:none; -webkit-user-drag:none; }
+  .dts .sti { width:100%; height:100%; pointer-events:none; }
+  .dts.anim { padding:4px; }
+  .dcredit { margin:14px 0 4px; font-size:11px; color:var(--sub); text-align:center; }
   /* 릴스 글: 하단 메뉴(높이 = 54px + 홈 바 여백) 바로 위 8px */
   .rinfo { bottom:calc(62px + max(env(safe-area-inset-bottom), 10px)) !important; }
   .rside { bottom:calc(150px + max(env(safe-area-inset-bottom), 10px)) !important; }
@@ -945,6 +938,9 @@
   .gid { position:relative; }
   .gid span { position:absolute; left:16px; top:15px; color:var(--sub); font-size:16px; }
   .gid .field { padding-left:32px; }
+  .stats[hidden], .head > .stats[hidden] { display:none; }
+  .plock { display:inline-flex; vertical-align:middle; margin-left:6px; color:var(--sub); }
+  .plock svg { width:20px; height:20px; }
   .gvis { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
   .gvis button { text-align:left; padding:13px 15px; border-radius:14px; border:1.5px solid var(--line); background:var(--card); color:inherit; font:inherit; }
   .gvis button b { display:block; font-size:15px; margin-bottom:3px; }
@@ -1675,14 +1671,21 @@ async function renderProfile(uid, fresh) {
   }
   const sig = JSON.stringify([prof, posts.map(p => [p.id, p.status, p.answer, p.approved_at])]);
   if (cached && cached.sig === sig && !fresh) { S.fetchedAt = Date.now(); return; } // 바뀐 게 없으면 다시 그리지 않음
-  S.uid = uid; S.prof = prof; S.isOwner = me?.id === uid; S.fetchedAt = Date.now();
+  // 비공개 피드: 주인이 나를 친구로 추가했는지 (서버 규칙과 같은 함수로 확인). 함수가 없으면(19 SQL 전) 게시물이 안 왔는지로 판단
+  let locked = false;
+  if (prof.is_private && me?.id !== uid) {
+    let ok = null, e3 = null; try { ({ data: ok, error: e3 } = await sb.rpc('can_view_feed', { o: uid })); } catch (e) { e3 = e; }
+    locked = e3 ? !posts.some(p => p.status === 'approved') : !ok;
+    if (pageKey() !== myKey) return;
+  }
+  S.uid = uid; S.prof = prof; S.isOwner = me?.id === uid; S.fetchedAt = Date.now(); S.locked = locked;
   S.approved = posts.filter(p => p.status === 'approved');
   S.pending = posts.filter(p => p.status === 'pending');
   S.hidden = posts.filter(p => p.status === 'hidden').sort((a, b) => new Date(b.hidden_at || 0) - new Date(a.hidden_at || 0)); // 주인이 피드에서 내린 것
   await loadPolls(S.approved).catch(() => {});
   await loadStickers(S.approved.map(p => p.id)).catch(() => {});
   if (!S.isOwner) S.tab = 'grid';
-  CACHE.prof.set(uid, { prof, isOwner: S.isOwner, approved: S.approved, pending: S.pending, sig });
+  CACHE.prof.set(uid, { prof, isOwner: S.isOwner, approved: S.approved, pending: S.pending, locked, sig });
   paintProfile();
   // 공유 링크(?m=미션번호)로 들어온 친구: 사진 보내기 시트를 바로 열어줌 (한 번만)
   const m = new URLSearchParams(location.search).get('m');
@@ -1705,14 +1708,14 @@ function paintProfile() {
       <div class="avwrap">${isOwner
         ? `<button class="ring${rf.cls}"${rf.style} onclick="renderSetup(false)" aria-label="${t('프로필 편집')}">${avatar(prof)}</button>`
         : `<div class="ring${rf.cls}"${rf.style}>${avatar(prof)}</div>`}${stickersHTML(dc.stickers)}</div>
-      <div class="name${nf.cls}"${nf.style}>${esc(prof.name)}</div>
+      <div class="name${nf.cls}"${nf.style}>${esc(prof.name)}${prof.is_private ? `<span class="plock" title="${t('비공개 피드')}">${II.lock}</span>` : ''}</div>
       ${prof.handle ? `<div class="handle">@${esc(prof.handle)}</div>` : ''}
       ${prof.bio
         ? `<div class="desc bio">${esc(prof.bio)}</div>`
         : isOwner
           ? `<button class="desc bio-empty" onclick="renderSetup(false)">${t('+ 프로필 메시지 추가')}</button>`
           : `<div class="desc">${t('친구들이 만들어주는 {name}의 피드', { name: esc(prof.name) })}</div>`}
-      <div class="stats">
+      <div class="stats"${S.locked ? ' hidden' : ''}>
         <div><b>${approved.length}</b><span>${t('게시물')}</span></div>
         <div><b>${friends}</b><span>${t('참여한 친구')}</span></div>
         ${isOwner ? `<button class="stat-btn" onclick="go('?friends=1')" aria-label="${t('친구 목록 보기')}"><b>${myFollows.size}</b><span>${t('친구')}</span></button>` : ''}
@@ -1823,6 +1826,11 @@ function renderBody() {
       : `<div class="empty small"><div class="empty-dot">${DOT('happy', { size: 52 })}</div><h2>All clear<i class="pd">.</i></h2><p>${t('승인을 기다리는 게시물이 없어요.<br>친구가 보내면 여기에 모여요.')}</p></div>`) + hiddenHTML;
     return;
   }
+  if (S.locked) {
+    $b.innerHTML = `<div class="empty"><div class="empty-dot">${DOT('look', { cls: 'blink' })}</div><h2>Private<i class="pd">.</i></h2>
+      <p>${t('{name}님이 나를 친구로 추가해야 피드를 볼 수 있어요.<br>사진은 지금도 보내줄 수 있어요.', { name: esc(prof.name) })}</p></div>`;
+    return;
+  }
   if (approved.length) {
     $b.innerHTML = `<div class="grid">${approved.map(p => `<button onclick="openPost('${p.id}')" class="${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${t('{name}가 보낸 사진', { name: aname(p.author_name) })}${p.text ? ': ' + esc(p.text) : ''}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">`}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}<span class="from">${p.text && !isText(p) ? `<q>“${esc(p.text)}”</q>` : ''}from<i class="pd">.</i> ${aname(p.author_name)}</span></button>`).join('')}</div>`;
     S.justApproved = null;
@@ -1924,20 +1932,30 @@ async function pickGroupToPost() {
 // 내 피드 > 친구 탭: 친구 목록 화면
 async function renderFriendsTab($b) {
   const ids = [...myFollows];
-  if (!ids.length) {
-    $b.innerHTML = `<div class="empty"><div class="empty-dot">${DOT('look', { cls: 'blink' })}</div><h2>No friends, <em>yet.</em></h2><p>${t('오른쪽 위 {i}에서 이름으로 친구를 찾아 추가해 보세요.<br>추가한 친구의 새 사진이 릴스에 떠요.', { i: II.search })}</p>
+  $b.innerHTML = `<div class="flist"><p class="hint" style="padding:16px 20px">${t('불러오는 중…')}</p></div>`;
+  // 나를 친구로 추가했지만 나는 아직 추가 안 한 사람(맞친구 하면 비공개 피드도 볼 수 있게 됨)
+  const fr = await sb.from('follows').select('follower_id, created_at').eq('followee_id', me.id).order('created_at', { ascending: false }).limit(100);
+  const back = (fr.data || []).map(r => r.follower_id).filter(id => !myFollows.has(id));
+  const all = [...new Set([...ids, ...back])];
+  const { data, error } = all.length ? await sb.from('profiles').select('*').in('id', all) : { data: [] };
+  if (!document.body.contains($b)) return;
+  if (error) return $b.innerHTML = `<div class="empty"><p>${esc(kerr(error))}</p></div>`;
+  const byId = new Map(data.map(p => [p.id, p]));
+  const row = (p, on) => `
+    <div class="frow"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b><small>${p.handle ? `@${esc(p.handle)}` : ''}${p.handle && p.bio ? ' · ' : ''}${esc(p.bio || '')}</small></span></a>
+      <button class="btn${on ? '' : ' add'}" onclick="toggleFollow('${p.id}', this)">${on ? folLabel(true) : t('맞친구')}</button></div>`;
+  const backList = back.map(id => byId.get(id)).filter(Boolean);
+  const backHTML = backList.length ? `<div class="fhead"><b>${t('나를 추가한 친구 {n}', { n: backList.length })}</b></div>
+    <p class="hint" style="padding:0 20px 8px">${myProf?.is_private ? t('내 피드는 비공개라, 나도 추가해야 이 친구가 내 피드를 볼 수 있어요.') : t('나도 추가하면 이 친구의 새 사진이 릴스에 떠요.')}</p>
+    <div class="flist">${backList.map(p => row(p, false)).join('')}</div><div style="height:12px"></div>` : '';
+  const mine = ids.map(id => byId.get(id)).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  if (!mine.length) {
+    $b.innerHTML = backHTML + `<div class="empty"><div class="empty-dot">${DOT('look', { cls: 'blink' })}</div><h2>No friends, <em>yet.</em></h2><p>${t('오른쪽 위 {i}에서 이름으로 친구를 찾아 추가해 보세요.<br>추가한 친구의 새 사진이 릴스에 떠요.', { i: II.search })}</p>
       <button class="btn primary block" onclick="openSearch()">${t('친구 찾기')}</button><div style="height:8px"></div><button class="btn block" onclick="openInvite()">${t('앱에 친구 초대하기')}</button></div>`;
     return;
   }
-  $b.innerHTML = `<div class="flist"><p class="hint" style="padding:16px 20px">${t('불러오는 중…')}</p></div>`;
-  const { data, error } = await sb.from('profiles').select('*').in('id', ids);
-  if (!document.body.contains($b)) return;
-  if (error) return $b.innerHTML = `<div class="empty"><p>${esc(kerr(error))}</p></div>`;
-  data.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-  const head = `<div class="fhead"><b>${t('내 친구 {n}', { n: data.length })}</b><div style="flex:1"></div><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px" onclick="openSearch()">${t('+ 친구 찾기')}</button><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px;margin-left:6px" onclick="openInvite()">${t('초대')}</button></div>`;
-  $b.innerHTML = head + `<div class="flist">${data.map(p => `
-    <div class="frow"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b><small>${p.handle ? `@${esc(p.handle)}` : ''}${p.handle && p.bio ? ' · ' : ''}${esc(p.bio || '')}</small></span></a>
-      <button class="btn" onclick="toggleFollow('${p.id}', this)">${folLabel(true)}</button></div>`).join('')}</div>`;
+  const head = `<div class="fhead"><b>${t('내 친구 {n}', { n: mine.length })}</b><div style="flex:1"></div><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px" onclick="openSearch()">${t('+ 친구 찾기')}</button><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px;margin-left:6px" onclick="openInvite()">${t('초대')}</button></div>`;
+  $b.innerHTML = backHTML + head + `<div class="flist">${mine.map(p => row(p, true)).join('')}</div>`;
 }
 
 // ---------- 친구 검색 (검색어가 없으면 내 친구 목록) ----------
@@ -2466,6 +2484,7 @@ function openMenu() {
   sheet(`<h3>Settings<i class="pd">.</i></h3><p class="hint">${esc(myProf?.name || '')}${myProf?.handle ? ' · @' + esc(myProf.handle) : ''}</p>
     <div class="clist2">
       ${row(I.user, t('프로필 편집'), 'closeSheet();renderSetup(false)')}
+      ${row(myProf?.is_private ? II.lock : I.globe, `${t('피드 공개 범위')} · ${t(myProf?.is_private ? '비공개' : '전체 공개')}`, 'closeSheet();setTimeout(openPrivacy,250)')}
       ${DEMO ? '' : row(I.bell, t('푸시 알림 설정'), 'openPush()')}
       ${row(I.globe, `${t('언어')} · ${LANGS[LANG]}`, 'closeSheet();setTimeout(openLang,250)')}
       ${DEMO ? '' : row(I.link, t('로그인 방법 연결'), 'openLinks()')}
@@ -2473,6 +2492,26 @@ function openMenu() {
       ${GACHA_ON ? row(I.sparkle, '꾸미기', 'closeSheet();openCloset()') + row(I.sparkle, '뽑기', 'closeSheet();openGacha()') : ''}
     </div>
     <div class="clist2" style="margin-top:12px">${row(I.logout, t('로그아웃'), 'logout()', 'danger')}</div>`);
+}
+// 개인 피드 공개 범위: 전체 공개 / 비공개(내가 친구로 추가한 사람만). 19 SQL
+function openPrivacy() {
+  const w = sheet(`<div class="shead"><h3>Privacy<i class="pd">.</i></h3><button class="icon-btn" aria-label="${t('닫기')}" onclick="closeSheet()">${I.close}</button></div>
+    <div class="label">${t('피드 공개 범위')}</div>
+    <div class="gvis" role="radiogroup">
+      <button data-p="0" role="radio"><b>${II.globe} ${t('전체 공개')}</b><small>${t('누구나 내 피드를 볼 수 있어요')}</small></button>
+      <button data-p="1" role="radio"><b>${II.lock} ${t('비공개')}</b><small>${t('내가 친구로 추가한 사람만 볼 수 있어요. 상대가 나를 추가했어도, 나도 추가해야 보여요')}</small></button>
+    </div>
+    <p class="hint" style="margin-top:12px">${t('비공개여도 피드 채워주기(사진 보내기)는 누구나 할 수 있어요. 내가 승인한 것만 올라가요.')}</p>`);
+  const paint = () => w.querySelectorAll('[data-p]').forEach(b => { const on = (b.dataset.p === '1') === !!myProf?.is_private; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+  paint();
+  w.querySelectorAll('[data-p]').forEach(b => b.onclick = async () => {
+    const v = b.dataset.p === '1'; if (v === !!myProf?.is_private) return;
+    const { error } = await sb.from('profiles').update({ is_private: v }).eq('id', me.id);
+    if (error) return toast(/is_private/.test(error.message) ? t('비공개 기능 준비 중이에요(관리자: 19 SQL 실행 필요)') : kerr(error));
+    myProf.is_private = v; CACHE.prof.delete(me.id); paint();
+    toast(t(v ? '비공개로 바꿨어요. 내가 친구로 추가한 사람만 볼 수 있어요' : '전체 공개로 바꿨어요'));
+    if (S.isOwner && S.prof) { S.prof.is_private = v; paintProfile(); }
+  });
 }
 function postMenu(id) {
   const p = findPost(id);
@@ -3131,13 +3170,14 @@ async function openLinks() {
 const ITEM_CATALOG = [{"id":"frame_mint","kind":"frame","name":"민트 링","rarity":"common","data":{"bg":"#3ee8b5"}},{"id":"frame_peach","kind":"frame","name":"피치 링","rarity":"common","data":{"bg":"#ffb199"}},{"id":"frame_mono","kind":"frame","name":"체커 링","rarity":"common","data":{"bg":"repeating-conic-gradient(#fff 0 15deg,#111 0 30deg)"}},{"id":"frame_sunset","kind":"frame","name":"선셋","rarity":"rare","data":{"bg":"linear-gradient(135deg,#ff7e5f,#feb47b)"}},{"id":"frame_ocean","kind":"frame","name":"오션","rarity":"rare","data":{"bg":"linear-gradient(135deg,#2b50ff,#00d2ff)"}},{"id":"frame_neon","kind":"frame","name":"네온","rarity":"epic","data":{"bg":"#39ff14","glow":"#39ff14"}},{"id":"frame_rainbow","kind":"frame","name":"레인보우","rarity":"epic","data":{"bg":"conic-gradient(#ff3b30,#ff9500,#ffcc00,#34c759,#00c7be,#2b50ff,#af52de,#ff3b30)","spin":true}},{"id":"frame_aurora","kind":"frame","name":"오로라","rarity":"legendary","data":{"bg":"conic-gradient(#00ffa3,#03e1ff,#dc1fff,#ff6ec7,#00ffa3)","spin":true,"glow":"#dc1fff"}},{"id":"theme_sky","kind":"theme","name":"하늘","rarity":"common","data":{"bg":"linear-gradient(160deg,#a1c4fd,#c2e9fb)"}},{"id":"theme_peach","kind":"theme","name":"복숭아","rarity":"common","data":{"bg":"linear-gradient(160deg,#ffecd2,#fcb69f)"}},{"id":"theme_mint","kind":"theme","name":"풀잎","rarity":"common","data":{"bg":"linear-gradient(160deg,#d4fc79,#96e6a1)"}},{"id":"theme_night","kind":"theme","name":"밤하늘","rarity":"rare","data":{"bg":"linear-gradient(160deg,#0f2027,#203a43,#2c5364)","stars":true}},{"id":"theme_berry","kind":"theme","name":"베리","rarity":"rare","data":{"bg":"linear-gradient(160deg,#8e2de2,#4a00e0)"}},{"id":"theme_film","kind":"theme","name":"필름","rarity":"epic","data":{"bg":"linear-gradient(160deg,#1c1c1c,#3a3a3a)","film":true}},{"id":"theme_galaxy","kind":"theme","name":"갤럭시","rarity":"legendary","data":{"bg":"radial-gradient(circle at 20% 30%,#ff6ec7 0,transparent 38%),radial-gradient(circle at 80% 20%,#2b50ff 0,transparent 42%),radial-gradient(circle at 60% 95%,#00ffa3 0,transparent 38%),#0b0b2a","stars":true}},{"id":"sticker_daisy","kind":"sticker","name":"데이지","rarity":"common","data":{"e":"🌼"}},{"id":"sticker_star","kind":"sticker","name":"별","rarity":"common","data":{"e":"⭐"}},{"id":"sticker_clover","kind":"sticker","name":"네잎클로버","rarity":"common","data":{"e":"🍀"}},{"id":"sticker_camera","kind":"sticker","name":"카메라","rarity":"common","data":{"e":"📸"}},{"id":"sticker_cat","kind":"sticker","name":"고양이","rarity":"rare","data":{"e":"🐱"}},{"id":"sticker_berry","kind":"sticker","name":"딸기","rarity":"rare","data":{"e":"🍓"}},{"id":"sticker_unicorn","kind":"sticker","name":"유니콘","rarity":"epic","data":{"e":"🦄"}},{"id":"sticker_fire","kind":"sticker","name":"불꽃","rarity":"epic","data":{"e":"🔥"}},{"id":"sticker_crown","kind":"sticker","name":"왕관","rarity":"legendary","data":{"e":"👑"}},{"id":"name_blue","kind":"name","name":"블루 네임","rarity":"common","data":{"color":"#2b50ff"}},{"id":"name_sunset","kind":"name","name":"선셋 네임","rarity":"rare","data":{"grad":"linear-gradient(90deg,#ff7e5f,#feb47b)"}},{"id":"name_glow","kind":"name","name":"글로우 네임","rarity":"epic","data":{"glow":"#5c7cff"}},{"id":"name_holo","kind":"name","name":"홀로그램 네임","rarity":"legendary","data":{"grad":"linear-gradient(90deg,#00ffa3,#03e1ff,#dc1fff,#ff6ec7,#00ffa3)","anim":true}}];
 // @@CATALOG-END
 // @@FREE-BEGIN (tools/stickers.js 에서 자동 생성 — 직접 고치지 말 것)
-const FREE_STICKERS = [{"id":"e_01","kind":"sticker","name":"😂","rarity":"common","data":{"e":"😂","free":true}},{"id":"e_02","kind":"sticker","name":"😍","rarity":"common","data":{"e":"😍","free":true}},{"id":"e_03","kind":"sticker","name":"🥹","rarity":"common","data":{"e":"🥹","free":true}},{"id":"e_04","kind":"sticker","name":"😎","rarity":"common","data":{"e":"😎","free":true}},{"id":"e_05","kind":"sticker","name":"🤣","rarity":"common","data":{"e":"🤣","free":true}},{"id":"e_06","kind":"sticker","name":"😭","rarity":"common","data":{"e":"😭","free":true}},{"id":"e_07","kind":"sticker","name":"🥳","rarity":"common","data":{"e":"🥳","free":true}},{"id":"e_08","kind":"sticker","name":"😳","rarity":"common","data":{"e":"😳","free":true}},{"id":"e_09","kind":"sticker","name":"🤪","rarity":"common","data":{"e":"🤪","free":true}},{"id":"e_10","kind":"sticker","name":"😘","rarity":"common","data":{"e":"😘","free":true}},{"id":"e_11","kind":"sticker","name":"👍","rarity":"common","data":{"e":"👍","free":true}},{"id":"e_12","kind":"sticker","name":"👏","rarity":"common","data":{"e":"👏","free":true}},{"id":"e_13","kind":"sticker","name":"🙌","rarity":"common","data":{"e":"🙌","free":true}},{"id":"e_14","kind":"sticker","name":"💯","rarity":"common","data":{"e":"💯","free":true}},{"id":"e_15","kind":"sticker","name":"🔥","rarity":"common","data":{"e":"🔥","free":true}},{"id":"e_16","kind":"sticker","name":"✨","rarity":"common","data":{"e":"✨","free":true}},{"id":"e_17","kind":"sticker","name":"💖","rarity":"common","data":{"e":"💖","free":true}},{"id":"e_18","kind":"sticker","name":"⭐","rarity":"common","data":{"e":"⭐","free":true}},{"id":"e_19","kind":"sticker","name":"🌈","rarity":"common","data":{"e":"🌈","free":true}},{"id":"e_20","kind":"sticker","name":"🍀","rarity":"common","data":{"e":"🍀","free":true}},{"id":"e_21","kind":"sticker","name":"🎉","rarity":"common","data":{"e":"🎉","free":true}},{"id":"e_22","kind":"sticker","name":"🎂","rarity":"common","data":{"e":"🎂","free":true}},{"id":"e_23","kind":"sticker","name":"🐶","rarity":"common","data":{"e":"🐶","free":true}},{"id":"e_24","kind":"sticker","name":"🐱","rarity":"common","data":{"e":"🐱","free":true}},{"id":"m_kkk","kind":"sticker","name":"말풍선 ㅋㅋㅋ","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 120 78\"><path d=\"M14 4h92a12 12 0 0 1 12 12v32a12 12 0 0 1-12 12H44L26 74l4-14H14A12 12 0 0 1 2 48V16A12 12 0 0 1 14 4z\" fill=\"#fff\" stroke=\"#111\" stroke-width=\"3\"/><text x=\"60\" y=\"44\" text-anchor=\"middle\" font-family=\"Pretendard,Apple SD Gothic Neo,sans-serif\" font-weight=\"900\" font-size=\"30\" fill=\"#111\">ㅋㅋㅋ</text></svg>","free":true,"mini":true}},{"id":"m_legend","kind":"sticker","name":"레전드","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 130 54\"><g transform=\"rotate(-6 65 27)\"><rect x=\"6\" y=\"8\" width=\"118\" height=\"38\" rx=\"8\" fill=\"#ffd60a\" stroke=\"#111\" stroke-width=\"3\"/><text x=\"65\" y=\"36\" text-anchor=\"middle\" font-family=\"Pretendard,Apple SD Gothic Neo,sans-serif\" font-weight=\"900\" font-size=\"24\" fill=\"#111\">레전드</text></g></svg>","free":true,"mini":true}},{"id":"m_insaeng","kind":"sticker","name":"인생샷 도장","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 100 100\"><g transform=\"rotate(-12 50 50)\" fill=\"none\" stroke=\"#ff3b30\"><circle cx=\"50\" cy=\"50\" r=\"44\" stroke-width=\"5\"/><circle cx=\"50\" cy=\"50\" r=\"35\" stroke-width=\"2\"/><text x=\"50\" y=\"58\" text-anchor=\"middle\" font-family=\"Pretendard,Apple SD Gothic Neo,sans-serif\" font-weight=\"900\" font-size=\"22\" fill=\"#ff3b30\" stroke=\"none\">인생샷</text></g></svg>","free":true,"mini":true}},{"id":"m_heart","kind":"sticker","name":"하트","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 100 90\"><path d=\"M50 86S6 58 6 28A22 22 0 0 1 50 16a22 22 0 0 1 44 12c0 30-44 58-44 58z\" fill=\"#ff4d8d\" stroke=\"#fff\" stroke-width=\"4\"/><ellipse cx=\"30\" cy=\"30\" rx=\"8\" ry=\"5\" fill=\"#fff\" opacity=\".7\" transform=\"rotate(-30 30 30)\"/></svg>","free":true,"mini":true}},{"id":"m_sparkle","kind":"sticker","name":"반짝이","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 100 100\"><g fill=\"#ffd60a\" stroke=\"#fff\" stroke-width=\"2\"><path d=\"M40 8l7 23 23 7-23 7-7 23-7-23-23-7 23-7z\"/><path d=\"M76 52l4 12 12 4-12 4-4 12-4-12-12-4 12-4z\"/><path d=\"M22 70l3 8 8 3-8 3-3 8-3-8-8-3 8-3z\"/></g></svg>","free":true,"mini":true}},{"id":"m_mustache","kind":"sticker","name":"콧수염","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 120 44\"><path d=\"M60 14c-6-10-22-14-34-6S8 30 2 26c4 12 22 18 36 12s18-12 22-16c4 4 8 10 22 16s32 0 36-12c-6 4-12-10-24-18S66 4 60 14z\" fill=\"#1c1c1e\"/></svg>","free":true,"mini":true}},{"id":"m_glasses","kind":"sticker","name":"선글라스","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 130 50\"><path d=\"M4 12h122\" stroke=\"#111\" stroke-width=\"5\" stroke-linecap=\"round\"/><path d=\"M10 12h46v8c0 14-8 24-23 24S10 34 10 20z\" fill=\"#111\"/><path d=\"M74 12h46v8c0 14-8 24-23 24S74 34 74 20z\" fill=\"#111\"/><path d=\"M18 18l10 10M82 18l10 10\" stroke=\"#fff\" stroke-width=\"3\" stroke-linecap=\"round\" opacity=\".55\"/></svg>","free":true,"mini":true}},{"id":"m_blush","kind":"sticker","name":"볼터치","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 140 40\"><g fill=\"#ff6b9d\" opacity=\".75\"><ellipse cx=\"22\" cy=\"20\" rx=\"20\" ry=\"13\"/><ellipse cx=\"118\" cy=\"20\" rx=\"20\" ry=\"13\"/></g><g stroke=\"#fff\" stroke-width=\"2.5\" stroke-linecap=\"round\" opacity=\".8\"><path d=\"M12 16l4 8M20 14l4 8M28 16l4 8M108 16l4 8M116 14l4 8M124 16l4 8\"/></g></svg>","free":true,"mini":true}},{"id":"m_me","kind":"sticker","name":"\"나\" 화살표","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 110 80\"><text x=\"8\" y=\"34\" font-family=\"Pretendard,Apple SD Gothic Neo,sans-serif\" font-weight=\"900\" font-size=\"30\" fill=\"#2b50ff\" stroke=\"#fff\" stroke-width=\"5\" paint-order=\"stroke\">나</text><path d=\"M44 22c22-2 40 10 48 36\" fill=\"none\" stroke=\"#fff\" stroke-width=\"9\" stroke-linecap=\"round\"/><path d=\"M44 22c22-2 40 10 48 36\" fill=\"none\" stroke=\"#2b50ff\" stroke-width=\"5\" stroke-linecap=\"round\"/><path d=\"M80 54l13 10 4-16\" fill=\"none\" stroke=\"#2b50ff\" stroke-width=\"5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>","free":true,"mini":true}},{"id":"m_crown","kind":"sticker","name":"왕관","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 110 80\"><path d=\"M8 26l22 18 25-34 25 34 22-18-8 46H16z\" fill=\"#ffc300\" stroke=\"#b8860b\" stroke-width=\"3\" stroke-linejoin=\"round\"/><circle cx=\"55\" cy=\"10\" r=\"6\" fill=\"#ff3b30\"/><circle cx=\"8\" cy=\"26\" r=\"5\" fill=\"#2b50ff\"/><circle cx=\"102\" cy=\"26\" r=\"5\" fill=\"#2b50ff\"/><rect x=\"18\" y=\"62\" width=\"74\" height=\"8\" rx=\"2\" fill=\"#b8860b\"/></svg>","free":true,"mini":true}}];
+const FREE_STICKERS = [{"id":"a_1f44d","kind":"sticker","name":"👍","rarity":"common","data":{"e":"👍","img":"/brand/stk/1f44d.webp","anim":true,"free":true}},{"id":"a_2764_fe0f","kind":"sticker","name":"❤️","rarity":"common","data":{"e":"❤️","img":"/brand/stk/2764_fe0f.webp","anim":true,"free":true}},{"id":"a_1f525","kind":"sticker","name":"🔥","rarity":"common","data":{"e":"🔥","img":"/brand/stk/1f525.webp","anim":true,"free":true}},{"id":"a_1f970","kind":"sticker","name":"🥰","rarity":"common","data":{"e":"🥰","img":"/brand/stk/1f970.webp","anim":true,"free":true}},{"id":"a_1f44f","kind":"sticker","name":"👏","rarity":"common","data":{"e":"👏","img":"/brand/stk/1f44f.webp","anim":true,"free":true}},{"id":"a_1f601","kind":"sticker","name":"😁","rarity":"common","data":{"e":"😁","img":"/brand/stk/1f601.webp","anim":true,"free":true}},{"id":"a_1f923","kind":"sticker","name":"🤣","rarity":"common","data":{"e":"🤣","img":"/brand/stk/1f923.webp","anim":true,"free":true}},{"id":"a_1f602","kind":"sticker","name":"😂","rarity":"common","data":{"e":"😂","img":"/brand/stk/1f602.webp","anim":true,"free":true}},{"id":"a_1f60d","kind":"sticker","name":"😍","rarity":"common","data":{"e":"😍","img":"/brand/stk/1f60d.webp","anim":true,"free":true}},{"id":"a_1f979","kind":"sticker","name":"🥹","rarity":"common","data":{"e":"🥹","img":"/brand/stk/1f979.webp","anim":true,"free":true}},{"id":"a_1f62d","kind":"sticker","name":"😭","rarity":"common","data":{"e":"😭","img":"/brand/stk/1f62d.webp","anim":true,"free":true}},{"id":"a_1f389","kind":"sticker","name":"🎉","rarity":"common","data":{"e":"🎉","img":"/brand/stk/1f389.webp","anim":true,"free":true}},{"id":"a_1f929","kind":"sticker","name":"🤩","rarity":"common","data":{"e":"🤩","img":"/brand/stk/1f929.webp","anim":true,"free":true}},{"id":"a_1f973","kind":"sticker","name":"🥳","rarity":"common","data":{"e":"🥳","img":"/brand/stk/1f973.webp","anim":true,"free":true}},{"id":"a_1f4af","kind":"sticker","name":"💯","rarity":"common","data":{"e":"💯","img":"/brand/stk/1f4af.webp","anim":true,"free":true}},{"id":"a_2764_fe0f_200d_1f525","kind":"sticker","name":"❤️‍🔥","rarity":"common","data":{"e":"❤️‍🔥","img":"/brand/stk/2764_fe0f_200d_1f525.webp","anim":true,"free":true}},{"id":"a_1f60e","kind":"sticker","name":"😎","rarity":"common","data":{"e":"😎","img":"/brand/stk/1f60e.webp","anim":true,"free":true}},{"id":"a_1f92f","kind":"sticker","name":"🤯","rarity":"common","data":{"e":"🤯","img":"/brand/stk/1f92f.webp","anim":true,"free":true}},{"id":"a_1f631","kind":"sticker","name":"😱","rarity":"common","data":{"e":"😱","img":"/brand/stk/1f631.webp","anim":true,"free":true}},{"id":"a_1f633","kind":"sticker","name":"😳","rarity":"common","data":{"e":"😳","img":"/brand/stk/1f633.webp","anim":true,"free":true}},{"id":"a_1f914","kind":"sticker","name":"🤔","rarity":"common","data":{"e":"🤔","img":"/brand/stk/1f914.webp","anim":true,"free":true}},{"id":"a_1f928","kind":"sticker","name":"🤨","rarity":"common","data":{"e":"🤨","img":"/brand/stk/1f928.webp","anim":true,"free":true}},{"id":"a_1f610","kind":"sticker","name":"😐","rarity":"common","data":{"e":"😐","img":"/brand/stk/1f610.webp","anim":true,"free":true}},{"id":"a_1f644","kind":"sticker","name":"🙄","rarity":"common","data":{"e":"🙄","img":"/brand/stk/1f644.webp","anim":true,"free":true}},{"id":"a_1f62c","kind":"sticker","name":"😬","rarity":"common","data":{"e":"😬","img":"/brand/stk/1f62c.webp","anim":true,"free":true}},{"id":"a_1f62e","kind":"sticker","name":"😮","rarity":"common","data":{"e":"😮","img":"/brand/stk/1f62e.webp","anim":true,"free":true}},{"id":"a_1fae0","kind":"sticker","name":"🫠","rarity":"common","data":{"e":"🫠","img":"/brand/stk/1fae0.webp","anim":true,"free":true}},{"id":"a_1f635_200d_1f4ab","kind":"sticker","name":"😵‍💫","rarity":"common","data":{"e":"😵‍💫","img":"/brand/stk/1f635_200d_1f4ab.webp","anim":true,"free":true}},{"id":"a_1f92d","kind":"sticker","name":"🤭","rarity":"common","data":{"e":"🤭","img":"/brand/stk/1f92d.webp","anim":true,"free":true}},{"id":"a_1f924","kind":"sticker","name":"🤤","rarity":"common","data":{"e":"🤤","img":"/brand/stk/1f924.webp","anim":true,"free":true}},{"id":"a_1f97a","kind":"sticker","name":"🥺","rarity":"common","data":{"e":"🥺","img":"/brand/stk/1f97a.webp","anim":true,"free":true}},{"id":"a_1f971","kind":"sticker","name":"🥱","rarity":"common","data":{"e":"🥱","img":"/brand/stk/1f971.webp","anim":true,"free":true}},{"id":"a_1f634","kind":"sticker","name":"😴","rarity":"common","data":{"e":"😴","img":"/brand/stk/1f634.webp","anim":true,"free":true}},{"id":"a_1f607","kind":"sticker","name":"😇","rarity":"common","data":{"e":"😇","img":"/brand/stk/1f607.webp","anim":true,"free":true}},{"id":"a_1f608","kind":"sticker","name":"😈","rarity":"common","data":{"e":"😈","img":"/brand/stk/1f608.webp","anim":true,"free":true}},{"id":"a_1f921","kind":"sticker","name":"🤡","rarity":"common","data":{"e":"🤡","img":"/brand/stk/1f921.webp","anim":true,"free":true}},{"id":"a_1f47b","kind":"sticker","name":"👻","rarity":"common","data":{"e":"👻","img":"/brand/stk/1f47b.webp","anim":true,"free":true}},{"id":"a_1f480","kind":"sticker","name":"💀","rarity":"common","data":{"e":"💀","img":"/brand/stk/1f480.webp","anim":true,"free":true}},{"id":"a_1f47d","kind":"sticker","name":"👽","rarity":"common","data":{"e":"👽","img":"/brand/stk/1f47d.webp","anim":true,"free":true}},{"id":"a_1f47e","kind":"sticker","name":"👾","rarity":"common","data":{"e":"👾","img":"/brand/stk/1f47e.webp","anim":true,"free":true}},{"id":"a_1f913","kind":"sticker","name":"🤓","rarity":"common","data":{"e":"🤓","img":"/brand/stk/1f913.webp","anim":true,"free":true}},{"id":"a_1f92a","kind":"sticker","name":"🤪","rarity":"common","data":{"e":"🤪","img":"/brand/stk/1f92a.webp","anim":true,"free":true}},{"id":"a_1f618","kind":"sticker","name":"😘","rarity":"common","data":{"e":"😘","img":"/brand/stk/1f618.webp","anim":true,"free":true}},{"id":"a_1f48b","kind":"sticker","name":"💋","rarity":"common","data":{"e":"💋","img":"/brand/stk/1f48b.webp","anim":true,"free":true}},{"id":"a_1f648","kind":"sticker","name":"🙈","rarity":"common","data":{"e":"🙈","img":"/brand/stk/1f648.webp","anim":true,"free":true}},{"id":"a_1f440","kind":"sticker","name":"👀","rarity":"common","data":{"e":"👀","img":"/brand/stk/1f440.webp","anim":true,"free":true}},{"id":"a_1f64f","kind":"sticker","name":"🙏","rarity":"common","data":{"e":"🙏","img":"/brand/stk/1f64f.webp","anim":true,"free":true}},{"id":"a_1f44c","kind":"sticker","name":"👌","rarity":"common","data":{"e":"👌","img":"/brand/stk/1f44c.webp","anim":true,"free":true}},{"id":"a_1f91d","kind":"sticker","name":"🤝","rarity":"common","data":{"e":"🤝","img":"/brand/stk/1f91d.webp","anim":true,"free":true}},{"id":"a_1f64c","kind":"sticker","name":"🙌","rarity":"common","data":{"e":"🙌","img":"/brand/stk/1f64c.webp","anim":true,"free":true}},{"id":"a_1f4aa","kind":"sticker","name":"💪","rarity":"common","data":{"e":"💪","img":"/brand/stk/1f4aa.webp","anim":true,"free":true}},{"id":"a_1fae1","kind":"sticker","name":"🫡","rarity":"common","data":{"e":"🫡","img":"/brand/stk/1fae1.webp","anim":true,"free":true}},{"id":"a_1faf6","kind":"sticker","name":"🫶","rarity":"common","data":{"e":"🫶","img":"/brand/stk/1faf6.webp","anim":true,"free":true}},{"id":"a_1f917","kind":"sticker","name":"🤗","rarity":"common","data":{"e":"🤗","img":"/brand/stk/1f917.webp","anim":true,"free":true}},{"id":"a_1f496","kind":"sticker","name":"💖","rarity":"common","data":{"e":"💖","img":"/brand/stk/1f496.webp","anim":true,"free":true}},{"id":"a_1f494","kind":"sticker","name":"💔","rarity":"common","data":{"e":"💔","img":"/brand/stk/1f494.webp","anim":true,"free":true}},{"id":"a_2728","kind":"sticker","name":"✨","rarity":"common","data":{"e":"✨","img":"/brand/stk/2728.webp","anim":true,"free":true}},{"id":"a_1f31f","kind":"sticker","name":"🌟","rarity":"common","data":{"e":"🌟","img":"/brand/stk/1f31f.webp","anim":true,"free":true}},{"id":"a_26a1","kind":"sticker","name":"⚡","rarity":"common","data":{"e":"⚡","img":"/brand/stk/26a1.webp","anim":true,"free":true}},{"id":"a_1f308","kind":"sticker","name":"🌈","rarity":"common","data":{"e":"🌈","img":"/brand/stk/1f308.webp","anim":true,"free":true}},{"id":"a_1f3c6","kind":"sticker","name":"🏆","rarity":"common","data":{"e":"🏆","img":"/brand/stk/1f3c6.webp","anim":true,"free":true}},{"id":"a_1f37e","kind":"sticker","name":"🍾","rarity":"common","data":{"e":"🍾","img":"/brand/stk/1f37e.webp","anim":true,"free":true}},{"id":"a_1f382","kind":"sticker","name":"🎂","rarity":"common","data":{"e":"🎂","img":"/brand/stk/1f382.webp","anim":true,"free":true}},{"id":"a_1f388","kind":"sticker","name":"🎈","rarity":"common","data":{"e":"🎈","img":"/brand/stk/1f388.webp","anim":true,"free":true}},{"id":"a_1f984","kind":"sticker","name":"🦄","rarity":"common","data":{"e":"🦄","img":"/brand/stk/1f984.webp","anim":true,"free":true}},{"id":"a_1f431","kind":"sticker","name":"🐱","rarity":"common","data":{"e":"🐱","img":"/brand/stk/1f431.webp","anim":true,"free":true}},{"id":"a_1f4a9","kind":"sticker","name":"💩","rarity":"common","data":{"e":"💩","img":"/brand/stk/1f4a9.webp","anim":true,"free":true}},{"id":"a_1f621","kind":"sticker","name":"😡","rarity":"common","data":{"e":"😡","img":"/brand/stk/1f621.webp","anim":true,"free":true}},{"id":"a_1f911","kind":"sticker","name":"🤑","rarity":"common","data":{"e":"🤑","img":"/brand/stk/1f911.webp","anim":true,"free":true}},{"id":"a_1f60a","kind":"sticker","name":"😊","rarity":"common","data":{"e":"😊","img":"/brand/stk/1f60a.webp","anim":true,"free":true}},{"id":"a_1f643","kind":"sticker","name":"🙃","rarity":"common","data":{"e":"🙃","img":"/brand/stk/1f643.webp","anim":true,"free":true}},{"id":"e_01","kind":"sticker","name":"😂","rarity":"common","data":{"e":"😂","retired":true}},{"id":"e_02","kind":"sticker","name":"😍","rarity":"common","data":{"e":"😍","retired":true}},{"id":"e_03","kind":"sticker","name":"🥹","rarity":"common","data":{"e":"🥹","retired":true}},{"id":"e_04","kind":"sticker","name":"😎","rarity":"common","data":{"e":"😎","retired":true}},{"id":"e_05","kind":"sticker","name":"🤣","rarity":"common","data":{"e":"🤣","retired":true}},{"id":"e_06","kind":"sticker","name":"😭","rarity":"common","data":{"e":"😭","retired":true}},{"id":"e_07","kind":"sticker","name":"🥳","rarity":"common","data":{"e":"🥳","retired":true}},{"id":"e_08","kind":"sticker","name":"😳","rarity":"common","data":{"e":"😳","retired":true}},{"id":"e_09","kind":"sticker","name":"🤪","rarity":"common","data":{"e":"🤪","retired":true}},{"id":"e_10","kind":"sticker","name":"😘","rarity":"common","data":{"e":"😘","retired":true}},{"id":"e_11","kind":"sticker","name":"👍","rarity":"common","data":{"e":"👍","retired":true}},{"id":"e_12","kind":"sticker","name":"👏","rarity":"common","data":{"e":"👏","retired":true}},{"id":"e_13","kind":"sticker","name":"🙌","rarity":"common","data":{"e":"🙌","retired":true}},{"id":"e_14","kind":"sticker","name":"💯","rarity":"common","data":{"e":"💯","retired":true}},{"id":"e_15","kind":"sticker","name":"🔥","rarity":"common","data":{"e":"🔥","retired":true}},{"id":"e_16","kind":"sticker","name":"✨","rarity":"common","data":{"e":"✨","retired":true}},{"id":"e_17","kind":"sticker","name":"💖","rarity":"common","data":{"e":"💖","retired":true}},{"id":"e_18","kind":"sticker","name":"⭐","rarity":"common","data":{"e":"⭐","free":true}},{"id":"e_19","kind":"sticker","name":"🌈","rarity":"common","data":{"e":"🌈","retired":true}},{"id":"e_20","kind":"sticker","name":"🍀","rarity":"common","data":{"e":"🍀","free":true}},{"id":"e_21","kind":"sticker","name":"🎉","rarity":"common","data":{"e":"🎉","retired":true}},{"id":"e_22","kind":"sticker","name":"🎂","rarity":"common","data":{"e":"🎂","retired":true}},{"id":"e_23","kind":"sticker","name":"🐶","rarity":"common","data":{"e":"🐶","free":true}},{"id":"e_24","kind":"sticker","name":"🐱","rarity":"common","data":{"e":"🐱","retired":true}},{"id":"e_25","kind":"sticker","name":"🐰","rarity":"common","data":{"e":"🐰","free":true}},{"id":"e_26","kind":"sticker","name":"🐻","rarity":"common","data":{"e":"🐻","free":true}},{"id":"e_27","kind":"sticker","name":"🐼","rarity":"common","data":{"e":"🐼","free":true}},{"id":"e_28","kind":"sticker","name":"🐨","rarity":"common","data":{"e":"🐨","free":true}},{"id":"e_29","kind":"sticker","name":"🦊","rarity":"common","data":{"e":"🦊","free":true}},{"id":"e_30","kind":"sticker","name":"🐸","rarity":"common","data":{"e":"🐸","free":true}},{"id":"e_31","kind":"sticker","name":"🐥","rarity":"common","data":{"e":"🐥","free":true}},{"id":"e_32","kind":"sticker","name":"🐧","rarity":"common","data":{"e":"🐧","free":true}},{"id":"e_33","kind":"sticker","name":"🐹","rarity":"common","data":{"e":"🐹","free":true}},{"id":"e_34","kind":"sticker","name":"🦋","rarity":"common","data":{"e":"🦋","free":true}},{"id":"e_35","kind":"sticker","name":"🌸","rarity":"common","data":{"e":"🌸","free":true}},{"id":"e_36","kind":"sticker","name":"🌷","rarity":"common","data":{"e":"🌷","free":true}},{"id":"e_37","kind":"sticker","name":"🌻","rarity":"common","data":{"e":"🌻","free":true}},{"id":"e_38","kind":"sticker","name":"🌼","rarity":"common","data":{"e":"🌼","free":true}},{"id":"e_39","kind":"sticker","name":"💐","rarity":"common","data":{"e":"💐","free":true}},{"id":"e_40","kind":"sticker","name":"🍓","rarity":"common","data":{"e":"🍓","free":true}},{"id":"e_41","kind":"sticker","name":"🍑","rarity":"common","data":{"e":"🍑","free":true}},{"id":"e_42","kind":"sticker","name":"🍒","rarity":"common","data":{"e":"🍒","free":true}},{"id":"e_43","kind":"sticker","name":"🍉","rarity":"common","data":{"e":"🍉","free":true}},{"id":"e_44","kind":"sticker","name":"🍰","rarity":"common","data":{"e":"🍰","free":true}},{"id":"e_45","kind":"sticker","name":"🍕","rarity":"common","data":{"e":"🍕","free":true}},{"id":"e_46","kind":"sticker","name":"🍔","rarity":"common","data":{"e":"🍔","free":true}},{"id":"e_47","kind":"sticker","name":"🍟","rarity":"common","data":{"e":"🍟","free":true}},{"id":"e_48","kind":"sticker","name":"🍩","rarity":"common","data":{"e":"🍩","free":true}},{"id":"e_49","kind":"sticker","name":"🍦","rarity":"common","data":{"e":"🍦","free":true}},{"id":"e_50","kind":"sticker","name":"🧋","rarity":"common","data":{"e":"🧋","free":true}},{"id":"e_51","kind":"sticker","name":"☕","rarity":"common","data":{"e":"☕","free":true}},{"id":"e_52","kind":"sticker","name":"🍺","rarity":"common","data":{"e":"🍺","free":true}},{"id":"e_53","kind":"sticker","name":"🎀","rarity":"common","data":{"e":"🎀","free":true}},{"id":"e_54","kind":"sticker","name":"🎁","rarity":"common","data":{"e":"🎁","free":true}},{"id":"e_55","kind":"sticker","name":"🧸","rarity":"common","data":{"e":"🧸","free":true}},{"id":"e_56","kind":"sticker","name":"🌙","rarity":"common","data":{"e":"🌙","free":true}},{"id":"e_57","kind":"sticker","name":"☀️","rarity":"common","data":{"e":"☀️","free":true}},{"id":"e_58","kind":"sticker","name":"☁️","rarity":"common","data":{"e":"☁️","free":true}},{"id":"e_59","kind":"sticker","name":"🫧","rarity":"common","data":{"e":"🫧","free":true}},{"id":"e_60","kind":"sticker","name":"🌊","rarity":"common","data":{"e":"🌊","free":true}},{"id":"e_61","kind":"sticker","name":"📸","rarity":"common","data":{"e":"📸","free":true}},{"id":"e_62","kind":"sticker","name":"🎵","rarity":"common","data":{"e":"🎵","free":true}},{"id":"e_63","kind":"sticker","name":"🎧","rarity":"common","data":{"e":"🎧","free":true}},{"id":"e_64","kind":"sticker","name":"💎","rarity":"common","data":{"e":"💎","free":true}},{"id":"e_65","kind":"sticker","name":"👑","rarity":"common","data":{"e":"👑","free":true}},{"id":"e_66","kind":"sticker","name":"🕶️","rarity":"common","data":{"e":"🕶️","free":true}},{"id":"e_67","kind":"sticker","name":"💄","rarity":"common","data":{"e":"💄","free":true}},{"id":"e_68","kind":"sticker","name":"💅","rarity":"common","data":{"e":"💅","free":true}},{"id":"e_69","kind":"sticker","name":"🧿","rarity":"common","data":{"e":"🧿","free":true}},{"id":"e_70","kind":"sticker","name":"⚽","rarity":"common","data":{"e":"⚽","free":true}},{"id":"e_71","kind":"sticker","name":"🏀","rarity":"common","data":{"e":"🏀","free":true}},{"id":"e_72","kind":"sticker","name":"🎮","rarity":"common","data":{"e":"🎮","free":true}},{"id":"e_73","kind":"sticker","name":"🚀","rarity":"common","data":{"e":"🚀","free":true}},{"id":"e_74","kind":"sticker","name":"📍","rarity":"common","data":{"e":"📍","free":true}},{"id":"m_kkk","kind":"sticker","name":"말풍선 ㅋㅋㅋ","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 120 78\"><path d=\"M14 4h92a12 12 0 0 1 12 12v32a12 12 0 0 1-12 12H44L26 74l4-14H14A12 12 0 0 1 2 48V16A12 12 0 0 1 14 4z\" fill=\"#fff\" stroke=\"#111\" stroke-width=\"3\"/><text x=\"60\" y=\"44\" text-anchor=\"middle\" font-family=\"Pretendard,Apple SD Gothic Neo,sans-serif\" font-weight=\"900\" font-size=\"30\" fill=\"#111\">ㅋㅋㅋ</text></svg>","mini":true,"retired":true}},{"id":"m_legend","kind":"sticker","name":"레전드","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 130 54\"><g transform=\"rotate(-6 65 27)\"><rect x=\"6\" y=\"8\" width=\"118\" height=\"38\" rx=\"8\" fill=\"#ffd60a\" stroke=\"#111\" stroke-width=\"3\"/><text x=\"65\" y=\"36\" text-anchor=\"middle\" font-family=\"Pretendard,Apple SD Gothic Neo,sans-serif\" font-weight=\"900\" font-size=\"24\" fill=\"#111\">레전드</text></g></svg>","mini":true,"retired":true}},{"id":"m_insaeng","kind":"sticker","name":"인생샷 도장","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 100 100\"><g transform=\"rotate(-12 50 50)\" fill=\"none\" stroke=\"#ff3b30\"><circle cx=\"50\" cy=\"50\" r=\"44\" stroke-width=\"5\"/><circle cx=\"50\" cy=\"50\" r=\"35\" stroke-width=\"2\"/><text x=\"50\" y=\"58\" text-anchor=\"middle\" font-family=\"Pretendard,Apple SD Gothic Neo,sans-serif\" font-weight=\"900\" font-size=\"22\" fill=\"#ff3b30\" stroke=\"none\">인생샷</text></g></svg>","mini":true,"retired":true}},{"id":"m_heart","kind":"sticker","name":"하트","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 100 90\"><path d=\"M50 86S6 58 6 28A22 22 0 0 1 50 16a22 22 0 0 1 44 12c0 30-44 58-44 58z\" fill=\"#ff4d8d\" stroke=\"#fff\" stroke-width=\"4\"/><ellipse cx=\"30\" cy=\"30\" rx=\"8\" ry=\"5\" fill=\"#fff\" opacity=\".7\" transform=\"rotate(-30 30 30)\"/></svg>","mini":true,"retired":true}},{"id":"m_sparkle","kind":"sticker","name":"반짝이","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 100 100\"><g fill=\"#ffd60a\" stroke=\"#fff\" stroke-width=\"2\"><path d=\"M40 8l7 23 23 7-23 7-7 23-7-23-23-7 23-7z\"/><path d=\"M76 52l4 12 12 4-12 4-4 12-4-12-12-4 12-4z\"/><path d=\"M22 70l3 8 8 3-8 3-3 8-3-8-8-3 8-3z\"/></g></svg>","mini":true,"retired":true}},{"id":"m_mustache","kind":"sticker","name":"콧수염","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 120 44\"><path d=\"M60 14c-6-10-22-14-34-6S8 30 2 26c4 12 22 18 36 12s18-12 22-16c4 4 8 10 22 16s32 0 36-12c-6 4-12-10-24-18S66 4 60 14z\" fill=\"#1c1c1e\"/></svg>","mini":true,"retired":true}},{"id":"m_glasses","kind":"sticker","name":"선글라스","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 130 50\"><path d=\"M4 12h122\" stroke=\"#111\" stroke-width=\"5\" stroke-linecap=\"round\"/><path d=\"M10 12h46v8c0 14-8 24-23 24S10 34 10 20z\" fill=\"#111\"/><path d=\"M74 12h46v8c0 14-8 24-23 24S74 34 74 20z\" fill=\"#111\"/><path d=\"M18 18l10 10M82 18l10 10\" stroke=\"#fff\" stroke-width=\"3\" stroke-linecap=\"round\" opacity=\".55\"/></svg>","mini":true,"retired":true}},{"id":"m_blush","kind":"sticker","name":"볼터치","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 140 40\"><g fill=\"#ff6b9d\" opacity=\".75\"><ellipse cx=\"22\" cy=\"20\" rx=\"20\" ry=\"13\"/><ellipse cx=\"118\" cy=\"20\" rx=\"20\" ry=\"13\"/></g><g stroke=\"#fff\" stroke-width=\"2.5\" stroke-linecap=\"round\" opacity=\".8\"><path d=\"M12 16l4 8M20 14l4 8M28 16l4 8M108 16l4 8M116 14l4 8M124 16l4 8\"/></g></svg>","mini":true,"retired":true}},{"id":"m_me","kind":"sticker","name":"\"나\" 화살표","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 110 80\"><text x=\"8\" y=\"34\" font-family=\"Pretendard,Apple SD Gothic Neo,sans-serif\" font-weight=\"900\" font-size=\"30\" fill=\"#2b50ff\" stroke=\"#fff\" stroke-width=\"5\" paint-order=\"stroke\">나</text><path d=\"M44 22c22-2 40 10 48 36\" fill=\"none\" stroke=\"#fff\" stroke-width=\"9\" stroke-linecap=\"round\"/><path d=\"M44 22c22-2 40 10 48 36\" fill=\"none\" stroke=\"#2b50ff\" stroke-width=\"5\" stroke-linecap=\"round\"/><path d=\"M80 54l13 10 4-16\" fill=\"none\" stroke=\"#2b50ff\" stroke-width=\"5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>","mini":true,"retired":true}},{"id":"m_crown","kind":"sticker","name":"왕관","rarity":"common","data":{"svg":"<svg viewBox=\"0 0 110 80\"><path d=\"M8 26l22 18 25-34 25 34 22-18-8 46H16z\" fill=\"#ffc300\" stroke=\"#b8860b\" stroke-width=\"3\" stroke-linejoin=\"round\"/><circle cx=\"55\" cy=\"10\" r=\"6\" fill=\"#ff3b30\"/><circle cx=\"8\" cy=\"26\" r=\"5\" fill=\"#2b50ff\"/><circle cx=\"102\" cy=\"26\" r=\"5\" fill=\"#2b50ff\"/><rect x=\"18\" y=\"62\" width=\"74\" height=\"8\" rx=\"2\" fill=\"#b8860b\"/></svg>","mini":true,"retired":true}}];
 // @@FREE-END
 const ITEM = Object.fromEntries(ITEM_CATALOG.map(i => [i.id, i]));
 FREE_STICKERS.forEach(i => { ITEM[i.id] = i; });
 // 가챠·내 피드 꾸미기: 지금은 꺼 둠(코드·DB는 그대로 → true 로 바꾸면 다시 켜짐)
 const GACHA_ON = false;
-const glyph = it => it ? (it.data.svg || it.data.e || '') : ''; // 스티커 모양(이모지 또는 미니 아이템 그림)
+// 스티커 모양: 움직이는 이모지(img) · 미니 아이템 그림(svg) · 이모지
+const glyph = it => !it ? '' : it.data.img ? `<img class="sti" src="${it.data.img}" alt="${it.data.e || ''}" draggable="false" loading="lazy" decoding="async">` : (it.data.svg || it.data.e || '');
 const RARITY = { common: { label: '일반', color: '#8e8e93' }, rare: { label: '레어', color: '#2b50ff' }, epic: { label: '에픽', color: '#af52de' }, legendary: { label: '전설', color: '#ff9f0a' } };
 const KIND_LABEL = { frame: '프레임', theme: '커버', sticker: '스티커', name: '네임' };
 let TICKETS = null;
@@ -3387,7 +3427,7 @@ async function openDecorate(postId, idx0) {
   const idx = Number.isInteger(idx0) ? idx0 : +(document.querySelector('.overlay .carwrap')?.dataset.idx || 0);
   const m = isText(p) ? null : mediaOf(p)[idx]; if (!m && !isText(p)) return;
   const isOwnerPost = p.owner_id === me.id;
-  const MAX_MINE = 10;
+  const MAX_POST = 100; // 한 게시물에 한 사람당 1개, 게시물 전체 100개 (20 SQL 과 같음)
   const el = pageOverlay('decor', `
     <header class="pov-h cmp-h"><button class="icon-btn" data-x aria-label="${t('닫기')}">${I.close}</button><b>${t('스티커 꾸미기')}</b><button class="cmp-send" id="dsave">${t('저장')}</button></header>
     <div class="dwrap"><div class="stage dstage${m ? '' : ' tstage'}" id="dstage">${m ? `<img src="${photoUrl(m.k === 'video' ? (m.t || m.p) : m.p)}" alt="" draggable="false">` : textCard(p)}<div class="dlayer" id="dlayer"></div></div></div>
@@ -3395,12 +3435,7 @@ async function openDecorate(postId, idx0) {
       <div class="dsl" id="dszw"><small>${t('크기')}</small><input type="range" id="dsize" min="0.4" max="3" step="0.05" aria-label="${t('크기')}"></div>
       <div class="dsl" id="drotw"><small>${t('회전')}</small><input type="range" id="drot" min="-180" max="180" step="1" aria-label="${t('회전')}"></div>
       <div class="dwho" id="dwho" hidden></div>
-      <div class="dbtns"><button data-a="edit" id="dedit">${t('수정')}</button><button data-a="x" class="danger">${t('떼기')}</button></div>
-    </div>
-    <div class="dtxt" id="dtxt" hidden>
-      <input class="field" id="dtin" maxlength="40" placeholder="${t('하고 싶은 말 (최대 40자)')}" autocomplete="off" enterkeyhint="done">
-      <div class="dtrow"><div class="dstyles">${[['plain', '기본'], ['box', '박스'], ['hl', '형광']].map(([k, l]) => `<button data-st="${k}"><span class="ptxt ${k}">${t(l)}</span></button>`).join('')}</div>
-        <span class="dcount" id="dcount">0/40</span><button class="btn primary" id="dtok">${t('완료')}</button></div>
+      <div class="dbtns"><button data-a="x" class="danger">${t('떼기')}</button></div>
     </div>
     <p class="hint dhint" id="dhint"></p>
     <div class="dtray" id="dtray"><p class="hint">${t('불러오는 중…')}</p></div>`);
@@ -3412,6 +3447,8 @@ async function openDecorate(postId, idx0) {
   ]);
   if (st.error) { el.remove(); return toast(/post_stickers|relation/i.test(st.error.message) ? t('스티커 기능 준비 중이에요(관리자: SQL 실행 필요)') : kerr(st.error)); }
   const rows = st.data.filter(r => r.media_idx === idx).map(r => ({ ...r, rot: r.rot || 0 }));
+  const mineElsewhere = st.data.filter(r => r.user_id === me.id && r.media_idx !== idx).length; // 같은 게시물 다른 장에 붙인 것
+  const totalPost = st.data.length;
   const others = rows.filter(r => r.user_id !== me.id);
   // 친구 스티커를 누르면 누가 붙였는지 보여주기 위해 이름 미리 불러옴(주인·친구 모두)
   const who = new Map();
@@ -3421,7 +3458,7 @@ async function openDecorate(postId, idx0) {
   }
   const orig = new Map(rows.filter(r => r.user_id === me.id).map(r => [r.id, { ...r }]));
   let mine = [...orig.values()].map(r => ({ ...r }));
-  const removed = new Set(); let sel = null, editing = null, txtStyle = 'plain';
+  const removed = new Set(); let sel = null;
   const owned = GACHA_ON ? (inv.data || []).map(r => ITEM[r.item_id]).filter(i => i?.kind === 'sticker' && !i.data.free) : [];
   const stage = $('#dstage');
 
@@ -3430,47 +3467,42 @@ async function openDecorate(postId, idx0) {
       others.filter(r => !removed.has(r.id)).map(r => stickerSpan(r, `other tap${sel === r.id ? ' sel' : ''}`)).join('') +
       mine.map(r => stickerSpan(r, `mine${sel === r.id ? ' sel' : ''}`)).join('');
     const selMine = mine.find(r => r.id === sel), selOther = others.find(r => r.id === sel);
-    $('#dtools').hidden = !(selMine || selOther) || !$('#dtxt').hidden;
+    $('#dtools').hidden = !(selMine || selOther);
     $('#dszw').hidden = $('#drotw').hidden = !selMine;
-    $('#dedit').hidden = !(selMine && selMine.text);
     // 떼기: 내 스티커, 또는 피드 주인만(친구는 남의 스티커를 누르면 정보만 보임)
     $('#dtools [data-a="x"]').hidden = !selMine; // 떼기·수정은 내가 붙인 스티커만(친구 스티커는 누가 붙였는지만 보임)
     const u = selOther && who.get(selOther.user_id);
     $('#dwho').hidden = !selOther;
     if (selOther) $('#dwho').innerHTML = t('{name}님이 붙였어요', { name: `<b>${esc(u?.name || t('친구'))}</b>${u?.handle ? ` <small>@${esc(u.handle)}</small>` : ''}` });
     if (selMine) { $('#dsize').value = selMine.scale; $('#drot').value = selMine.rot || 0; }
-    $('#dhint').textContent = t('내 스티커 {a}/{b} · 끌어서 옮기고, 두 손가락으로 크기·회전 · 친구 스티커를 누르면 누가 붙였는지 볼 수 있어요', { a: mine.length, b: MAX_MINE });
+    $('#dhint').textContent = mine.length
+      ? t('끌어서 옮기고, 두 손가락으로 크기·회전 · 다른 스티커를 누르면 바꿀 수 있어요')
+      : t('한 게시물에 스티커 1개를 붙일 수 있어요 · 친구 스티커를 누르면 누가 붙였는지 보여요');
   };
-  // 트레이: 텍스트 + 미니 아이템 + 이모지 (+ 가챠 스티커)
-  const tile = i => `<button class="dts${i.data.mini ? ' mini' : ''}" data-item="${i.id}" aria-label="${t('{name} 붙이기', { name: esc(i.name) })}">${glyph(i)}</button>`;
+  // 트레이: 움직이는 이모지 + 이모지 (+ 가챠 스티커). 은퇴한 스티커(텍스트·미니 그림 등)는 안 보임
+  const tile = i => `<button class="dts${i.data.anim ? ' anim' : ''}" data-item="${i.id}" aria-label="${t('{name} 붙이기', { name: esc(i.name) })}">${glyph(i)}</button>`;
+  const live = FREE_STICKERS.filter(i => !i.data.retired);
   $('#dtray').innerHTML =
-    `<button class="dtadd" id="dtadd"><b>Aa</b> ${t('텍스트 넣기')} <small>${t('최대 40자')}</small></button>` +
-    `<div class="dsec">${t('미니 아이템')}</div><div class="dgrid">${FREE_STICKERS.filter(i => i.data.mini).map(tile).join('')}</div>` +
+    `<div class="dsec">${t('움직이는 이모지')}</div><div class="dgrid">${live.filter(i => i.data.anim).map(tile).join('')}</div>` +
     (owned.length ? `<div class="dsec">${t('내가 뽑은 스티커')}</div><div class="dgrid">${owned.map(tile).join('')}</div>` : '') +
-    `<div class="dsec">${t('이모지')}</div><div class="dgrid">${FREE_STICKERS.filter(i => !i.data.mini).map(tile).join('')}</div>`;
-  const add = r => { if (mine.length >= MAX_MINE) { toast(t('한 사진에 내 스티커는 {n}개까지예요', { n: MAX_MINE })); return false; } mine.push(r); sel = r.id; paint(); return true; };
+    `<div class="dsec">${t('이모지')}</div><div class="dgrid">${live.filter(i => !i.data.anim).map(tile).join('')}</div>` +
+    `<p class="dcredit">Animated emoji: Google Noto Emoji · CC BY 4.0</p>`;
   const newId = () => 'tmp' + Math.random().toString(36).slice(2);
-  $('#dtray').querySelectorAll('[data-item]').forEach(b => b.onclick = () => add({ id: newId(), item_id: b.dataset.item, x: 0.5, y: 0.5, scale: 1, rot: 0, tmp: true }));
-
-  // 텍스트 입력창(새로 넣기 / 수정)
-  const openText = r => {
-    editing = r || null; txtStyle = r?.style || 'plain';
-    $('#dtin').value = r?.text || ''; $('#dcount').textContent = `${$('#dtin').value.length}/40`;
-    el.querySelectorAll('[data-st]').forEach(b => b.classList.toggle('on', b.dataset.st === txtStyle));
-    $('#dtxt').hidden = false; $('#dtools').hidden = true; setTimeout(() => $('#dtin').focus(), 50);
+  // 한 게시물에 1개: 이미 붙인 게 있으면 같은 자리에서 모양만 바꿈(저장할 때 예전 것을 떼고 새로 붙임)
+  const pick = item_id => {
+    const cur = mine.find(r => r.id === sel) || mine[0];
+    if (cur) {
+      if (cur.item_id === item_id) return;
+      const r = { ...cur, id: newId(), item_id, tmp: true };
+      if (!cur.tmp) removed.add(cur.id);
+      mine = mine.map(x => x === cur ? r : x); sel = r.id; paint(); return;
+    }
+    if (mineElsewhere) return toast(t('이 게시물에는 이미 스티커를 붙였어요. 붙인 사진에서 떼면 다시 붙일 수 있어요'));
+    if (totalPost - removed.size >= MAX_POST) return toast(t('이 게시물은 스티커가 꽉 찼어요({n}개)', { n: MAX_POST }));
+    const r = { id: newId(), item_id, x: 0.5, y: 0.5, scale: 1, rot: 0, tmp: true };
+    mine.push(r); sel = r.id; paint();
   };
-  $('#dtadd').onclick = () => openText(null);
-  $('#dtin').oninput = () => { $('#dcount').textContent = `${[...$('#dtin').value].length}/40`; };
-  el.querySelectorAll('[data-st]').forEach(b => b.onclick = () => { txtStyle = b.dataset.st; el.querySelectorAll('[data-st]').forEach(x => x.classList.toggle('on', x === b)); });
-  const doneText = () => {
-    const t = $('#dtin').value.trim().slice(0, 40);
-    $('#dtxt').hidden = true; $('#dtin').blur();
-    if (!t) { paint(); return; }
-    if (editing) { editing.text = t; editing.style = txtStyle; sel = editing.id; paint(); }
-    else add({ id: newId(), item_id: 't_text', text: t, style: txtStyle, x: 0.5, y: 0.5, scale: 1, rot: 0, tmp: true });
-  };
-  $('#dtok').onclick = doneText;
-  $('#dtin').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) doneText(); };
+  $('#dtray').querySelectorAll('[data-item]').forEach(b => b.onclick = () => pick(b.dataset.item));
 
   // 한 손가락: 끌어서 옮기기 / 탭: 선택 · 두 손가락: 크기 + 회전
   const pts = new Map(); let drag = null, pinch = null, tapEmpty = false, pinched = false;
@@ -3512,11 +3544,10 @@ async function openDecorate(postId, idx0) {
   $('#dtools').onclick = e => {
     const a = e.target.closest('[data-a]')?.dataset.a; if (!a || !sel) return;
     const r = mine.find(x => x.id === sel);
-    if (a === 'edit' && r?.text) return openText(r);
     if (a === 'x') { if (!r) return; mine = mine.filter(x => x !== r); if (!r.tmp) removed.add(r.id); sel = null; paint(); }
   };
 
-  const KEYS = ['x', 'y', 'scale', 'rot', 'text', 'style'];
+  const KEYS = ['x', 'y', 'scale', 'rot'];
   const changed = () => removed.size || mine.some(r => r.tmp || KEYS.some(k => (orig.get(r.id)?.[k] ?? null) !== (r[k] ?? null)));
   $('[data-x]').onclick = () => { if (!changed() || confirm(t('저장하지 않은 꾸미기가 사라져요. 닫을까요?'))) el.remove(); };
   // 저장: 내 것만 추가·수정·삭제 → 서로 덮어쓰지 않음. 실패하면 원인을 그대로 보여줌
@@ -3529,8 +3560,7 @@ async function openDecorate(postId, idx0) {
       step = '붙이기';
       const row = r => {
         const o = { post_id: postId, media_idx: idx, user_id: me.id, item_id: r.item_id, x: +r.x.toFixed(4), y: +r.y.toFixed(4), scale: r.scale };
-        if (r.rot) o.rot = r.rot;                               // 회전·텍스트 칸은 쓸 때만 보냄
-        if (r.text) { o.text = r.text; o.style = r.style || 'plain'; }
+        if (r.rot) o.rot = r.rot;                               // 회전 칸은 쓸 때만 보냄
         return o;
       };
       const adds = mine.filter(r => r.tmp).map(row);
@@ -3550,7 +3580,7 @@ async function openDecorate(postId, idx0) {
       btn.disabled = false; btn.textContent = t('저장');
       const msg = String(err?.message || err), code = err?.code ? `[${err.code}] ` : '';
       console.error('sticker save failed', step, err);
-      toast(/row-level|42501/i.test(msg) ? t('스티커를 붙일 수 없어요(개수 제한이거나 권한이 없어요)')
+      toast(/row-level|42501/i.test(msg) ? t('스티커를 붙일 수 없어요(한 게시물에 1개, 전체 100개까지예요)')
         // 칸이 없다는 오류만 '준비 중'으로(예전엔 'text' 가 들어간 다른 오류까지 잘못 걸렸음). 그 외엔 원인을 그대로 보여줌
         : /(could not find|does not exist).*\b(rot|text|style)\b/i.test(msg) ? t('텍스트·회전 기능 준비 중이에요(관리자: 12 SQL 실행 필요)') + ` ${code}`
         : `${t('저장 실패')}(${t(step)}): ${code}${msg}`.slice(0, 160));
@@ -4405,6 +4435,13 @@ function demoClient() {
     };
     return b;
   }
+  // 비공개 피드 데모: 하린(f3)은 비공개이고 나를 추가하지 않음 → 잠김 / 서연(f4)은 나를 추가함 → 친구 탭 '나를 추가한 친구'
+  if (!db.profiles.some(p => p.id === 'f3')) {
+    db.profiles.push({ id: 'f3', name: '하린', handle: 'harin', avatar_url: null, onboarded: true, is_private: true, bio: '비공개 피드' },
+                     { id: 'f4', name: '서연', handle: 'seoyeon', avatar_url: null, onboarded: true });
+    db.follows.push({ follower_id: 'f4', followee_id: 'demo', created_at: t(0.7) });
+    db.posts.push({ id: 'h1', owner_id: 'f3', author_name: '지수', mission: null, text: '', image_path: art(7), status: 'approved', created_at: t(3), approved_at: t(2.9) });
+  }
   // 가챠 함수(RPC) 흉내: 데모는 뽑기권 5장으로 시작
   async function rpc(fn, args = {}) {
     db.inventory = db.inventory || []; if (db.gtix == null) db.gtix = 5;
@@ -4428,6 +4465,7 @@ function demoClient() {
     if (fn === 'group_invite_code') { const g = G_(args.p_group); if (args.p_new) g.invite_code = Math.random().toString(36).slice(2, 14); return ok(g.invite_code); }
     if (fn === 'transfer_group') { const g = G_(args.p_group); mem(g.id, ME.id).role = 'member'; mem(g.id, args.p_user).role = 'owner'; g.owner_id = args.p_user; return ok(null); }
     if (fn === 'pin_post') { const p = db.posts.find(x => x.id === args.p_post); if (args.p_on && db.posts.filter(x => x.group_id === p.group_id && x.pinned_at && x.id !== p.id).length >= 9) return no('pin_limit'); p.pinned_at = args.p_on ? new Date().toISOString() : null; return ok(null); }
+    if (fn === 'can_view_feed') { const o = db.profiles.find(p => p.id === args.o); return { data: !o?.is_private || args.o === ME.id || db.follows.some(f => f.follower_id === args.o && f.followee_id === ME.id), error: null }; }
     if (fn === 'report_post') { const p = db.posts.find(x => x.id === args.p_post); if (p.author_id === ME.id) return no('own_post'); p.reports = (p.reports || 0) + 1; if (p.reports >= 3) p.flagged = true; return ok(p.reports); }
     if (fn === 'unflag_post') { const p = db.posts.find(x => x.id === args.p_post); p.flagged = false; p.reports = 0; return ok(null); }
     if (fn === 'gacha_status') return { data: { tickets: db.gtix, earned: 0, used: 0, bonus: 5 }, error: null };
@@ -4508,7 +4546,7 @@ const within = (p, ms) => Promise.race([p, new Promise((_, no) => setTimeout(() 
 function loadVideo(file) {
   return within(new Promise((ok, no) => {
     const v = document.createElement('video');
-    v.preload = 'auto'; v.muted = true; v.playsInline = true;
+    v.preload = 'auto'; v.muted = true; v.playsInline = true; v._sl = true; // 화면용 반복 재생(seamlessLoop) 제외: 압축 중 처음으로 돌아가면 끝나지 않음
     v.setAttribute('playsinline', ''); v.setAttribute('muted', '');
     v.onloadedmetadata = () => ok(v); v.onerror = () => no(new Error('video'));
     v.src = URL.createObjectURL(file); v.load();
@@ -4550,7 +4588,7 @@ function unlockMedia(list) {
   (list || []).filter(m => m.kind === 'video' && !m.el).forEach(m => {
     const v = document.createElement('video');
     v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto'; v.src = URL.createObjectURL(m.file);
-    v.muted = false; v._unlocking = true;
+    v.muted = false; v._unlocking = true; v._sl = true; // 압축용 영상은 반복 재생 제외
     const p = v.play(); if (p) p.then(() => { if (v._unlocking) v.pause(); }).catch(() => {}); // 압축이 이미 시작됐으면 멈추지 않음
     m.el = v;
   });
@@ -4603,6 +4641,7 @@ async function compressVideo(meta, onProgress) {
     if (v.currentTime >= end || v.ended) return finish();
     v.requestVideoFrameCallback ? v.requestVideoFrameCallback(draw) : requestAnimationFrame(draw);
   };
+  v._sl = true; v.loop = false; // 반복 재생 금지(혹시 붙어 있어도) — 끝나면 바로 녹화 종료
   v._unlocking = false; // 미리 받아 둔 재생 권한의 '잠깐 재생 후 멈춤'이 늦게 와도 무시
   await seek(v, start).catch(() => {});
   rec.start(250);
@@ -4611,9 +4650,14 @@ async function compressVideo(meta, onProgress) {
   try { await within(v.play(), 3000); played = true; } catch {}
   if (!played) { v.muted = true; withAudio = false; try { await within(v.play(), 3000); played = true; } catch {} } // 소리 재생이 막히면 소리 없이라도
   if (!played) { finish(); await done; cleanup(); return original(); }
+  // 영상이 끝나면 새 장면이 안 와서 draw 가 다시 불리지 않음 → 끝·구간 끝을 따로 감지해 바로 녹화 종료
+  // (예전엔 안전 타이머(길이+6초)까지 마지막 장면이 멈춘 채 녹화돼 4초 영상이 10초가 됐음)
+  v.addEventListener('ended', finish, { once: true });
+  v.addEventListener('pause', () => { if (!stop && v.currentTime >= end - 0.3) finish(); });
+  const tick = setInterval(() => { if (v.ended || v.currentTime >= end) finish(); }, 100);
   draw();
-  const guard = setTimeout(finish, (len + 6) * 1000);
-  await done; clearTimeout(guard); cleanup();
+  const guard = setTimeout(finish, (len + 3) * 1000);
+  await done; clearTimeout(guard); clearInterval(tick); cleanup();
   const out = new Blob(chunks, { type: mime.split(';')[0] });
   if (out.size < 20000) return original();              // 거의 비어 있으면 실패로 보고 원본
   if (originalOk && out.size >= meta.file.size) return meta.file; // 이미 작은 원본이면 원본
