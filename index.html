@@ -2,6 +2,16 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<script>
+// 예전 주소(workers.dev) → 새 주소(candid-feed.com)로 이동: 새 주소에서만 사진 캐시가 동작해 빠르고 Supabase 전송량이 줄어듦
+// 홈 화면에 추가한 앱(standalone)은 다른 주소로 넘기면 앱 밖 화면이 떠서 그대로 두고 안내만. 로그인 돌아오는 중(code·token)도 그대로
+(function () {
+  if (location.hostname !== 'candid.candidcrew.workers.dev') return;
+  var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone;
+  if (standalone || /[?&#](code|access_token|error)=/.test(location.search + location.hash)) { window.__OLD_HOME_APP = !!standalone; return; }
+  location.replace('https://candid-feed.com' + location.pathname + location.search + location.hash);
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>candid.</title>
 <meta name="description" content="candid. — 친구들이 만들어주는 나의 피드">
@@ -1295,6 +1305,12 @@ async function boot() {
   if (wantInstall) { const u = new URL(location.href); u.searchParams.delete('install'); history.replaceState(history.state, '', u.pathname + u.search); }
   route();
   if (wantInstall && !inApp) setTimeout(showInstallGuide, 400);
+  else if (window.__OLD_HOME_APP) setTimeout(() => { // 예전 주소로 설치한 홈 화면 앱: 하루 한 번 새 주소 안내
+    let last = 0; try { last = +localStorage.getItem('candid_moved_tip') || 0; } catch {}
+    if (Date.now() - last < 864e5) return;
+    try { localStorage.setItem('candid_moved_tip', Date.now()); } catch {}
+    toast(t('주소가 candid-feed.com 으로 바뀌었어요. 새 주소에서 홈 화면에 다시 추가하면 더 빨라요'), { label: t('열기'), fn: () => { location.href = 'https://candid-feed.com/?install=1'; } });
+  }, 2500);
   else setTimeout(maybeShowInstall, 2500); // 화면이 뜬 뒤 조금 있다가 설치 권유
   // 알림: 홈 화면 앱(또는 iPhone 이 아닌 기기)에서 로그인 상태면 켜기 권유. iPhone Safari 는 홈 화면 추가가 먼저라 설치 안내가 우선
   if (me && !wantInstall && (installed() || !isIOS)) setTimeout(autoPush, 3500);

@@ -636,5 +636,6 @@
  "영상 준비 중 ({i}/{n})": "Preparing video ({i}/{n})",
  "사진 준비 중{tag}…": "Preparing photo{tag}…",
  "열 수 없는 사진이 있어요. 그 사진을 빼고 다시 골라 주세요": "One of the photos can't be opened. Please pick again without it",
- "{name}님의 친구만 볼 수 있는 피드예요.<br>사진은 로그인 없이도 보내줄 수 있어요.": "Only {name}'s friends can see this feed.<br>You can still send a photo without logging in."
+ "{name}님의 친구만 볼 수 있는 피드예요.<br>사진은 로그인 없이도 보내줄 수 있어요.": "Only {name}'s friends can see this feed.<br>You can still send a photo without logging in.",
+ "주소가 candid-feed.com 으로 바뀌었어요. 새 주소에서 홈 화면에 다시 추가하면 더 빨라요": "We moved to candid-feed.com. Add it to your home screen again for faster loading"
 };
