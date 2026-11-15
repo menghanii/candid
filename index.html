@@ -194,6 +194,7 @@
   .l-stage .d3 { position:relative; display:block; width:100%; margin-left:5%; overflow:visible; }
   .l-stage.hop .d3 .body { animation:lhop2 .55s cubic-bezier(.3,1.6,.5,1); }
   .landing.paper h1.l-h { font-family:var(--sans); font-weight:700; font-size:clamp(27px, 7.6vw, 31px); line-height:1.3; letter-spacing:-.045em; margin:clamp(20px, 4svh, 40px) 0 0; }
+  .l-pd { display:inline-block; width:.24em; height:.24em; margin-left:.07em; border-radius:50%; background:#2b50ff; vertical-align:baseline; } /* 제목 끝 파란 마침표(브랜드 닷), 보통 마침표보다 조금 크게 */
   .l-sub { margin:10px 0 clamp(12px, 2svh, 20px); font-size:15px; line-height:1.55; color:#6a675f; letter-spacing:-.02em; }
   .landing.paper .social { border-radius:12px; height:52px; padding:0 15px; font-size:16px; letter-spacing:-.02em; margin-bottom:8px; }
   .landing.paper .social.google { background:#fff; color:#1f1f1f; border:0; box-shadow:inset 0 0 0 1px var(--line); }
@@ -1591,7 +1592,7 @@ function renderLanding(inviter) {
         <!-- 첫 화면: 무대 위의 큰 3D 닷(점토 질감) + 한 문장. 누르면 깡충 -->
         <div class="l-main">
           <button class="l-stage" aria-label="${t('닷')}" onclick="hopDot(this)">${DOTM()}</button>
-          <h1 class="l-h">${t('내 피드는<br>친구가 채웁니다')}</h1>
+          <h1 class="l-h">${t('내 피드는<br>친구가 채웁니다')}<i class="l-pd" aria-hidden="true"></i></h1>
           <p class="l-sub">${t('친구가 찍어 보내고, 나는 고르기만.')}</p>
         </div>
       </div>`}
