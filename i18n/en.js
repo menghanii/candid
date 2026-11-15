@@ -371,7 +371,7 @@
  "다시 피드에 올렸어요": "Back on your feed",
  "조용히 정리했어요": "Quietly cleared",
  "삭제했어요": "Deleted",
- "내 피드 좀 채워줘 🙏\n네 폰에 있는 내 '{m}' 하나만 보내줘! 로그인 없이 10초면 돼!": "Help fill my feed 🙏\nSend me one '{m}' from your phone! No login, takes 10 seconds!",
+ "내 피드 좀 채워줘! 🙏\n네 폰에 있는 내 '{m}' 하나만 보내줘! 로그인 없이 10초면 돼!": "Help fill my feed! 🙏\nSend me one '{m}' from your phone! No login, takes 10 seconds!",
  "무엇을 부탁할지 고르면 메시지를 만들어 드려요. 받은 친구는 로그인 없이 바로 보낼 수 있어요.": "Pick what to ask for and we'll write the message. Friends can send without logging in.",
  "카톡·인스타로 바로 보내기": "Share via apps",
  "메시지와 링크를 복사했어요. 카톡에 붙여넣어 보세요": "Message and link copied. Paste it into a chat.",
