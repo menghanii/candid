@@ -3177,7 +3177,7 @@ const INVITE = (() => {
   if (v && /^[A-Za-z0-9_-]{3,40}$/.test(v)) { try { localStorage.setItem('candid_invite', v); } catch {} return v; }
   return null;
 })();
-// 공유 메시지 + 링크: 메시지 바로 다음 줄에 링크(빈 줄 없이). 글과 링크를 따로 넘기면 휴대폰이 사이에 빈 줄을 넣어서, 한 덩어리 글로 넘김
+// 메시지+링크 복사용: 메시지 바로 다음 줄에 링크. (카톡으로 보내기는 글에 링크를 넣지 않고 url 로 따로 넘겨 미리보기 카드로만)
 const withLink = (msg, url) => `${msg.trim()}\n${url}`;
 const inviteUrl = () => `${SITE}${location.pathname}?invite=${encodeURIComponent(myProf?.handle || me.id)}`;
 async function findInviter(key) {
@@ -3229,7 +3229,7 @@ function openInvite() {
     catch { prompt(t('이 내용을 복사해서 보내 주세요'), withLink(text(), inviteUrl())); }
   };
   const n = w.querySelector('#inative');
-  if (n) n.onclick = () => navigator.share({ title: 'candid.', text: withLink(text(), inviteUrl()) }).then(closeSheet).catch(() => {});
+  if (n) n.onclick = () => navigator.share({ title: 'candid.', text: text().trim(), url: inviteUrl() }).then(closeSheet).catch(() => {});
 }
 
 // ---------- 가입 직후 홈 화면 추가 ----------
@@ -3881,7 +3881,7 @@ function shareFeed() {
     catch { prompt(t('이 내용을 복사해서 보내 주세요'), withLink($msg.value, url())); }
   };
   const n = w.querySelector('#native');
-  if (n) n.onclick = () => navigator.share({ title: 'candid.', text: withLink($msg.value, url()) }).then(closeSheet).catch(() => {});
+  if (n) n.onclick = () => navigator.share({ title: 'candid.', text: $msg.value.trim(), url: url() }).then(closeSheet).catch(() => {});
 }
 
 // ---------- 그룹 (공유 앨범) ----------
@@ -4242,7 +4242,7 @@ async function openGroupInvite(justMade) {
     catch { prompt(t('이 내용을 복사해서 보내 주세요'), withLink(text(), url)); }
   };
   const n = w.querySelector('#ginative');
-  if (n) n.onclick = () => navigator.share({ title: g.name, text: withLink(text(), url) }).then(closeSheet).catch(() => {});
+  if (n) n.onclick = () => navigator.share({ title: g.name, text: text().trim(), url }).then(closeSheet).catch(() => {});
   const rg = w.querySelector('#giregen');
   if (rg) rg.onclick = async () => {
     if (!confirm(t('새 링크를 만들면 지금까지 보낸 초대 링크로는 더 이상 신청할 수 없어요. 만들까요?'))) return;
