@@ -1013,6 +1013,12 @@
   .top .back { margin-left:-12px; }
   .stats span, .stat-btn span { font-size:12px; }
   .crow2.danger b { color:var(--danger); }
+
+  .ii { display:inline-block; vertical-align:-.14em; flex:none; }
+  .btn .ii, .chip .ii { margin-right:4px; }
+  .who-ic .ii, .capav .ii { width:20px; height:20px; }
+  .grid .gpin { width:24px; height:24px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:rgba(0,0,0,.45); color:#fff; font-size:13px; filter:none; }
+  .lk-ok { color:#34c759; font-size:20px; }
 </style>
 </head>
 <body>
@@ -1039,7 +1045,7 @@ const LANG = window.CANDID_LANG || 'ko', LANGS = window.CANDID_LANGS || { ko: '�
 const DICT = (window.CANDID_I18N || {})[LANG] || {};
 function t(ko, v) { let s = (LANG !== 'ko' && DICT[ko]) || ko; if (v) s = s.replace(/\{(\w+)\}/g, (m, k) => v[k] ?? m); return s; }
 function openLang() {
-  menu(Object.entries(LANGS).map(([k, n]) => `<button class="menu-item" onclick="setLang('${k}')">${k === LANG ? '✓ ' : ''}${n}</button>`).join(''));
+  menu(Object.entries(LANGS).map(([k, n]) => `<button class="menu-item" onclick="setLang('${k}')">${k === LANG ? II.check + ' ' : ''}${n}</button>`).join(''));
 }
 async function setLang(k) {
   try { localStorage.setItem('candid_lang', k); } catch {}
@@ -1050,6 +1056,21 @@ const LOGO = 'candid<i>.</i>';
 const aname = n => esc(n === '익명의 친구' ? t(n) : n); // 보낸 사람 이름(익명만 번역)
 const mname = m => esc(m ? t(m) : ''); // 미션 이름
 const sv = (d, s = 22, w = 1.6) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+// 글자 사이에 넣는 작은 아이콘(글자 크기·색을 따라감). 앱 안에서는 이모지 대신 이것을 씀
+const ii = d => `<svg class="ii" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const II = {
+  lock: ii('<rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
+  globe: ii('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/>'),
+  clock: ii('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+  crown: ii('<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/>'),
+  pin: ii('<path d="M9 3h6l-1 6 4 4H6l4-4z"/><path d="M12 13v8"/>'),
+  mask: ii('<path d="M3 6c3 1.3 6 1.3 9 0 3 1.3 6 1.3 9 0v5c0 5-4 8.5-9 9-5-.5-9-4-9-9z"/><path d="M7.5 11.5c.8-.7 2.2-.7 3 0M13.5 11.5c.8-.7 2.2-.7 3 0"/>'),
+  check: ii('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
+  alert: ii('<path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5M12 17.5v.01"/>'),
+  search: ii('<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>'),
+  menu: ii('<path d="M4 8h16M4 16h16"/>'),
+  x: ii('<path d="M18 6 6 18M6 6l12 12"/>'),
+};
 const I = {
   inbox: s => sv('<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>', s),
   menu: sv('<path d="M4 8h16M4 16h16"/>'),
@@ -1413,7 +1434,7 @@ function renderSetup(first) {
         const { data, error } = await sb.from('profiles').select('id').eq('handle', v).maybeSingle();
         if (my !== seq) return;
         if (error) return hdState(kerr(error), false);
-        data && data.id !== me.id ? hdState(t('이미 있는 아이디예요'), false) : hdState(t('사용할 수 있어요 ✓'), true);
+        data && data.id !== me.id ? hdState(t('이미 있는 아이디예요'), false) : hdState(t('사용할 수 있어요'), true);
       }, 300);
     };
   }
@@ -1704,7 +1725,7 @@ function paintProfile() {
         : me
           // 로그인한 친구: 이 피드에 온 이유 = 채워주기. 가장 큰 버튼으로
           ? `<button class="btn primary" onclick="openCompose(0, false, 'media', true)">${t('{name} 피드 채워주기', { name: esc(prof.name) })}</button>
-             <button class="btn ${myFollows.has(uid) ? '' : 'add'}" style="flex:none;padding-left:18px;padding-right:18px" onclick="toggleFollow('${uid}', this)">${myFollows.has(uid) ? t('친구 ✓') : t('친구 추가')}</button>`
+             <button class="btn ${myFollows.has(uid) ? '' : 'add'}" style="flex:none;padding-left:18px;padding-right:18px" onclick="toggleFollow('${uid}', this)">${folLabel(myFollows.has(uid))}</button>`
           // 로그인 안 한 친구(공유 링크로 들어옴): 하단 바가 없으니 보내기 버튼 유지
           : `<button class="btn primary" onclick="openCompose()">${t('{name} 피드 채워주기', { name: esc(prof.name) })}</button>`}
     </div>
@@ -1811,7 +1832,7 @@ function renderBody() {
   $b.innerHTML = isOwner
     ? `<div class="empty"><div class="empty-dot">${DOT('look', { cls: 'blink' })}</div><h2>Nothing here, <em>yet.</em></h2>
         <p>${t('이 피드는 친구들만 채울 수 있어요.<br>이렇게 부탁해 보세요.')}</p>
-        ${ref && ref.uid !== uid ? `<div class="asked" style="margin:0 0 16px;text-align:left">${t('방금 사진을 보내준 <b>{name}</b>에게도 부탁해 보세요. 받은 만큼 돌려줄 거예요 😉', { name: esc(ref.name) })}</div>` : ''}
+        ${ref && ref.uid !== uid ? `<div class="asked" style="margin:0 0 16px;text-align:left">${t('방금 사진을 보내준 <b>{name}</b>에게도 부탁해 보세요. 받은 만큼 돌려줄 거예요', { name: esc(ref.name) })}</div>` : ''}
         <div class="ideas">${MISSIONS.slice(0, 3).map((m, i) => `<div class="idea"><span class="k">${i + 1}</span><span class="it">${t('내 {m} 하나만 보내줘', { m: t(m) })}</span></div>`).join('')}</div>
         <button class="btn primary block" onclick="shareFeed()">${t('친구에게 첫 사진 부탁하기')}</button></div>`
     : `<div class="empty"><div class="empty-dot">${DOT('wow', { cls: 'float' })}</div><h2>Be the <em>first.</em></h2>
@@ -1827,15 +1848,16 @@ async function loadFollows() {
   const { data, error } = await sb.from('follows').select('followee_id').eq('follower_id', me.id);
   if (!error) data.forEach(r => myFollows.add(r.followee_id)); // social.sql 실행 전이면 조용히 빈 목록
 }
+const folLabel = on => on ? `${II.check}${t('친구')}` : t('친구 추가');
 async function toggleFollow(uid, btn) {
   if (!me) return toast(t('로그인하면 친구를 추가할 수 있어요'));
   const on = myFollows.has(uid);
   on ? myFollows.delete(uid) : myFollows.add(uid);
-  if (btn) { btn.textContent = t(on ? '친구 추가' : '친구 ✓'); btn.classList.toggle('add', on); }
+  if (btn) { btn.innerHTML = folLabel(!on); btn.classList.toggle('add', on); }
   const { error } = on
     ? await sb.from('follows').delete().eq('follower_id', me.id).eq('followee_id', uid)
     : await sb.from('follows').insert({ follower_id: me.id, followee_id: uid });
-  if (error) { on ? myFollows.add(uid) : myFollows.delete(uid); if (btn) { btn.textContent = t(on ? '친구 ✓' : '친구 추가'); btn.classList.toggle('add', !on); } return toast(kerr(error)); }
+  if (error) { on ? myFollows.add(uid) : myFollows.delete(uid); if (btn) { btn.innerHTML = folLabel(on); btn.classList.toggle('add', !on); } return toast(kerr(error)); }
   toast(t(on ? '친구에서 뺐어요' : '친구로 추가했어요. 새 사진이 홈에 떠요'));
 }
 
@@ -1903,7 +1925,7 @@ async function pickGroupToPost() {
 async function renderFriendsTab($b) {
   const ids = [...myFollows];
   if (!ids.length) {
-    $b.innerHTML = `<div class="empty"><div class="empty-dot">${DOT('look', { cls: 'blink' })}</div><h2>No friends, <em>yet.</em></h2><p>${t('오른쪽 위 🔍에서 이름으로 친구를 찾아 추가해 보세요.<br>추가한 친구의 새 사진이 릴스에 떠요.')}</p>
+    $b.innerHTML = `<div class="empty"><div class="empty-dot">${DOT('look', { cls: 'blink' })}</div><h2>No friends, <em>yet.</em></h2><p>${t('오른쪽 위 {i}에서 이름으로 친구를 찾아 추가해 보세요.<br>추가한 친구의 새 사진이 릴스에 떠요.', { i: II.search })}</p>
       <button class="btn primary block" onclick="openSearch()">${t('친구 찾기')}</button><div style="height:8px"></div><button class="btn block" onclick="openInvite()">${t('앱에 친구 초대하기')}</button></div>`;
     return;
   }
@@ -1915,7 +1937,7 @@ async function renderFriendsTab($b) {
   const head = `<div class="fhead"><b>${t('내 친구 {n}', { n: data.length })}</b><div style="flex:1"></div><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px" onclick="openSearch()">${t('+ 친구 찾기')}</button><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px;margin-left:6px" onclick="openInvite()">${t('초대')}</button></div>`;
   $b.innerHTML = head + `<div class="flist">${data.map(p => `
     <div class="frow"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b><small>${p.handle ? `@${esc(p.handle)}` : ''}${p.handle && p.bio ? ' · ' : ''}${esc(p.bio || '')}</small></span></a>
-      <button class="btn" onclick="toggleFollow('${p.id}', this)">${t('친구 ✓')}</button></div>`).join('')}</div>`;
+      <button class="btn" onclick="toggleFollow('${p.id}', this)">${folLabel(true)}</button></div>`).join('')}</div>`;
 }
 
 // ---------- 친구 검색 (검색어가 없으면 내 친구 목록) ----------
@@ -1925,7 +1947,7 @@ async function openSearch() {
     <div id="sr"><p class="hint">${t('불러오는 중…')}</p></div>`, null, { top: true });
   const $q = w.querySelector('#sq'), $r = w.querySelector('#sr');
   const row = p => `<div class="frow"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b><small>${p.handle ? `@${esc(p.handle)}` : ''}${p.handle && p.bio ? ' · ' : ''}${esc(p.bio || '')}</small></span></a>
-    ${p.id === me?.id ? `<small style="color:var(--sub)">${t('나')}</small>` : `<button class="btn ${myFollows.has(p.id) ? '' : 'add'}" onclick="toggleFollow('${p.id}', this)">${t(myFollows.has(p.id) ? '친구 ✓' : '친구 추가')}</button>`}</div>`;
+    ${p.id === me?.id ? `<small style="color:var(--sub)">${t('나')}</small>` : `<button class="btn ${myFollows.has(p.id) ? '' : 'add'}" onclick="toggleFollow('${p.id}', this)">${folLabel(myFollows.has(p.id))}</button>`}</div>`;
   // 공개 그룹 (비공개는 검색에 안 나옴). 18 SQL 전이면 조용히 빈 목록
   const grow = g => `<div class="frow"><a href="${gUrl(g)}">${gAv(g, 'xs')}<span><b>${esc(g.name)}</b><small>@${esc(g.handle)} · ${t('멤버 {n}명', { n: g.member_count })}${g.bio ? ' · ' + esc(g.bio) : ''}</small></span></a>
     <a class="btn" style="text-decoration:none;text-align:center;flex:none" href="${gUrl(g)}">${t(gRole(g.id) ? '열기' : '구경')}</a></div>`;
@@ -2244,7 +2266,7 @@ function pollHTML(p) {
   const opts = (p.poll_options || []).map((o, i) => {
     if (canVote) return `<button class="popt" onclick="vote('${p.id}', ${i})">${esc(o)}</button>`;
     const pct = s.total ? Math.round(s.counts[i] / s.total * 100) : 0;
-    return `<div class="popt res ${s.mine === i ? 'mine' : ''}"><i style="width:${pct}%"></i><b>${esc(o)}${s.mine === i ? ' ✓' : ''}</b><em>${pct}%</em></div>`;
+    return `<div class="popt res ${s.mine === i ? 'mine' : ''}"><i style="width:${pct}%"></i><b>${esc(o)}${s.mine === i ? ' ' + II.check : ''}</b><em>${pct}%</em></div>`;
   }).join('');
   const foot = p.status !== 'approved' ? t('승인하면 친구들이 투표할 수 있어요')
     : owner ? t('{n}명 참여 · 내 피드의 투표엔 참여할 수 없어요', { n: s.total })
@@ -2346,7 +2368,7 @@ function openPost(id) {
     <article class="post">
       <div class="post-h">
         <div class="av sm">${esc(p.author_name.slice(0, 1))}</div>
-        <div class="who"><b>${gp ? t('{name}<span style="font-weight:400;color:var(--sub)">님이 올림</span>', { name: esc(p.author_name) }) : t('{name}<span style="font-weight:400;color:var(--sub)">님이 보냄</span>', { name: aname(p.author_name) })}</b>${gp && p.pinned_at ? `<span class="mchip">📌 ${t('고정됨')}</span>` : ''}${p.mission ? `<span class="mchip">${mname(p.mission)}</span>` : ''}</div>
+        <div class="who"><b>${gp ? t('{name}<span style="font-weight:400;color:var(--sub)">님이 올림</span>', { name: esc(p.author_name) }) : t('{name}<span style="font-weight:400;color:var(--sub)">님이 보냄</span>', { name: aname(p.author_name) })}</b>${gp && p.pinned_at ? `<span class="mchip">${II.pin} ${t('고정됨')}</span>` : ''}${p.mission ? `<span class="mchip">${mname(p.mission)}</span>` : ''}</div>
         <button class="icon-btn" data-close aria-label="${t('닫기')}">${I.close}</button>
       </div>
       ${gp && p.flagged ? `<div class="gflagnote">${t('신고가 3건 이상 들어와 다른 사람에게는 가려져 있어요.')}${gg?.owner_id === me?.id ? ` <button class="linkish" onclick="unflagPost('${p.id}')">${t('다시 보이게')}</button>` : ''}</div>` : ''}
@@ -2497,7 +2519,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
       </section>
       <div class="cmp-who"${GT ? ' style="display:none"' : ''}>
         <div class="cmp-whohead"><span>${t('보내는 사람')}</span>
-          <div class="cmp-seg" role="radiogroup"><button data-who="name" role="radio">${t('이름')}</button><button data-who="anon" role="radio">${t('🎭 익명')}</button></div></div>
+          <div class="cmp-seg" role="radiogroup"><button data-who="name" role="radio">${t('이름')}</button><button data-who="anon" role="radio">${II.mask} ${t('익명')}</button></div></div>
         <div class="cmp-whoval" id="whoval"></div>
       </div>
     </div>
@@ -2533,7 +2555,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
   const addOpt = () => {
     const box = $('#opts'), n = box.children.length; if (n >= 5) return;
     const d = document.createElement('div'); d.className = 'optrow';
-    d.innerHTML = `<span>${n + 1}</span><input class="field" maxlength="30" placeholder="${t('선택지 {n}', { n: n + 1 })}">${n >= 2 ? `<button aria-label="${t('선택지 삭제')}">✕</button>` : ''}`;
+    d.innerHTML = `<span>${n + 1}</span><input class="field" maxlength="30" placeholder="${t('선택지 {n}', { n: n + 1 })}">${n >= 2 ? `<button aria-label="${t('선택지 삭제')}">${II.x}</button>` : ''}`;
     d.querySelector('input').oninput = refresh;
     const x = d.querySelector('button'); if (x) x.onclick = () => { d.remove(); [...box.children].forEach((r, i) => r.querySelector('span').textContent = i + 1); $('#addopt').hidden = false; refresh(); };
     box.appendChild(d); $('#addopt').hidden = box.children.length >= 5;
@@ -2614,7 +2636,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
     who = w;
     el.querySelectorAll('.cmp-seg button').forEach(b => { b.classList.toggle('on', b.dataset.who === w); b.setAttribute('aria-checked', b.dataset.who === w); });
     $('#whoval').innerHTML = w === 'anon'
-      ? `<div class="who-card"><span class="who-ic">🎭</span><span><b>${t('익명의 친구')}</b><small>${t('누가 보냈는지 {name}님도 알 수 없어요', { name })}</small></span></div>`
+      ? `<div class="who-card"><span class="who-ic">${II.mask}</span><span><b>${t('익명의 친구')}</b><small>${t('누가 보냈는지 {name}님도 알 수 없어요', { name })}</small></span></div>`
       : me
         ? `<div class="who-card">${avatar(myProf, 'xs')}<span><b>${esc(myProf?.name || '')}</b><small>${myProf?.handle ? '@' + esc(myProf.handle) + ' · ' : ''}${t('내 프로필 이름으로 보내요')}</small></span></div>`
         : `<input class="field" id="author" maxlength="12" placeholder="${t('내 이름 (예: 지수)')}" value="${esc(typedNow ?? nick)}" autocomplete="off">`;
@@ -2628,7 +2650,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
   el.querySelectorAll('#sugs button').forEach(b => b.onclick = () => { $t.value = b.textContent; capFit(); el.querySelectorAll('#sugs button').forEach(x => x.classList.toggle('on', x === b)); });
   const capAv = () => {
     const typed = $('#author')?.value.trim();
-    $('#capav').innerHTML = who === 'anon' ? '🎭' : me ? avatar(myProf, 'xs') : esc((typed || t('나')).slice(0, 1));
+    $('#capav').innerHTML = who === 'anon' ? II.mask : me ? avatar(myProf, 'xs') : esc((typed || t('나')).slice(0, 1));
   };
   el.addEventListener('input', e => { if (e.target.id === 'author') capAv(); });
   el.querySelectorAll('.cmp-seg button').forEach(b => b.addEventListener('click', capAv));
@@ -2684,7 +2706,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
     if (ins.error) { $send.disabled = false; status(t(GT ? '다시 올리기' : '다시 보내기')); return toast(ins.error.user ? ins.error.message : GT ? gErr(ins.error) : kerr(ins.error)); }
     if (GT) { // 그룹: 바로 올라감 → 완료 화면 대신 그룹 화면을 새로 그림
       removeEventListener('popstate', onPop); el.remove(); if (history.state?.compose) history.back();
-      toast(t("'{name}'에 올렸어요 📸", { name: GT.name })); CACHE.home = null;
+      toast(t("'{name}'에 올렸어요", { name: GT.name })); CACHE.home = null;
       setTimeout(() => { if (G.g?.id === GT.id && new URLSearchParams(location.search).get('g')) renderGroup(G.key, true); else go(gUrl(GT)); }, 250);
       return;
     }
@@ -2694,7 +2716,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
     removeEventListener('popstate', onPop);
     el.innerHTML = `<div class="cmp-done">
       ${DOT('happy', { size: 88, cls: 'pop hop', label: t('보냈어요') })}<h2>Sent<i class="pd">.</i></h2>
-      <p>${mode === 'question' ? t('{name}님이 답하면 질문과 함께 피드에 올라가요.', { name }) : t('{name}님이 승인하면 피드에 올라가요.', { name })}<br>${who === 'anon' ? t('🎭 익명으로 보냈어요') : t('‘{author}’ 이름으로 보냈어요', { author: esc(author) })}</p>
+      <p>${mode === 'question' ? t('{name}님이 답하면 질문과 함께 피드에 올라가요.', { name }) : t('{name}님이 승인하면 피드에 올라가요.', { name })}<br>${who === 'anon' ? II.mask + ' ' + t('익명으로 보냈어요') : t('‘{author}’ 이름으로 보냈어요', { author: esc(author) })}</p>
       <button class="btn primary block" id="more">${t('{what} 하나 더 보내기', { what })}</button>
       ${me && !S.isOwner && !myFollows.has(S.uid) ? `<button class="btn add block" id="fol">${t('{name} 친구 추가 · 새 소식을 홈에서 보기', { name })}</button>` : ''}
       ${S.isOwner ? '' : me ? '' : `<button class="btn block" id="mine">${t('나도 받아볼래 — 내 피드 만들기')}</button>`}
@@ -2739,7 +2761,7 @@ async function openPush() {
         <div class="idea"><span class="k">1</span><span class="it">${t('Safari 아래쪽 공유 버튼(□↑)을 눌러요')}</span></div>
         <div class="idea"><span class="k">2</span><span class="it">${t("'홈 화면에 추가'를 눌러요")}</span></div>
         <div class="idea"><span class="k">3</span><span class="it">${t('홈 화면의 candid. 아이콘으로 열어요')}</span></div>
-        <div class="idea"><span class="k">4</span><span class="it">${t('한 번 더 로그인하고 🔔을 눌러요')}</span></div>
+        <div class="idea"><span class="k">4</span><span class="it">${t('한 번 더 로그인하고 {i} 설정 → 푸시 알림 설정을 눌러요', { i: II.menu })}</span></div>
       </div>`,
     'in-app': `<p class="hint">${t('카톡·인스타 안의 브라우저에서는 알림을 켤 수 없어요. Safari나 Chrome에서 열어 주세요.')}</p><button class="btn primary block" onclick="closeSheet();openExternal(installUrl())">${t('외부 브라우저로 열기')}</button>`,
     unsupported: `<p class="hint">${t('이 브라우저는 알림을 지원하지 않아요. 크롬이나 사파리 최신 버전에서 열어 주세요.')}</p>`,
@@ -2751,7 +2773,7 @@ async function openPush() {
   const on = w.querySelector('#pushOn'), off = w.querySelector('#pushOff');
   if (on) on.onclick = async () => {
     on.disabled = true; on.textContent = t('설정 중…');
-    try { await enablePush(); closeSheet(); toast(t('알림을 켰어요 🔔')); }
+    try { await enablePush(); closeSheet(); toast(t('알림을 켰어요')); }
     catch (e) { on.disabled = false; on.textContent = t('알림 켜기'); toast(e.message || t('알림 설정 실패')); }
     updateBell();
   };
@@ -2792,7 +2814,7 @@ async function autoPush() {
   w.querySelector('#paskNo').onclick = () => { snooze(); closeSheet(); };
   w.querySelector('#paskOn').onclick = async e => {
     e.target.disabled = true; e.target.textContent = t('설정 중…');
-    try { await enablePush(); closeSheet(); toast(t('알림을 켰어요 🔔')); }
+    try { await enablePush(); closeSheet(); toast(t('알림을 켰어요')); }
     catch (err) { snooze(); closeSheet(); toast(Notification.permission === 'denied' ? t('알림이 차단됐어요. 나중에 설정에서 켤 수 있어요') : (err.message || t('알림 설정 실패'))); }
     updateBell();
   };
@@ -2907,7 +2929,7 @@ function notiText(i) {
     case 'post': return t('{n}님이 {what}을(를) 보냈어요. 승인을 기다리고 있어요', { n, what: what(i.post) });
     case 'like': return t('{n}님이 내 게시물을 좋아해요', { n });
     case 'comment': return t('{n}님이 댓글을 남겼어요: “{c}”', { n, c: esc(i.body.length > 40 ? i.body.slice(0, 40) + '…' : i.body) });
-    case 'sticker': return t('{n}님이 내 {what}을(를) 꾸몄어요 ✨', { n, what: what(i.post) }) + (i.n > 1 ? t(' (스티커 {k}개)', { k: i.n }) : '');
+    case 'sticker': return t('{n}님이 내 {what}을(를) 꾸몄어요', { n, what: what(i.post) }) + (i.n > 1 ? t(' (스티커 {k}개)', { k: i.n }) : '');
     case 'follow': return t('{n}님이 나를 친구로 추가했어요', { n });
     case 'gjoin': return t("{n}님이 '{g}' 그룹 참여를 신청했어요", { n, g: esc(i.group?.name || '') });
   }
@@ -3085,7 +3107,7 @@ async function openLinks() {
   const have = new Set((data?.identities || []).map(i => i.provider));
   const rows = (cfg.PROVIDERS || ['kakao', 'google']).map(p => `
     <div class="frow"><span class="lk-ic ${p}">${p === 'kakao' ? I.kakao : I.google}</span><span style="flex:1"><b>${PROVIDER_NAME[p]}</b><small>${t(have.has(p) ? '연결됨' : '연결 안 됨')}</small></span>
-      ${have.has(p) ? '<span class="lk-ok">✓</span>' : `<button class="btn add" data-p="${p}">${t('연결하기')}</button>`}</div>`).join('');
+      ${have.has(p) ? `<span class="lk-ok">${II.check}</span>` : `<button class="btn add" data-p="${p}">${t('연결하기')}</button>`}</div>`).join('');
   $l.innerHTML = rows + `<p class="hint" style="font-size:12px;margin-top:12px">${t("'이미 다른 계정에서 사용 중'이라고 나오면, 그 로그인 방법으로 만들어진 다른 계정이 있다는 뜻이에요. 그 계정을 먼저 삭제해야 연결할 수 있어요.")}</p>`;
   $l.querySelectorAll('[data-p]').forEach(b => b.onclick = async () => {
     b.disabled = true; b.textContent = t('이동 중…');
@@ -3523,7 +3545,7 @@ async function openDecorate(postId, idx0) {
         if (error) throw error;
       }
       await loadStickers([postId]); refreshStickerLayers(postId);
-      el.remove(); toast(t('꾸몄어요 ✨'));
+      el.remove(); toast(t('꾸몄어요'));
     } catch (err) {
       btn.disabled = false; btn.textContent = t('저장');
       const msg = String(err?.message || err), code = err?.code ? `[${err.code}] ` : '';
@@ -3677,7 +3699,7 @@ const gAv = (g, cls = '') => {
   return `<div class="gav gav-def ${cls}" aria-hidden="true">${esc([...(g?.name || '?').trim()][0] || '?')}</div>`;
 };
 const setThumbs = posts => { const m = new Map(); posts.forEach(p => { if (p.flagged || !p.group_id) return; const a = m.get(p.group_id) || []; if (a.length < 4) a.push(p.thumb_path || p.image_path); m.set(p.group_id, a); }); m.forEach((v, k) => GTHUMBS.set(k, v)); };
-const gBadge = g => `${g.visibility === 'private' ? `🔒 ${t('비공개')}` : `🌐 ${t('공개')}`}${g.closed ? ` · ${t('업로드 마감')}` : ''}`;
+const gBadge = g => `${g.visibility === 'private' ? `${II.lock} ${t('비공개')}` : `${II.globe} ${t('공개')}`}${g.closed ? ` · ${t('업로드 마감')}` : ''}`;
 const groupOf = id => (G.g?.id === id ? G.g : null) || MYG.groups.get(id) || HOME.groups?.get(id) || null;
 const gRole = id => { const m = MYG.mem.get(id); return m ? (m.status === 'active' ? m.role : 'pending') : null; };
 const canPostTo = g => !!g && !g.closed && ['owner', 'member'].includes(gRole(g.id));
@@ -3779,13 +3801,13 @@ function paintGroup() {
   else if (isOwner || isMember) acts = `${g.closed ? `<button class="btn" disabled>${t('업로드 마감')}</button>` : `<button class="btn primary" onclick="composeToGroup(G.g)">${t('사진 올리기')}</button>`}
       <button class="btn" onclick="openGroupInvite()">${t('초대하기')}</button>
       ${isOwner ? `<button class="btn gmanage" onclick="openGroupManage()">${t('관리')}${G.pendingN ? `<span class="n">${G.pendingN}</span>` : ''}</button>` : ''}`;
-  else if (isPending) acts = `<button class="btn" disabled>${t('⏳ 승인 대기 중')}</button><button class="btn" onclick="leaveGroup(true)">${t('신청 취소')}</button>`;
+  else if (isPending) acts = `<button class="btn" disabled>${II.clock}${t('승인 대기 중')}</button><button class="btn" onclick="leaveGroup(true)">${t('신청 취소')}</button>`;
   else if (g.visibility === 'public' && g.join_mode === 'open') acts = `<button class="btn primary" onclick="joinGroup()">${t('참여하기')}</button>`;
-  else if (g.visibility === 'public') acts = `<button class="btn ${fol ? '' : 'add'}" onclick="toggleGroupFollow()">${t(fol ? '팔로잉 ✓' : '팔로우')}</button><button class="btn primary" onclick="joinGroup()">${t('멤버 신청')}</button>`;
+  else if (g.visibility === 'public') acts = `<button class="btn ${fol ? '' : 'add'}" onclick="toggleGroupFollow()">${fol ? II.check + t('팔로잉') : t('팔로우')}</button><button class="btn primary" onclick="joinGroup()">${t('멤버 신청')}</button>`;
   else acts = `<button class="btn" disabled>${t('초대받은 멤버만 참여할 수 있어요')}</button>`;
   const tile = p => `<button onclick="openPost('${p.id}')" class="${p.flagged ? 'gflagged' : ''}" aria-label="${t('{name}님이 올린 사진', { name: esc(p.author_name) })}">
       <img src="${thumbUrl(p)}" alt="" loading="lazy">${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}
-      ${p.pinned_at ? `<span class="gpin" aria-label="${t('고정됨')}">📌</span>` : ''}${p.flagged ? `<span class="gflag">${t('신고로 가려짐')}</span>` : ''}
+      ${p.pinned_at ? `<span class="gpin" aria-label="${t('고정됨')}">${II.pin}</span>` : ''}${p.flagged ? `<span class="gflag">${t('신고로 가려짐')}</span>` : ''}
       <span class="from">${p.text ? `<q>“${esc(p.text)}”</q>` : ''}by<i class="pd">.</i> ${esc(p.author_name)}</span></button>`;
   const body = !canSee
     ? `<div class="empty"><div class="empty-dot">${DOT('look', { cls: 'blink' })}</div><h2>Members <em>only.</em></h2><p>${t(isPending ? '방장이 승인하면 사진을 볼 수 있어요.' : '비공개 그룹이에요. 멤버만 사진을 볼 수 있어요.')}</p></div>`
@@ -3807,8 +3829,8 @@ function paintGroup() {
       </div>
     </section>
     <div class="actions gacts">${acts}<button class="btn bmore" aria-label="${t('더보기')}" onclick="groupMenu()">${I.more}</button></div>
-    ${g.closed ? `<p class="gnote">${t('🔒 업로드가 마감된 앨범이에요. 사진 보기·꾸미기는 그대로 할 수 있어요.')}</p>`
-      : canSee && g.visibility === 'public' && n >= GROUP_MAX - 9 ? `<p class="gnote">${t('공개 그룹은 사진 {max}장까지 보관돼요. 넘으면 오래된 사진부터 사라져요(📌 고정한 사진은 남아요).', { max: GROUP_MAX })}</p>` : ''}
+    ${g.closed ? `<p class="gnote">${II.lock} ${t('업로드가 마감된 앨범이에요. 사진 보기·꾸미기는 그대로 할 수 있어요.')}</p>`
+      : canSee && g.visibility === 'public' && n >= GROUP_MAX - 9 ? `<p class="gnote">${t('공개 그룹은 사진 {max}장까지 보관돼요. 넘으면 오래된 사진부터 사라져요(고정한 사진은 남아요).', { max: GROUP_MAX })}</p>` : ''}
     <main id="body">${body}</main>
     ${navBar('')}`;
   $app.classList.toggle('has-nav', !!me);
@@ -3848,7 +3870,7 @@ async function toggleGroupNotify() {
   const { error } = await sb.from('group_follows').update({ notify: on }).eq('group_id', g.id).eq('user_id', me.id);
   if (error) return toast(gErr(error));
   G.fol.notify = on; MYG.fol.set(g.id, { group_id: g.id, notify: on });
-  toast(t(on ? '새 사진이 올라오면 알려드릴게요 🔔' : '이 그룹 알림을 껐어요'));
+  toast(t(on ? '새 사진이 올라오면 알려드릴게요' : '이 그룹 알림을 껐어요'));
   if (on && !DEMO && await pushState().catch(() => 'off') !== 'on') setTimeout(openPush, 400); // 기기 알림이 꺼져 있으면 켜기 안내
 }
 function shareGroupLink() {
@@ -3904,8 +3926,8 @@ async function openCreateGroup() {
     <div class="gid"><span>@</span><input class="field" id="ghandle" maxlength="20" value="${randHandle()}" autocapitalize="off" autocomplete="off" spellcheck="false"></div>
     <div class="label">${t('공개 범위')}</div>
     <div class="gvis" role="radiogroup">
-      <button data-v="private" role="radio"><b>🔒 ${t('비공개')}</b><small>${t('초대 링크로 신청 → 방장 승인 후 참여. 멤버만 보고 올려요. 검색에 안 나와요. 사진 수 제한 없음')}</small></button>
-      <button data-v="public" role="radio"><b>🌐 ${t('공개')}</b><small>${t('누구나 보고 검색할 수 있어요. 사진은 최근 {max}장까지 보관(오래된 것부터 사라짐)', { max: GROUP_MAX })}</small></button>
+      <button data-v="private" role="radio"><b>${II.lock} ${t('비공개')}</b><small>${t('초대 링크로 신청 → 방장 승인 후 참여. 멤버만 보고 올려요. 검색에 안 나와요. 사진 수 제한 없음')}</small></button>
+      <button data-v="public" role="radio"><b>${II.globe} ${t('공개')}</b><small>${t('누구나 보고 검색할 수 있어요. 사진은 최근 {max}장까지 보관(오래된 것부터 사라짐)', { max: GROUP_MAX })}</small></button>
     </div>
     <div id="gmodew" hidden>
       <div class="label">${t('참여 방식')}</div>
@@ -3914,7 +3936,7 @@ async function openCreateGroup() {
         <button data-m="approval" role="radio"><b>${t('승인 후 참여')}</b><small>${t('팔로우는 누구나, 올리기는 방장이 승인한 멤버만')}</small></button>
       </div>
     </div>
-    <p class="gwarn">${t('⚠️ 공개 범위는 만든 뒤에 바꿀 수 없어요.')}</p>
+    <p class="gwarn">${II.alert} ${t('공개 범위는 만든 뒤에 바꿀 수 없어요.')}</p>
     <div class="label">${t('소개 (선택)')}</div>
     <input class="field" id="gbio" maxlength="120" placeholder="${t('예: 2026.11.21 결혼식 사진 다 모아요 💍')}" autocomplete="off">
     <div class="sheet-foot"><button class="btn primary block" id="gmake" disabled>${t('그룹 만들기')}</button></div>`);
@@ -3938,7 +3960,7 @@ async function openCreateGroup() {
     const { data, error } = await sb.from('groups').insert(row).select(GCOLS).maybeSingle();
     if (error || !data) { btn.disabled = false; btn.textContent = t('그룹 만들기'); return toast(gErr(error)); }
     closeSheet(); MYG.at = 0; MYG.groups.set(data.id, data); MYG.mem.set(data.id, { group_id: data.id, role: 'owner', status: 'active' });
-    toast(t("'{name}' 그룹을 만들었어요 🎉", { name: data.name }));
+    toast(t("'{name}' 그룹을 만들었어요", { name: data.name }));
     go(`${gUrl(data)}&new=1`);
   };
 }
@@ -4043,7 +4065,7 @@ async function renderGroupInvite(code) {
     <div class="hero app1 invite1">${gAv(g, 'lg')}
       <h1>${t('{owner}님이<br>{name}에<br>초대했어요', { owner: esc(g.owner_name || t('친구')), name: `<em>${esc(g.name)}</em>` })}</h1>
       <p class="tagline">${g.bio ? esc(g.bio) + '<br>' : ''}${gBadge(g)} · ${t('멤버 {n}명', { n: g.member_count })}</p></div>
-    ${role === 'pending' ? `<button class="btn block" disabled>${t('⏳ 참여 신청함 · 방장 승인을 기다리는 중')}</button>`
+    ${role === 'pending' ? `<button class="btn block" disabled>${II.clock}${t('참여 신청함 · 방장 승인을 기다리는 중')}</button>`
       : me ? `<button class="btn primary block" id="gijoin">${t(open ? '참여하기' : '참여 신청하기')}</button>`
       : `${inAppBanner()}<button class="social kakao" onclick="login('kakao')">${I.kakao} ${t('카카오로 계속하기')}</button>${inKakao ? '' : `<button class="social google" onclick="login('google')">${I.google} ${t('Google로 계속하기')}</button>`}
          <p class="fine">${t('로그인하면 이 초대 화면으로 돌아와요.')}</p>`}
@@ -4056,7 +4078,7 @@ async function renderGroupInvite(code) {
     if (error) { b.disabled = false; return toast(gErr(error)); }
     MYG.at = 0;
     if (data === 'active') { toast(t('참여했어요! 이제 사진을 올릴 수 있어요')); return go(gUrl(g), true); }
-    b.textContent = t('⏳ 참여 신청함 · 방장 승인을 기다리는 중');
+    b.innerHTML = II.clock + t('참여 신청함 · 방장 승인을 기다리는 중');
     toast(t('참여를 신청했어요. 방장이 승인하면 들어갈 수 있어요'));
   };
 }
@@ -4076,7 +4098,7 @@ async function openGroupMembers() {
   const w = sheet(`<h3>Members<i class="pd">.</i></h3><div id="gml"><p class="hint">${t('불러오는 중…')}</p></div>`);
   let list; try { list = await fetchGroupMembers(g); } catch (e) { return w.querySelector('#gml').innerHTML = `<p class="hint">${esc(gErr(e))}</p>`; }
   const act = list.filter(m => m.status === 'active');
-  w.querySelector('#gml').innerHTML = act.length ? `<div class="flist">${act.map(m => `<div class="frow"><a href="${feedUrl(m.user_id)}">${avatar(m.prof, 'xs')}<span><b>${esc(m.prof.name)}</b><small>${m.role === 'owner' ? t('👑 방장') : m.prof.handle ? '@' + esc(m.prof.handle) : ''}</small></span></a></div>`).join('')}</div>`
+  w.querySelector('#gml').innerHTML = act.length ? `<div class="flist">${act.map(m => `<div class="frow"><a href="${feedUrl(m.user_id)}">${avatar(m.prof, 'xs')}<span><b>${esc(m.prof.name)}</b><small>${m.role === 'owner' ? II.crown + ' ' + t('방장') : m.prof.handle ? '@' + esc(m.prof.handle) : ''}</small></span></a></div>`).join('')}</div>`
     : `<p class="hint">${t('멤버만 멤버 목록을 볼 수 있어요.')}</p>`;
 }
 async function openGroupManage() {
@@ -4087,7 +4109,7 @@ async function openGroupManage() {
     if (!w.isConnected) return;
     const pend = list.filter(m => m.status === 'pending'), act = list.filter(m => m.status === 'active');
     G.pendingN = pend.length;
-    const who = m => `<a href="${feedUrl(m.user_id)}">${avatar(m.prof, 'xs')}<span><b>${esc(m.prof.name)}</b><small>${m.role === 'owner' ? t('👑 방장') : m.status === 'pending' ? t('{when} 신청', { when: ago(m.created_at) }) : m.prof.handle ? '@' + esc(m.prof.handle) : ''}</small></span></a>`;
+    const who = m => `<a href="${feedUrl(m.user_id)}">${avatar(m.prof, 'xs')}<span><b>${esc(m.prof.name)}</b><small>${m.role === 'owner' ? II.crown + ' ' + t('방장') : m.status === 'pending' ? t('{when} 신청', { when: ago(m.created_at) }) : m.prof.handle ? '@' + esc(m.prof.handle) : ''}</small></span></a>`;
     w.querySelector('#gml').innerHTML = `
       <div class="label">${t('참여 신청 {n}', { n: pend.length })}</div>
       ${pend.length ? `<div class="flist">${pend.map(m => `<div class="frow">${who(m)}<button class="btn primary" data-ok="${m.user_id}">${t('승인')}</button><button class="btn" data-no="${m.user_id}">${t('거절')}</button></div>`).join('')}</div>`
@@ -4143,7 +4165,7 @@ function groupPostItems(id) {
   const p = findAny(id); if (!p) return '';
   const g = groupOf(p.group_id), owner = !!me && g?.owner_id === me.id, mine = !!me && p.author_id === me.id;
   return (`<button class="menu-item" onclick="savePhoto('${id}')">${t('사진 저장')}</button>
-    ${owner ? `<button class="menu-item" onclick="pinPost('${id}', ${!p.pinned_at})">${t(p.pinned_at ? '📌 고정 해제' : '📌 맨 위에 고정')}</button>` : ''}
+    ${owner ? `<button class="menu-item" onclick="pinPost('${id}', ${!p.pinned_at})">${t(p.pinned_at ? '고정 해제' : '맨 위에 고정')}</button>` : ''}
     ${owner && p.flagged ? `<button class="menu-item" onclick="unflagPost('${id}')">${t('다시 보이게 하기 (신고 기록 지우기)')}</button>` : ''}
     ${me && !mine ? `<button class="menu-item danger" onclick="closeSheet();setTimeout(() => reportPost('${id}'), 250)">${t('신고하기')}</button>` : ''}
     ${owner || mine ? `<button class="menu-item danger" onclick="deleteGroupPost('${id}')">${t('삭제')}</button>` : ''}`);
@@ -4243,7 +4265,7 @@ async function renderGroupsTab($b) {
       <button class="btn block" onclick="openSearch()">${t('공개 그룹 찾기')}</button></div>`;
     return;
   }
-  const sub = g => { const r = gRole(g.id); return r === 'owner' ? t('👑 방장') : r === 'member' ? t('참여 중') : r === 'pending' ? t('⏳ 승인 대기') : t('팔로잉'); };
+  const sub = g => { const r = gRole(g.id); return r === 'owner' ? II.crown + ' ' + t('방장') : r === 'member' ? t('참여 중') : r === 'pending' ? II.clock + ' ' + t('승인 대기') : t('팔로잉'); };
   $b.innerHTML = `<div class="fhead"><b>${t('내 그룹 {n}', { n: list.length })}</b><div style="flex:1"></div><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px" onclick="openCreateGroup()">${t('+ 만들기')}</button><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px;margin-left:6px" onclick="openSearch()">${t('찾기')}</button></div>
     <div class="flist">${list.map(g => `<div class="frow"><a href="${gUrl(g)}">${gAv(g, 'xs')}<span><b>${esc(g.name)}</b><small>${sub(g)} · ${gBadge(g)} · ${t('멤버 {n}명', { n: g.member_count })}</small></span></a>
       ${canPostTo(g) ? `<button class="btn" onclick="composeToGroup(MYG.groups.get('${g.id}'))">${t('올리기')}</button>` : ''}</div>`).join('')}</div>`;
