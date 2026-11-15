@@ -84,11 +84,15 @@ python3 -m http.server 3000   # → http://localhost:3000
    - Table `posts`, Events `Insert`, Type `Supabase Edge Functions` → `notify-owner`
    - HTTP Headers 에 `x-webhook-secret: <WEBHOOK_SECRET 값>` 추가
    - **같은 방법으로 하나 더**: Table `post_stickers`, Events `Insert` → 같은 함수 (친구가 내 사진을 꾸미면 알림)
+   - (그룹) Table `group_members`, Events `Insert` → 같은 함수 (그룹 참여 신청이 오면 방장에게 알림)
    - 현재 배포된 함수 이름은 `super-responder` (대시보드에서 만들 때 자동으로 붙은 이름, 코드는 `notify-owner` 와 같음)
 5. 앱에서 🔔 → 알림 켜기 (iPhone 은 Safari 공유 → 홈 화면에 추가 후 홈 화면 아이콘으로 열어야 함)
 
 ## 6. 프로필 설정 (이름/사진 직접 선택)
 SQL Editor 에서 `sql/03_profile.sql` 실행. 첫 로그인 시 프로필 설정 화면이 뜨고, 이후 메뉴 → 프로필 편집 또는 내 프로필 사진을 눌러 변경.
+
+## 그룹 (공유 앨범)
+여러 명이 한 주제로 사진을 모으는 공간. 규칙·데이터·설정 순서는 [`docs/GROUPS.md`](docs/GROUPS.md).
 
 ## 다국어
 한국어·영어·일본어. 기기 언어에 맞춰 자동으로 바뀌고, ☰ 메뉴에서 직접 고를 수 있음. 구조와 새 언어 추가 방법은 [`docs/I18N.md`](docs/I18N.md).
@@ -116,7 +120,8 @@ SQL Editor 에서 `sql/03_profile.sql` 실행. 첫 로그인 시 프로필 설�
 | `15_sticker_own_only.sql` | 스티커 떼기·수정은 붙인 본인만 |
 | `16_text_stickers.sql` | 투표·질문 게시물에도 스티커 |
 | `17_profile_lang.sql` | 프로필 언어(푸시 알림을 받는 사람 언어로) |
+| `18_groups.sql` | 그룹(공유 앨범): 공개/비공개, 멤버·팔로우, 99개 자동 정리, 고정, 신고, 도배 방지 |
 | `demo/seed.sql` | (선택) 데모 친구 4명 + 게시물 |
 | `demo/cleanup.sql` | (선택) 데모 친구 전부 삭제 |
 
-새 SQL을 추가할 때는 다음 번호(`18_...sql`)로 만듭니다.
+새 SQL을 추가할 때는 다음 번호(`19_...sql`)로 만듭니다.
