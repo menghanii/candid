@@ -577,5 +577,17 @@
  "지금 보고 있는 곳": "What you're viewing now",
  "채워주기": "Fill",
  "친구에게 내 사진을 부탁하는 링크 보내기": "Send a link asking friends for photos of you",
- "친구에게 사진·영상·투표·질문 보내기": "Send a friend photos, videos, polls or questions"
+ "친구에게 사진·영상·투표·질문 보내기": "Send a friend photos, videos, polls or questions",
+ "멤버 초대하기": "Invite members",
+ "초대": "Invite",
+ "앱으로 설치 (홈 화면에 추가)": "Install as app (Add to Home Screen)",
+ "앱 설치하고 시작하기": "Install the app & start",
+ "로그인 방법 연결": "Linked login methods",
+ "새 사진 알림 켜기": "Turn on new photo alerts",
+ "새 사진 알림 끄기": "Turn off new photo alerts",
+ "친구 초대하기": "Invite friends",
+ "붙은 스티커 보이기": "Show stickers",
+ "붙은 스티커 숨기기": "Hide stickers",
+ "붙은 스티커를 숨겼어요": "Stickers hidden",
+ "붙은 스티커를 다시 보여줘요": "Stickers shown"
 };
