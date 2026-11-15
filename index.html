@@ -1842,7 +1842,8 @@ function renderBody() {
   }
   if (S.locked) {
     $b.innerHTML = `<div class="empty"><div class="empty-dot">${DOT('look', { cls: 'blink' })}</div><h2>Private<i class="pd">.</i></h2>
-      <p>${t('{name}님이 나를 친구로 추가해야 피드를 볼 수 있어요.<br>사진은 지금도 보내줄 수 있어요.', { name: esc(prof.name) })}</p></div>`;
+      <p>${me ? t('{name}님이 나를 친구로 추가해야 피드를 볼 수 있어요.<br>사진은 지금도 보내줄 수 있어요.', { name: esc(prof.name) })
+        : t('{name}님의 친구만 볼 수 있는 피드예요.<br>사진은 로그인 없이도 보내줄 수 있어요.', { name: esc(prof.name) })}</p></div>`;
     return;
   }
   if (approved.length) {
@@ -2680,10 +2681,13 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
     pk.classList.remove('has'); pk.classList.add('busy');
     pk.innerHTML = `<span class="cmp-empty"><b>${t('준비 중…')}</b></span>`; pk.appendChild($file);
     $send.disabled = true;
-    const ready = [];
-    for (const [i, f] of files.entries()) {
-      pk.querySelector('.cmp-empty b').textContent = files.length > 1 ? t('준비 중 ({i}/{n})', { i: i + 1, n: files.length }) : t(f.type.startsWith('video/') ? '영상 준비 중…' : '사진 준비 중…');
-      try { ready.push(f.type.startsWith('video/') ? await prepareVideoMeta(f) : await prepareImage(f)); } catch {}
+    // 사진은 원본을 바로 미리보기로 보여주고, 줄이기(압축)는 뒤에서 2장씩 진행 → 보내기 누를 때 끝난 걸 씀
+    // 영상만 길이·대표 이미지가 있어야 구간 선택을 보여줄 수 있어서 기다림
+    const ready = [], vids = files.filter(f => f.type.startsWith('video/')).length; let vi = 0;
+    for (const f of files) {
+      if (!f.type.startsWith('video/')) { ready.push(quickImage(f)); continue; }
+      vi++; pk.querySelector('.cmp-empty b').textContent = vids > 1 ? t('영상 준비 중 ({i}/{n})', { i: vi, n: vids }) : t('영상 준비 중…');
+      try { ready.push(await prepareVideoMeta(f)); } catch {}
     }
     pk.classList.remove('busy');
     if (!ready.length) { media = null; pk.querySelector('.cmp-empty').innerHTML = `${I.camera}<b>${t('다시 선택해 주세요')}</b><small>${t('이 파일은 열 수 없어요')}</small>`; return refresh(); }
@@ -2788,6 +2792,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
         const list = [], n = media.length;
         for (const [i, m] of media.entries()) {
           const tag = n > 1 ? ` (${i + 1}/${n})` : '';
+          if (m.job) { status(t('사진 준비 중{tag}…', { tag })); await m.job; } // 뒤에서 줄이던 사진이 아직이면 기다림
           let main = m.main;
           if (m.kind === 'video') {
             status(t('영상 줄이는 중{tag} {p}%', { tag, p: 0 }));
@@ -4429,7 +4434,7 @@ function demoClient() {
     .map(([owner_id, author_name, mission, text, h], i) => ({ id: 'f' + i, owner_id, author_name, mission, text, image_path: art(3 + i * 2), status: 'approved', created_at: t(h + 1), approved_at: t(h) }));
   let db; try { db = JSON.parse(ss.get('demo_db2')); } catch {}
   db = db || {
-    profiles: [{ id: 'demo', name: '민수', handle: 'minsu', avatar_url: null, onboarded: true }, { id: 'f1', name: '지수', handle: 'jisoo', avatar_url: null, onboarded: true, bio: '굴욕샷 환영' }, { id: 'f2', name: '태윤', handle: 'taeyun', avatar_url: null, onboarded: true }],
+    profiles: [{ id: 'demo', name: '민수', handle: 'minsu', avatar_url: null, onboarded: true, is_private: true }, { id: 'f1', name: '지수', handle: 'jisoo', avatar_url: null, onboarded: true, bio: '굴욕샷 환영' }, { id: 'f2', name: '태윤', handle: 'taeyun', avatar_url: null, onboarded: true }],
     posts: [...seed, ...pend, ...fposts],
     follows: [{ follower_id: 'demo', followee_id: 'f1' }, { follower_id: 'demo', followee_id: 'f2' }],
     likes: [{ post_id: 'f0', user_id: 'f2' }, { post_id: 'f0', user_id: 'f1' }, { post_id: 'f1', user_id: 'f1' }],
@@ -4604,9 +4609,14 @@ function demoClient() {
 // ---------- 미디어 최적화 (업로드 전 휴대폰에서 압축) ----------
 const MAX_VIDEO_SEC = 10;
 // 캔버스를 이미지로: WebP 지원 기기는 WebP(더 작음), 아니면 JPEG
+// WebP 로 저장 못 하는 브라우저(iPhone Safari)는 PNG 를 만들어 버려서 매번 헛일 → 한 번 확인하면 다음부턴 바로 JPEG
+let WEBP_OK = null;
 async function canvasBlob(c, q) {
-  const webp = await new Promise(r => c.toBlob(r, 'image/webp', q));
-  if (webp && webp.type === 'image/webp') return webp;
+  if (WEBP_OK !== false) {
+    const webp = await new Promise(r => c.toBlob(r, 'image/webp', q));
+    if (webp && webp.type === 'image/webp') { WEBP_OK = true; return webp; }
+    WEBP_OK = false;
+  }
   return new Promise(r => c.toBlob(r, 'image/jpeg', q + 0.04));
 }
 function drawScaled(src, w0, h0, max) {
@@ -4620,9 +4630,24 @@ const extOf = b => ({ 'image/webp': 'webp', 'image/jpeg': 'jpg', 'video/mp4': 'm
 // 사진: 본문 1080px(약 150~300KB) + 그리드용 썸네일 480px(약 25~40KB)
 async function prepareImage(file) {
   const img = await decodeFile(file);
-  const main = await canvasBlob(drawScaled(img, img.width, img.height, 1080), 0.8);
-  const thumb = await canvasBlob(drawScaled(img, img.width, img.height, 480), 0.7);
+  const big = drawScaled(img, img.width, img.height, 1080);
+  img.close?.(); // 원본(1200만 화소) 메모리 바로 해제
+  const main = await canvasBlob(big, 0.8);
+  const thumb = await canvasBlob(drawScaled(big, big.width, big.height, 480), 0.7); // 썸네일은 줄인 그림에서(원본보다 훨씬 빠름)
   return { kind: 'image', main, thumb, previewUrl: URL.createObjectURL(main) };
+}
+// 사진 고르자마자: 원본으로 미리보기 + 뒤에서 줄이기(동시에 2장까지 — 메모리 부족으로 iPhone 이 멈추지 않게)
+const imgQueue = (() => {
+  let running = 0; const q = [];
+  const next = () => { if (running >= 2 || !q.length) return; running++; const [fn, ok, no] = q.shift(); fn().then(ok, no).finally(() => { running--; next(); }); };
+  return fn => new Promise((ok, no) => { q.push([fn, ok, no]); next(); });
+})();
+function quickImage(file) {
+  const m = { kind: 'image', file, previewUrl: URL.createObjectURL(file), main: null, thumb: null };
+  m.job = imgQueue(() => prepareImage(file)).then(r => { m.main = r.main; m.thumb = r.thumb; m.job = null; },
+    () => { throw Object.assign(new Error(t('열 수 없는 사진이 있어요. 그 사진을 빼고 다시 골라 주세요')), { user: true }); });
+  m.job.catch(() => {}); // 실패는 보내기 누를 때 알려줌
+  return m;
 }
 
 // iPhone Safari 는 재생 전엔 영상 데이터를 안 불러와서 무한 대기할 수 있음 → 모든 단계에 시간제한

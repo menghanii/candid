@@ -632,5 +632,9 @@
  "전체 공개로 바꿨어요": "Your feed is now public",
  "끌어서 순서 바꾸기": "Drag to reorder",
  "비공개 그룹": "Private groups",
- "공개 그룹": "Public groups"
+ "공개 그룹": "Public groups",
+ "영상 준비 중 ({i}/{n})": "Preparing video ({i}/{n})",
+ "사진 준비 중{tag}…": "Preparing photo{tag}…",
+ "열 수 없는 사진이 있어요. 그 사진을 빼고 다시 골라 주세요": "One of the photos can't be opened. Please pick again without it",
+ "{name}님의 친구만 볼 수 있는 피드예요.<br>사진은 로그인 없이도 보내줄 수 있어요.": "Only {name}'s friends can see this feed.<br>You can still send a photo without logging in."
 };

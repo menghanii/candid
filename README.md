@@ -124,6 +124,7 @@ SQL Editor 에서 `sql/03_profile.sql` 실행. 첫 로그인 시 프로필 설�
 | `19_private_feed.sql` | 비공개 피드(내가 친구로 추가한 사람만 보기), 한 게시물 사진·영상 10개 서버 확인 |
 | `20_stickers_v2.sql` | 스티커 개편: 움직이는 이모지 71 + 이모지 53, 텍스트·미니 그림 은퇴, 1인 1개·게시물당 100개 (`tools/stickers.js` 로 생성) |
 | `21_user_prefs.sql` | 내 설정 저장(친구·그룹 목록 순서를 계정에 저장, 본인만 읽기·쓰기) |
+| `22_private_default.sql` | 모든 개인 피드를 비공개로 전환 + 새 가입자도 비공개로 시작 |
 | `demo/seed.sql` | (선택) 데모 친구 4명 + 게시물 |
 | `demo/cleanup.sql` | (선택) 데모 친구 전부 삭제 |
 
