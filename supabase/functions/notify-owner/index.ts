@@ -9,7 +9,7 @@ import webpush from 'npm:web-push@3.6.7';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
 const env = (k: string) => (Deno.env.get(k) ?? '').trim();
-const SITE = env('SITE_URL') || 'https://candid.candidcrew.workers.dev/';
+const SITE = env('SITE_URL') || 'https://candid-feed.com/';
 let sb: ReturnType<typeof createClient> | null = null;
 
 // 다국어: 받는 사람 프로필의 lang(ko/en/ja…)으로 보냄. 새 언어는 아래 표에 추가 (앱은 i18n/<코드>.js)

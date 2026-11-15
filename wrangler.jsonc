@@ -1,0 +1,9 @@
+// candid. Cloudflare Worker 설정 — GitHub 에 push 하면 Workers Builds 가 이 설정으로 배포
+{
+  "name": "candid",
+  "main": "worker/index.js",
+  "compatibility_date": "2025-01-01",
+  // 저장소 루트를 정적 파일로(예전과 같음). 올리지 않을 파일은 .assetsignore
+  "assets": { "directory": ".", "binding": "ASSETS" },
+  "workers_dev": true
+}

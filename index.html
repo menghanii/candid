@@ -9,7 +9,7 @@
 <meta property="og:site_name" content="candid.">
 <meta property="og:title" content="내 피드 좀 채워줘 📸 — candid.">
 <meta property="og:description" content="로그인 없이 10초. 네 폰에 있는 내 사진 한 장만 보내줘.">
-<meta property="og:image" content="https://candid.candidcrew.workers.dev/brand/og-v2.png">
+<meta property="og:image" content="https://candid-feed.com/brand/og-v2.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -1252,7 +1252,10 @@ const SPLASH_MORPH = !/[#&?](access_token|code|error_description)=/.test(locatio
   setTimeout(hide, 12000); // 안전장치
 })();
 const sb = DEMO ? demoClient() : (window.supabase ? supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY) : null);
-const photoUrl = path => /^https?:/.test(path) ? path : sb.storage.from('photos').getPublicUrl(path).data.publicUrl; // 외부 주소(데모 친구 사진)는 그대로
+// 사진·영상 주소: 직접 연결한 도메인(candid-feed.com)에서는 Cloudflare 캐시 중계(/p/…)로 → Supabase 전송량 절약
+// 그 밖(workers.dev·로컬)에서는 캐시가 안 되므로 Supabase 주소 그대로. 외부 주소(데모 친구 사진)도 그대로
+const MEDIA_PROXY = /(^|\.)candid-feed\.com$/.test(location.hostname) || location.port === '8788';
+const photoUrl = path => /^(https?|data|blob):/.test(path) ? path : MEDIA_PROXY ? `${location.origin}/p/${path}` : sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
 const feedUrl = id => `${location.origin}${location.pathname}?u=${id}`;
 let me = null, myProf = null;
 

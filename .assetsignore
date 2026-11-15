@@ -1,0 +1,10 @@
+# 정적 파일로 올리지 않을 것 (Worker 코드·설정·내부 문서)
+.git
+.wrangler
+node_modules
+worker
+wrangler.jsonc
+.assetsignore
+secrets.local.env
+tools
+supabase
