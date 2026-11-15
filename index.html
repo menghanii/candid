@@ -1296,6 +1296,8 @@ const sb = DEMO ? demoClient() : (window.supabase ? supabase.createClient(cfg.SU
 const MEDIA_PROXY = /(^|\.)candid-feed\.com$/.test(location.hostname) || location.port === '8788';
 const photoUrl = path => /^(https?|data|blob):/.test(path) ? path : MEDIA_PROXY ? `${location.origin}/p/${path}` : sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
 // 밖으로 보내는 링크(카톡 공유·초대)는 항상 새 주소로 — 예전 주소로 설치한 홈 화면 앱에서 공유해도 candid-feed.com 링크가 나감
+// 카톡은 같은 주소의 미리보기(이미지·제목)를 오래 저장해 둠 → 미리보기를 바꿀 때마다 이 숫자를 올려 공유 링크 주소를 바꿈(카톡이 새로 읽어 감)
+const OGV = '6';
 const SITE = location.hostname === 'candid.candidcrew.workers.dev' ? 'https://candid-feed.com' : location.origin;
 const feedUrl = id => `${location.origin}${location.pathname}?u=${id}`;
 let me = null, myProf = null;
@@ -1394,7 +1396,7 @@ async function renderHandle(h) {
   renderProfile(id);
 }
 // 공유용 짧은 링크: 아이디가 있으면 ?@아이디, 없으면 기존 ?u=ID
-const shareUrl = p => p?.handle ? `${SITE}${location.pathname}?@${p.handle}` : `${SITE}${location.pathname}?u=${p.id}`;
+const shareUrl = p => p?.handle ? `${SITE}${location.pathname}?@${p.handle}&v=${OGV}` : `${SITE}${location.pathname}?u=${p.id}&v=${OGV}`;
 
 // ---------- 화면 전환 (페이지 새로고침 없이) ----------
 // 하단 바·링크 이동 때 앱을 다시 불러오지 않고 주소만 바꾼 뒤 화면을 그림 → 로고 로딩 화면이 안 뜸
@@ -3179,7 +3181,7 @@ const INVITE = (() => {
 })();
 // 메시지+링크 복사용: 메시지 바로 다음 줄에 링크. (카톡으로 보내기는 글에 링크를 넣지 않고 url 로 따로 넘겨 미리보기 카드로만)
 const withLink = (msg, url) => `${msg.trim()}\n${url}`;
-const inviteUrl = () => `${SITE}${location.pathname}?invite=${encodeURIComponent(myProf?.handle || me.id)}`;
+const inviteUrl = () => `${SITE}${location.pathname}?invite=${encodeURIComponent(myProf?.handle || me.id)}&v=${OGV}`;
 async function findInviter(key) {
   const isId = /^[0-9a-f-]{36}$/i.test(key);
   const { data } = await sb.from('profiles').select('id, name, handle, avatar_url').eq(isId ? 'id' : 'handle', isId ? key : key.toLowerCase()).maybeSingle();
@@ -3892,7 +3894,7 @@ const GROUP_MAX = 99, PIN_MAX = 9, GROUP_OWN_MAX = 10;
 const G = { g: null, posts: [], mem: null, fol: null, pendingN: 0, key: null };
 const MYG = { groups: new Map(), mem: new Map(), fol: new Map(), ok: null, at: 0 }; // 내가 멤버·신청·팔로우한 그룹
 const gUrl = g => `${location.origin}${location.pathname}?g=${g.handle}`;
-const gInviteUrl = code => `${SITE}${location.pathname}?gi=${code}`;
+const gInviteUrl = code => `${SITE}${location.pathname}?gi=${code}&v=${OGV}`;
 // 그룹 표지: 대표 사진 > 최근 사진 모자이크(4장 이상 2×2, 1~3장은 최신 1장) > 첫 글자
 const GTHUMBS = new Map(); // group_id → 최근 사진 썸네일 경로들
 const gAv = (g, cls = '') => {
@@ -4079,7 +4081,7 @@ async function toggleGroupNotify() {
   if (on && !DEMO && await pushState().catch(() => 'off') !== 'on') setTimeout(openPush, 400); // 기기 알림이 꺼져 있으면 켜기 안내
 }
 function shareGroupLink() {
-  const g = G.g, url = `${SITE}${location.pathname}?g=${g.handle}`;
+  const g = G.g, url = `${SITE}${location.pathname}?g=${g.handle}&v=${OGV}`;
   if (g.visibility === 'private') return openGroupInvite();
   if (navigator.share) return navigator.share({ title: g.name, url }).catch(() => {});
   navigator.clipboard.writeText(url).then(() => toast(t('그룹 링크를 복사했어요'))).catch(() => prompt(t('이 링크를 복사해 주세요'), url));
