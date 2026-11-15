@@ -1580,7 +1580,7 @@ function renderLanding(inviter) {
   const appFirst = isStandalone && !DEMO;
   $app.innerHTML = `
     <div class="landing${inviter || appFirst ? '' : ' paper'}">
-      <div class="l-top"><span class="logo">${LOGO}</span>${inviter || appFirst ? '' : '<span class="l-en">Your feed, by your friends</span>'}</div>
+      <div class="l-top"><span class="logo">${LOGO}</span>${inviter || appFirst ? '' : '<span class="l-en">Your feed, by your friends<i class="l-pd" aria-hidden="true"></i></span>'}</div>
       ${inviter && !appFirst ? `<div class="hero app1 invite1">${avatar(inviter, 'lg')}
         <h1>${t('{name}님이<br>초대했어요', { name: `<em>${esc(inviter.name)}</em>` })}</h1>
         <p class="tagline">${t('친구들이 내 피드를 채워주는 앱, candid.<br>앱을 설치하면 친구가 사진을 보낼 때 바로 알림이 와요.')}</p></div>
@@ -1592,7 +1592,7 @@ function renderLanding(inviter) {
         <!-- 첫 화면: 무대 위의 큰 3D 닷(점토 질감) + 한 문장. 누르면 깡충 -->
         <div class="l-main">
           <button class="l-stage" aria-label="${t('닷')}" onclick="hopDot(this)">${DOTM()}</button>
-          <h1 class="l-h">${t('친구들이 채워주는<br>내 피드')}<i class="l-pd" aria-hidden="true"></i></h1>
+          <h1 class="l-h">${t('친구들이 채워주는<br>내 피드')}</h1>
           <p class="l-sub">${t('친구가 찍어 보내고, 나는 고르기만.')}</p>
         </div>
       </div>`}
