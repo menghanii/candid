@@ -19,7 +19,7 @@
 <meta property="og:site_name" content="candid.">
 <meta property="og:title" content="내 피드 좀 채워줘 📸 — candid.">
 <meta property="og:description" content="로그인 없이 10초. 네 폰에 있는 내 사진 한 장만 보내줘.">
-<meta property="og:image" content="https://candid-feed.com/brand/og-v3.jpg">
+<meta property="og:image" content="https://candid-feed.com/brand/og-v4.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -181,39 +181,34 @@
   @keyframes drop { from { opacity:0; translate:0 -28px; } }
   @media (prefers-reduced-motion: reduce) { .snap, .sheet, .grid button.fresh { animation:none !important; } }
   .collage { position:relative; height:280px; margin:8px 0 32px; }
-  /* ===== 첫 화면: 뷰파인더 속 닷 ===== */
-  .vf { --vf-bg:#f1efea; --vf-ink:rgba(10,10,10,.55); position:relative; display:block; width:100%; height:min(46vh, 330px); margin:6px 0 26px; padding:0; border:0; border-radius:22px; overflow:hidden; cursor:pointer; -webkit-tap-highlight-color:transparent;
-    background:radial-gradient(120% 90% at 50% 62%, color-mix(in srgb, var(--accent) 16%, var(--vf-bg)) 0, var(--vf-bg) 62%); }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .vf { --vf-bg:#131316; --vf-ink:rgba(255,255,255,.5); } }
-  :root[data-theme="dark"] .vf { --vf-bg:#131316; --vf-ink:rgba(255,255,255,.5); }
-  .vf .vc { position:absolute; width:22px; height:22px; border:2px solid var(--vf-ink); }
-  .vf .vc.tl { left:14px; top:14px; border-right:0; border-bottom:0; border-top-left-radius:6px; }
-  .vf .vc.tr { right:14px; top:14px; border-left:0; border-bottom:0; border-top-right-radius:6px; }
-  .vf .vc.bl { left:14px; bottom:14px; border-right:0; border-top:0; border-bottom-left-radius:6px; }
-  .vf .vc.br { right:14px; bottom:14px; border-left:0; border-top:0; border-bottom-right-radius:6px; }
-  .vf-rec, .vf-meta, .vf-date { position:absolute; font:600 10.5px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing:.08em; color:var(--vf-ink); }
-  .vf-rec { left:44px; top:20px; display:flex; align-items:center; gap:6px; }
-  .vf-rec b { width:7px; height:7px; border-radius:50%; background:#ff453a; animation:vfBlink 1.4s steps(1) infinite; }
-  .vf-meta { left:44px; bottom:20px; }
-  .vf-date { right:44px; bottom:18px; font-size:13px; letter-spacing:.12em; color:#ff8a3d; text-shadow:0 0 6px rgba(255,138,61,.45); }
-  .vf-af { position:absolute; left:50%; top:56%; width:112px; height:92px; margin:-80px 0 0 -58px; border:1.5px solid color-mix(in srgb, #ffd60a 85%, transparent); border-radius:4px; animation:vfFocus 3.6s ease-in-out infinite; }
-  .vf-dot { position:absolute; left:50%; top:56%; transform:translate(-50%,-50%); }
-  .vf-dot svg { display:block; overflow:visible; }
-  .vf .d3-happy { display:none; }
-  .vf.shot .d3-happy { display:inline; } .vf.shot .d3-eyes { display:none; }
-  .vf .d3-pupil { animation:vfPeek 5s ease-in-out infinite; } /* 두리번 — 찍히는 줄 모르는 순간 */
-  .vf.shot .vf-dot svg { animation:lhop .5s cubic-bezier(.3,1.6,.5,1); }
-  .vf-flash { position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; }
-  .vf.shot .vf-flash { animation:vfFlash .45s ease-out; }
-  .l-eyebrow { margin:0 0 10px; font:600 11px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--sub); }
-  .landing h1.l-title { font-family:var(--sans); font-weight:800; font-size:40px; line-height:1.12; letter-spacing:-.045em; margin:0 0 14px; word-break:keep-all; }
-  .landing h1.l-title em { font-family:var(--display); letter-spacing:-.05em; }
-  @keyframes vfBlink { 50% { opacity:0; } }
-  @keyframes vfFocus { 0%,100% { transform:scale(1); opacity:.9; } 45% { transform:scale(1.08); opacity:.5; } 55% { transform:scale(.98); opacity:1; } }
-  @keyframes vfPeek { 0%,30% { transform:translate(0,0); } 38%,62% { transform:translate(-2.6px,.6px); } 70%,100% { transform:translate(0,0); } }
-  @keyframes vfFlash { 0% { opacity:.95; } 100% { opacity:0; } }
-  @keyframes lhop { 0% { transform:scale(1); } 30% { transform:scale(1.12,.86) translateY(4px); } 60% { transform:scale(.94,1.1) translateY(-18px); } 100% { transform:scale(1); } }
-  @media (prefers-reduced-motion: reduce) { .vf *, .vf { animation:none !important; } }
+  /* ===== 첫 화면: 종이 위 무대와 큰 3D 닷 (항상 밝은 종이 톤) ===== */
+  .landing.paper { --bg:#f3f1ec; --fg:#141414; --sub:#8a877f; --line:#dcd8cf; --card:#fff; --soft:#e9e6df; background:var(--bg); color:var(--fg); word-break:keep-all; }
+  html.paperbg, html.paperbg body { background:#f3f1ec; }
+  .l-top { display:flex; justify-content:space-between; align-items:baseline; }
+  .landing.paper .l-top .logo { font-size:21px; color:var(--fg); }
+  .l-en { font-family:var(--display); font-weight:500; font-size:12px; color:var(--sub); letter-spacing:-.005em; }
+  .landing.paper .hero { justify-content:center; }
+  .l-main { display:flex; flex-direction:column; align-items:center; text-align:center; }
+  .l-stage { position:relative; width:min(64vw, 29svh); margin-top:3svh; padding:0; border:0; background:none; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .l-stage::before { content:""; position:absolute; left:50%; top:50%; width:128%; aspect-ratio:1; transform:translate(-50%,-50%); border-radius:50%; background:radial-gradient(circle at 50% 40%, #ebe8e1 0%, #ebe8e1 58%, rgba(235,232,225,0) 71%); }
+  .l-stage .d3 { position:relative; display:block; width:100%; margin-left:5%; overflow:visible; }
+  .l-stage.hop .d3 .body { animation:lhop2 .55s cubic-bezier(.3,1.6,.5,1); }
+  .landing.paper h1.l-h { font-family:var(--sans); font-weight:700; font-size:clamp(27px, 7.6vw, 31px); line-height:1.3; letter-spacing:-.045em; margin:clamp(20px, 4svh, 40px) 0 0; }
+  .l-sub { margin:10px 0 clamp(12px, 2svh, 20px); font-size:15px; line-height:1.55; color:#6a675f; letter-spacing:-.02em; }
+  .landing.paper .social { border-radius:12px; height:52px; padding:0 15px; font-size:16px; letter-spacing:-.02em; margin-bottom:8px; }
+  .landing.paper .social.google { background:#fff; color:#1f1f1f; border:0; box-shadow:inset 0 0 0 1px var(--line); }
+  .landing.paper .fine { color:var(--sub); }
+  /* 닷 움직임: 숨쉬기 · 5초마다 깜빡 · 가끔 아래(버튼 쪽) 흘끗 */
+  .d3 .body { transform-box:view-box; transform-origin:50px 84px; animation:dmBreathe 3.6s ease-in-out infinite; }
+  .d3 .eyes { transform-box:fill-box; transform-origin:center; animation:dmBlink 5s 1.8s infinite; }
+  .d3 .pupils { animation:dmGlance 9s 3s ease-in-out infinite; }
+  .d3 .shadow { transform-box:fill-box; transform-origin:center; animation:dmShadow 3.6s ease-in-out infinite; }
+  @keyframes dmBreathe { 0%,100% { transform:scale(1,1); } 50% { transform:scale(1.012,.985); } }
+  @keyframes dmBlink { 0%,94%,100% { transform:scaleY(1); } 96.5% { transform:scaleY(.1); } }
+  @keyframes dmGlance { 0%,40%,100% { transform:translate(0,0); } 46%,74% { transform:translate(1.6px,2.4px); } }
+  @keyframes dmShadow { 0%,100% { transform:scaleX(1); } 50% { transform:scaleX(1.015); } }
+  @keyframes lhop2 { 0% { transform:scale(1); } 30% { transform:scale(1.08,.9); } 60% { transform:translateY(-10px) scale(.96,1.06); } 100% { transform:scale(1); } }
+  @media (prefers-reduced-motion: reduce) { .d3 * { animation:none !important; } }
   .snap { position:absolute; width:150px; padding:8px 8px 12px; background:#fff; color:#0a0a0a; animation:drop .7s cubic-bezier(.2,1.3,.4,1) backwards; border-radius:4px; box-shadow:0 10px 30px rgba(0,0,0,.08), 0 1px 3px rgba(0,0,0,.06); }
   .snap .ph { aspect-ratio:4/5; border-radius:2px; }
   .snap p { margin:8px 2px 0; font-size:12px; font-weight:600; }
@@ -642,15 +637,10 @@
   html.noscroll .landing { height:100vh; height:100dvh; min-height:0; overflow:hidden; padding-top:calc(20px + env(safe-area-inset-top)); }
   @media (max-height:740px) {
     html.noscroll .collage { height:250px; margin:0 0 -28px; transform:scale(.8); transform-origin:center top; }
-    html.noscroll .vf { height:34vh; margin-bottom:18px; }
-    html.noscroll .vf-dot svg { width:110px; height:100px; }
-    html.noscroll .vf-af { width:94px; height:78px; margin:-66px 0 0 -49px; }
-    html.noscroll .vf-meta { display:none; }
-    html.noscroll .landing h1.l-title { font-size:34px; }
     html.noscroll .landing h1 { font-size:42px; }
     html.noscroll .landing .tagline { margin-bottom:20px; }
   }
-  @media (max-height:640px) { html.noscroll .collage { display:none; } html.noscroll .vf { height:26vh; } html.noscroll .vf-meta, html.noscroll .vf-rec { display:none; } }
+  @media (max-height:640px) { html.noscroll .collage { display:none; } }
   /* 지난번 로그인: 버튼 위에 떠 있는 말풍선 */
   .last-badge { top:auto; bottom:calc(100% + 8px); right:14px; transform:none; padding:7px 12px; border-radius:14px; font-size:12px; white-space:nowrap;
     background:var(--accent); color:#fff; box-shadow:0 6px 18px color-mix(in srgb, var(--accent) 45%, transparent); animation:floaty 2.4s ease-in-out infinite; pointer-events:none; z-index:2; }
@@ -1364,7 +1354,7 @@ function route() {
     if (back && /^\?(g|gi)=[A-Za-z0-9_-]{3,40}$/.test(back)) history.replaceState(history.state, '', location.pathname + back);
   }
   CUR = pageKey();
-  document.documentElement.classList.remove('noscroll');
+  document.documentElement.classList.remove('noscroll', 'paperbg'); document.getElementById('tcpaper')?.remove();
   const qs = new URLSearchParams(location.search);
   if (qs.get('gi')) return renderGroupInvite(qs.get('gi'));
   if (me && qs.has('friends')) return renderTabPage('friends', 'Friends', renderFriendsTab);
@@ -1564,7 +1554,7 @@ function login(provider) {
 }
 // 로그인 중 화면: 버튼을 누른 뒤·로그인에서 돌아오는 동안 첫 화면(로그인 버튼)이 다시 비치지 않게
 function showAuthWait(msg = t('로그인하는 중…')) {
-  document.documentElement.classList.remove('noscroll');
+  document.documentElement.classList.remove('noscroll', 'paperbg'); document.getElementById('tcpaper')?.remove();
   $app.innerHTML = `<div class="authwait"><span class="logo">${LOGO_DOT}</span><div class="aw-sub"><p>${esc(msg)}</p>
     <button class="aw-cancel" onclick="cancelAuthWait()">${t('취소')}</button></div></div>`;
   setTimeout(() => document.querySelector('.aw-cancel')?.classList.add('show'), 4000); // 오래 걸리면 취소 버튼
@@ -1578,14 +1568,18 @@ async function logout() { await sb.auth.signOut(); location.href = location.path
 
 function renderLanding(inviter) {
   document.documentElement.classList.add('noscroll'); // 첫 화면은 스크롤 없이 한 화면에 고정
+  document.documentElement.classList.toggle('paperbg', !inviter && !(isStandalone && !DEMO));
+  // 종이 톤 첫 화면: 브라우저 위쪽 바 색도 종이색으로(다른 화면으로 가면 원래대로)
+  document.getElementById('tcpaper')?.remove();
+  if (!inviter && !(isStandalone && !DEMO)) document.head.insertAdjacentHTML('beforeend', '<meta name="theme-color" id="tcpaper" content="#f3f1ec">');
   const all = cfg.PROVIDERS || ['kakao', 'google'];
   // 카톡 안: 카카오만(Google은 인앱에서 막힘). 한국어가 아니면 Google 을 먼저
   const p = inKakao && all.includes('kakao') ? ['kakao'] : LANG === 'ko' ? all : [...all].sort((a, b) => (a === 'google' ? -1 : 0) - (b === 'google' ? -1 : 0));
   // 홈 화면 앱 첫 실행: 브라우저와 로그인이 따로라 소개 대신 로그인만
   const appFirst = isStandalone && !DEMO;
   $app.innerHTML = `
-    <div class="landing">
-      <span class="logo">${LOGO}</span>
+    <div class="landing${inviter || appFirst ? '' : ' paper'}">
+      <div class="l-top"><span class="logo">${LOGO}</span>${inviter || appFirst ? '' : '<span class="l-en">Your feed, by your friends</span>'}</div>
       ${inviter && !appFirst ? `<div class="hero app1 invite1">${avatar(inviter, 'lg')}
         <h1>${t('{name}님이<br>초대했어요', { name: `<em>${esc(inviter.name)}</em>` })}</h1>
         <p class="tagline">${t('친구들이 내 피드를 채워주는 앱, candid.<br>앱을 설치하면 친구가 사진을 보낼 때 바로 알림이 와요.')}</p></div>
@@ -1594,19 +1588,12 @@ function renderLanding(inviter) {
         <h1>${t('거의 다 됐어요')}<em>!</em></h1>
         <p class="tagline">${t('홈 화면 앱은 브라우저와 로그인이 따로예요.<br>여기서 <b style="color:var(--fg)">한 번만</b> 다시 로그인해 주세요.')}</p></div>` : `
       <div class="hero">
-        <!-- 첫 화면: '몰래 찍힌 순간' — 카메라 뷰파인더 속 닷. 누르면 찰칵(플래시) -->
-        <button class="vf" id="vf" aria-label="${t('닷 찍기')}" onclick="snapDot(this)">
-          <i class="vc tl"></i><i class="vc tr"></i><i class="vc bl"></i><i class="vc br"></i>
-          <span class="vf-rec"><b></b>CANDID</span>
-          <span class="vf-af"></span>
-          <span class="vf-dot">${DOT3D(132)}</span>
-          <span class="vf-meta">ISO 400 · 1/125 · f2.8</span>
-          <span class="vf-date">${(() => { const d = new Date(); return `'${String(d.getFullYear()).slice(2)} ${d.getMonth() + 1} ${d.getDate()}`; })()}</span>
-          <span class="vf-flash"></span>
-        </button>
-        <p class="l-eyebrow">Your feed, by your friends</p>
-        <h1 class="l-title">${t('친구가 찍어준<br>진짜 <em>나.</em>')}</h1>
-        <p class="tagline">${t('내가 고른 사진 말고, 친구들 눈에 비친 나.<br>친구가 보내고, 내가 골라 올리는 피드.')}</p>
+        <!-- 첫 화면: 무대 위의 큰 3D 닷(점토 질감) + 한 문장. 누르면 깡충 -->
+        <div class="l-main">
+          <button class="l-stage" aria-label="${t('닷')}" onclick="hopDot(this)">${DOTM()}</button>
+          <h1 class="l-h">${t('내 피드는<br>친구가 채웁니다')}</h1>
+          <p class="l-sub">${t('친구가 찍어 보내고, 나는 고르기만.')}</p>
+        </div>
       </div>`}
       ${inAppBanner()}
       ${(() => {
@@ -1627,7 +1614,34 @@ function renderLanding(inviter) {
   startWander();
 }
 // 첫 화면 뷰파인더: 누르면 찰칵 — 플래시 + 닷이 웃으며 깡충
-function snapDot(el) { el.classList.remove('shot'); void el.offsetWidth; el.classList.add('shot'); navigator.vibrate?.(10); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('shot'), 1100); }
+function hopDot(el) { el.classList.remove('hop'); void el.offsetWidth; el.classList.add('hop'); navigator.vibrate?.(8); }
+// 점토 질감 3D 닷(첫 화면용): 부드러운 빛·가장자리 그늘·바닥 그림자. 숨쉬기·깜빡임·버튼 쪽 흘끗 보기는 CSS
+function DOTM() {
+  const k = 'dm' + Math.random().toString(36).slice(2, 7);
+  return `<svg class="d3" viewBox="0 0 112 104" aria-hidden="true" overflow="visible"><defs>
+<radialGradient id="${k}b" cx="36%" cy="24%" r="86%"><stop offset="0" stop-color="#7590ff"/><stop offset=".42" stop-color="#3a5cff"/><stop offset=".8" stop-color="#2346e6"/><stop offset="1" stop-color="#1a35c2"/></radialGradient>
+<radialGradient id="${k}t" cx="36%" cy="30%" r="80%"><stop offset="0" stop-color="#7590ff"/><stop offset=".5" stop-color="#3355ff"/><stop offset="1" stop-color="#1a35c2"/></radialGradient>
+<linearGradient id="${k}bn" x1="0" y1="0" x2="0" y2="1"><stop offset=".6" stop-color="#f3e9da" stop-opacity="0"/><stop offset="1" stop-color="#f3e9da" stop-opacity=".10"/></linearGradient>
+<linearGradient id="${k}cy" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0d1f8a" stop-opacity=".18"/><stop offset=".12" stop-color="#fff" stop-opacity=".07"/><stop offset=".38" stop-color="#fff" stop-opacity="0"/><stop offset=".78" stop-color="#0d1f8a" stop-opacity=".10"/><stop offset="1" stop-color="#0d1f8a" stop-opacity=".34"/></linearGradient>
+<radialGradient id="${k}e" cx="45%" cy="30%" r="80%"><stop offset="0" stop-color="#34343c"/><stop offset=".55" stop-color="#0c0c10"/><stop offset="1" stop-color="#000"/></radialGradient>
+<filter id="${k}f1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6"/></filter>
+<filter id="${k}f2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3.2"/></filter>
+<filter id="${k}f3" x="-80%" y="-200%" width="260%" height="500%"><feGaussianBlur stdDeviation="5.5"/></filter>
+<clipPath id="${k}c"><path d="M12 50 A38 38 0 0 1 88 50 L88 80 Q80.4 87 72.8 80 Q65.2 87 57.6 80 Q50.0 87 42.4 80 Q34.8 87 27.2 80 Q19.6 87 12.0 80 Z"/></clipPath></defs><g class="shadow"><ellipse cx="50" cy="85.5" rx="44" ry="7" fill="#3a3326" opacity=".16" filter="url(#${k}f3)"/><ellipse cx="50" cy="84.2" rx="36" ry="2.6" fill="#2a241a" opacity=".32" filter="url(#${k}f1)"/><ellipse cx="101" cy="90.6" rx="9" ry="2.2" fill="#2a241a" opacity=".3" filter="url(#${k}f1)"/></g><g class="body"><path d="M12 50 A38 38 0 0 1 88 50 L88 80 Q80.4 87 72.8 80 Q65.2 87 57.6 80 Q50.0 87 42.4 80 Q34.8 87 27.2 80 Q19.6 87 12.0 80 Z" fill="url(#${k}b)"/>
+<g clip-path="url(#${k}c)">
+<path d="M12 50 A38 38 0 0 1 88 50 L88 80 Q80.4 87 72.8 80 Q65.2 87 57.6 80 Q50.0 87 42.4 80 Q34.8 87 27.2 80 Q19.6 87 12.0 80 Z" fill="url(#${k}cy)"/><path d="M12 50 A38 38 0 0 1 88 50 L88 80 Q80.4 87 72.8 80 Q65.2 87 57.6 80 Q50.0 87 42.4 80 Q34.8 87 27.2 80 Q19.6 87 12.0 80 Z" fill="url(#${k}bn)"/>
+<path d="M12 50 A38 38 0 0 1 88 50 L88 80 Q80.4 87 72.8 80 Q65.2 87 57.6 80 Q50.0 87 42.4 80 Q34.8 87 27.2 80 Q19.6 87 12.0 80 Z" fill="none" stroke="#0d1f8a" stroke-width="6" opacity=".22" filter="url(#${k}f2)"/>
+<ellipse cx="50" cy="90" rx="46" ry="9" fill="#0d1a70" opacity=".28" filter="url(#${k}f2)"/>
+<ellipse cx="33" cy="27" rx="16" ry="10" transform="rotate(-32 33 27)" fill="#fff" opacity=".22" filter="url(#${k}f2)"/>
+<ellipse cx="30" cy="25" rx="5" ry="3" transform="rotate(-32 30 25)" fill="#fff" opacity=".28" filter="url(#${k}f1)"/>
+</g>
+<g class="eyes">
+<ellipse cx="38.4" cy="50" rx="7.4" ry="10.2" fill="#0d1f8a" opacity=".45" filter="url(#${k}f1)"/>
+<ellipse cx="62.4" cy="50" rx="7.4" ry="10.2" fill="#0d1f8a" opacity=".45" filter="url(#${k}f1)"/>
+<g class="pupils"><ellipse cx="38" cy="48" rx="6.6" ry="9.4" fill="url(#${k}e)"/><circle cx="39.8" cy="45.2" r="2.7" fill="#fff"/>
+<ellipse cx="62" cy="48" rx="6.6" ry="9.4" fill="url(#${k}e)"/><circle cx="63.8" cy="45.2" r="2.7" fill="#fff"/></g>
+</g></g><g class="tail"><circle cx="101" cy="83" r="7.6" fill="url(#${k}t)"/><circle cx="102" cy="86" r="7" fill="#0d1a70" opacity=".18" filter="url(#${k}f1)" clip-path="circle(7.6px at 101px 83px)"/><circle cx="98.6" cy="80.4" r="2.4" fill="#fff" opacity=".3" filter="url(#${k}f1)"/></g></svg>`;
+}
 // 첫 화면의 3D 닷: 꼬물꼬물 계속 걸어 다님(순간이동 없이 매 프레임 조금씩). 가끔 멈춰 두리번, 누르면 깡충 + 웃음
 function DOT3D(size = 56) {
   const k = 'd3' + (DOT3D.n = (DOT3D.n || 0) + 1) + Math.random().toString(36).slice(2, 6); // 그라데이션 id 가 겹치면 다른 닷의 것을 참조해 안 보일 수 있음

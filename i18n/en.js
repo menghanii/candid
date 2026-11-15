@@ -641,5 +641,7 @@
  "내 피드 좀 채워줘!": "Fill my feed!",
  "닷 찍기": "Take Dot's photo",
  "친구가 찍어준<br>진짜 <em>나.</em>": "The real you,<br>shot by <em>friends.</em>",
- "내가 고른 사진 말고, 친구들 눈에 비친 나.<br>친구가 보내고, 내가 골라 올리는 피드.": "Not the photos you pick — you, as your friends see you.<br>Friends send, you choose what goes up."
+ "내가 고른 사진 말고, 친구들 눈에 비친 나.<br>친구가 보내고, 내가 골라 올리는 피드.": "Not the photos you pick — you, as your friends see you.<br>Friends send, you choose what goes up.",
+ "내 피드는<br>친구가 채웁니다": "My feed,<br>filled by friends",
+ "친구가 찍어 보내고, 나는 고르기만.": "Friends shoot and send. I just pick."
 };
