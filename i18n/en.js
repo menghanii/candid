@@ -638,5 +638,8 @@
  "열 수 없는 사진이 있어요. 그 사진을 빼고 다시 골라 주세요": "One of the photos can't be opened. Please pick again without it",
  "{name}님의 친구만 볼 수 있는 피드예요.<br>사진은 로그인 없이도 보내줄 수 있어요.": "Only {name}'s friends can see this feed.<br>You can still send a photo without logging in.",
  "주소가 candid-feed.com 으로 바뀌었어요. 새 주소에서 홈 화면에 다시 추가하면 더 빨라요": "We moved to candid-feed.com. Add it to your home screen again for faster loading",
- "내 피드 좀 채워줘!": "Fill my feed!"
+ "내 피드 좀 채워줘!": "Fill my feed!",
+ "닷 찍기": "Take Dot's photo",
+ "친구가 찍어준<br>진짜 <em>나.</em>": "The real you,<br>shot by <em>friends.</em>",
+ "내가 고른 사진 말고, 친구들 눈에 비친 나.<br>친구가 보내고, 내가 골라 올리는 피드.": "Not the photos you pick — you, as your friends see you.<br>Friends send, you choose what goes up."
 };
