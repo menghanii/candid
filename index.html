@@ -796,7 +796,7 @@
   :root { --st: max(env(safe-area-inset-top), 0px); --sb: env(safe-area-inset-bottom); }
   .top { height:calc(60px + var(--st)); padding-top:calc(var(--st) + 4px); }
   .pov-h { height:calc(60px + var(--st)); padding-top:calc(var(--st) + 4px); }
-  .rtop { padding-top:calc(var(--st) + 14px); }
+  .rtop { height:calc(60px + var(--st)); padding:calc(var(--st) + 4px) 20px 0; gap:0; } /* 릴스 상단도 다른 화면 .top 과 같은 높이·여백·아이콘 간격 */
   .ptr { top:calc(64px + var(--st)); }
   .rtop-pill { top:calc(64px + var(--st)); }
   .rmute { top:calc(70px + var(--st)); }
@@ -1984,7 +1984,7 @@ async function pickFriendToSend() {
   const w = sheet(`<h3>Send to<i class="pd">.</i></h3><p class="hint">${t('누구의 피드를 채워줄까요?')}</p>
     <input class="field" id="pfq" placeholder="${t('친구 이름·아이디로 찾기')}" autocomplete="off" style="margin-bottom:6px">
     <div id="pfl" class="flist pflist"><p class="hint">${t('불러오는 중…')}</p></div>
-    <div class="sheet-foot"><button class="btn block" onclick="closeSheet();setTimeout(openInvite,250)">${t('💌 앱에 친구 초대하기')}</button></div>`);
+    <div class="sheet-foot"><button class="btn block" onclick="closeSheet();setTimeout(openCreateGroup,250)">${t('👥 새 그룹 만들기')}</button><div style="height:8px"></div><button class="btn block" onclick="closeSheet();setTimeout(openInvite,250)">${t('💌 앱에 친구 초대하기')}</button></div>`);
   const $l = w.querySelector('#pfl'), $q = w.querySelector('#pfq');
   const ids = [...myFollows];
   // 올릴 수 있는 내 그룹(멤버·방장, 마감 안 됨)도 같이
@@ -2341,6 +2341,8 @@ const menu = items => sheet(`<div class="menu">${items}</div><div class="menu"><
 function openMenu() {
   menu(`<button class="menu-item" onclick="closeSheet();renderSetup(false)">${t('프로필 편집')}</button>
         ${GACHA_ON ? '<button class="menu-item" onclick="closeSheet();openCloset()">🎨 꾸미기</button><button class="menu-item" onclick="closeSheet();openGacha()">🎁 뽑기</button>' : ''}
+        <button class="menu-item" onclick="closeSheet();setTimeout(openCreateGroup,250)">${t('👥 그룹 만들기')}</button>
+        <button class="menu-item" onclick="closeSheet();withMyFeed(null, 'groups')">${t('내 그룹')}</button>
         <button class="menu-item" onclick="closeSheet();setTimeout(openInvite,250)">${t('💌 친구 초대하기')}</button>
         <button class="menu-item" onclick="closeSheet();withMyFeed(null, 'friends')">${t('친구 목록')}</button>
         <button class="menu-item" onclick="closeSheet();withMyFeed(shareFeed)">${t('내 피드 링크 공유')}</button>

@@ -555,5 +555,8 @@
  "{n}님이 '{g}' 그룹 참여를 신청했어요": "{n} asked to join “{g}”",
  "그룹을 팔로우하거나 멤버가 되면 꾸밀 수 있어요": "Follow or join the group to decorate",
  "참여 중": "Joined",
- "맨 위에 고정했어요": "Pinned to top"
+ "맨 위에 고정했어요": "Pinned to top",
+ "👥 그룹 만들기": "👥 Create a group",
+ "내 그룹": "My groups",
+ "👥 새 그룹 만들기": "👥 New group"
 };
