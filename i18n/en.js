@@ -629,5 +629,8 @@
  "이 게시물은 스티커가 꽉 찼어요({n}개)": "This post is full of stickers ({n})",
  "스티커를 붙일 수 없어요(한 게시물에 1개, 전체 100개까지예요)": "Can't add the sticker (1 per person, 100 per post)",
  "비공개로 바꿨어요. 내가 친구로 추가한 사람만 볼 수 있어요": "Your feed is now private. Only friends you've added can see it",
- "전체 공개로 바꿨어요": "Your feed is now public"
+ "전체 공개로 바꿨어요": "Your feed is now public",
+ "끌어서 순서 바꾸기": "Drag to reorder",
+ "비공개 그룹": "Private groups",
+ "공개 그룹": "Public groups"
 };

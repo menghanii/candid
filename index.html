@@ -273,6 +273,15 @@
   .frow .av.xs { width:44px; height:44px; }
   .frow small { display:block; color:var(--sub); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .frow .btn { flex:none; padding:8px 14px; font-size:13px; }
+  /* 순서 바꾸기 손잡이(≡) */
+  .frow .dh { flex:none; width:40px; height:44px; margin:0 -8px 0 -4px; display:flex; align-items:center; justify-content:center; border:0; background:none; color:var(--sub); touch-action:none; cursor:grab; -webkit-tap-highlight-color:transparent; }
+  .frow .dh svg { width:22px; height:22px; }
+  .flist.sorting { user-select:none; -webkit-user-select:none; }
+  .frow.dragging { position:relative; z-index:5; background:var(--card); border-radius:14px; box-shadow:0 10px 28px rgba(0,0,0,.28); border-bottom-color:transparent; transition:box-shadow .15s; }
+  .frow.dragging .dh { cursor:grabbing; color:var(--accent); }
+  .gsec { display:flex; align-items:center; gap:6px; padding:18px 20px 0; font-size:13px; color:var(--sub); }
+  .gsec b { color:var(--fg); font-size:14px; }
+  .gsec svg { width:16px; height:16px; }
   /* 댓글 */
   .clist { min-height:120px; }
   .crow { display:flex; gap:10px; padding:10px 0; font-size:14px; line-height:1.45; }
@@ -730,7 +739,7 @@
   .carwrap { position:relative; }
   .car { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; overscroll-behavior-x:contain; }
   .car::-webkit-scrollbar { display:none; }
-  .slide { flex:0 0 100%; scroll-snap-align:center; scroll-snap-stop:always; }
+  .slide { flex:0 0 100%; scroll-snap-align:start; scroll-snap-stop:always; }
   .stage { position:relative; container-type:inline-size; overflow:hidden; }
   .stage > img, .stage > video { display:block; width:100%; aspect-ratio:4/5; object-fit:cover; background:var(--soft); }
   .car-n { position:absolute; top:12px; right:12px; padding:4px 10px; border-radius:999px; background:rgba(0,0,0,.55); color:#fff; font-size:12px; font-weight:700; z-index:2; }
@@ -755,6 +764,10 @@
   .grid .stk-layer .pst { pointer-events:none; }
   /* 상세 화면 */
   .post-media .stage > img, .post-media .stage > video { aspect-ratio:4/5; }
+  /* 게시물 크게 보기: 원본 비율 그대로(잘림 없음). 너무 긴 사진은 화면 높이 72% 안에 맞추고 양옆은 검은 여백 */
+  .post-media .slide, .post-media .carwrap:not(.multi) { display:flex; align-items:center; justify-content:center; background:#000; }
+  .post-media .stage.fit { width:min(100%, calc(72dvh * var(--ar))); }
+  .post-media .stage.fit > img, .post-media .stage.fit > video { aspect-ratio:var(--ar); object-fit:cover; }
   /* 릴스: 4:5 사진 영역을 가운데에, 스티커 위치가 그리드·상세와 똑같이 보이도록 */
   .rcar { position:absolute; inset:0; display:flex; align-items:center; }
   .rcar .carwrap { width:100%; }
@@ -1055,6 +1068,7 @@ const sv = (d, s = 22, w = 1.6) => `<svg width="${s}" height="${s}" viewBox="0 0
 // 글자 사이에 넣는 작은 아이콘(글자 크기·색을 따라감). 앱 안에서는 이모지 대신 이것을 씀
 const ii = d => `<svg class="ii" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const II = {
+  grip: ii('<path d="M5 8h14M5 12h14M5 16h14"/>'),
   lock: ii('<rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
   globe: ii('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/>'),
   clock: ii('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
@@ -1265,7 +1279,7 @@ async function boot() {
         myProf = r.data;
         // 푸시 알림을 내 언어로 받도록 프로필에 지금 언어 저장(17 SQL 전이면 조용히 무시)
         if (myProf && 'lang' in myProf && myProf.lang !== LANG && !DEMO) sb.from('profiles').update({ lang: LANG }).eq('id', me.id).then(() => {}, () => {});
-        await Promise.all([loadFollows(), loadMyGroups().catch(() => {})]);
+        await Promise.all([loadFollows(), loadMyGroups().catch(() => {}), loadOrder()]);
         if (myProf?.onboarded) await applyInvite();
       }
     })(), 10000);
@@ -1850,6 +1864,59 @@ function renderBody() {
 
 // ---------- 친구 ----------
 let myFollows = new Set();
+// ---------- 내 목록 순서(친구·그룹): 손잡이(≡)를 끌어서 바꿈. 이 기기에 바로 저장 + 계정에 저장(21 SQL, 다른 기기와 같게) ----------
+let ORDER = { friends: [], groups: [] };
+const orderKey = () => 'candid_order_' + (me?.id || '');
+function loadOrderLocal() { try { ORDER = { friends: [], groups: [], ...JSON.parse(localStorage.getItem(orderKey()) || '{}') }; } catch {} }
+async function loadOrder() {
+  loadOrderLocal();
+  if (!me || DEMO) return;
+  try { const { data } = await sb.from('user_prefs').select('data').eq('user_id', me.id).maybeSingle(); if (data?.data?.order) { ORDER = { ...ORDER, ...data.data.order }; try { localStorage.setItem(orderKey(), JSON.stringify(ORDER)); } catch {} } } catch {}
+}
+async function saveOrder(kind, ids) {
+  ORDER[kind] = ids;
+  try { localStorage.setItem(orderKey(), JSON.stringify(ORDER)); } catch {}
+  if (!me || DEMO) return;
+  try { await sb.from('user_prefs').upsert({ user_id: me.id, data: { order: ORDER }, updated_at: new Date().toISOString() }); } catch {} // 21 SQL 전이면 이 기기에만
+}
+// 저장한 순서대로. 순서에 없는 것(새로 추가한 친구·그룹)은 맨 위에 기본 정렬로
+function byOrder(list, kind, keyOf = x => x.id) {
+  const pos = new Map((ORDER[kind] || []).map((id, i) => [id, i]));
+  const fresh = list.filter(x => !pos.has(keyOf(x))), known = list.filter(x => pos.has(keyOf(x))).sort((a, b) => pos.get(keyOf(a)) - pos.get(keyOf(b)));
+  return [...fresh, ...known];
+}
+// 목록 끌어서 순서 바꾸기: 각 줄([data-key]) 오른쪽 손잡이(.dh)를 누른 채 위아래로
+function sortable(list, onDone) {
+  list.querySelectorAll('.dh').forEach(h => h.addEventListener('pointerdown', e => {
+    const row = h.closest('[data-key]'); if (!row || row.parentElement !== list) return;
+    e.preventDefault(); h.setPointerCapture(e.pointerId);
+    const before = [...list.children].map(x => x.dataset.key);
+    const grab = e.clientY - row.getBoundingClientRect().top; let ty = 0, lastY = e.clientY, raf = 0;
+    row.classList.add('dragging'); list.classList.add('sorting'); navigator.vibrate?.(8);
+    const place = () => {
+      const y = lastY;
+      let next = row.nextElementSibling, prev = row.previousElementSibling;
+      while (next && y > next.getBoundingClientRect().top + next.offsetHeight / 2) { list.insertBefore(next, row); next = row.nextElementSibling; }
+      while (prev && y < prev.getBoundingClientRect().top + prev.offsetHeight / 2) { list.insertBefore(row, prev); prev = row.previousElementSibling; }
+      const top = row.getBoundingClientRect().top - ty; ty = y - grab - top; row.style.transform = `translateY(${ty}px)`;
+    };
+    const edge = () => { // 화면 위·아래 끝에 가까우면 천천히 스크롤
+      const vh = innerHeight, d = lastY < 90 ? -8 : lastY > vh - 110 ? 8 : 0;
+      if (d) { scrollBy(0, d); place(); } raf = requestAnimationFrame(edge);
+    };
+    raf = requestAnimationFrame(edge);
+    const move = ev => { lastY = ev.clientY; place(); };
+    const up = () => {
+      cancelAnimationFrame(raf); h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up);
+      row.classList.remove('dragging'); list.classList.remove('sorting'); row.style.transform = '';
+      const after = [...list.children].map(x => x.dataset.key);
+      if (after.join() !== before.join()) onDone(after);
+    };
+    h.addEventListener('pointermove', move); h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
+  }));
+}
+const dragHandle = () => `<button class="dh" aria-label="${t('끌어서 순서 바꾸기')}" onclick="event.preventDefault()">${II.grip}</button>`;
+
 async function loadFollows() {
   myFollows = new Set();
   if (!me) return;
@@ -1942,20 +2009,21 @@ async function renderFriendsTab($b) {
   if (error) return $b.innerHTML = `<div class="empty"><p>${esc(kerr(error))}</p></div>`;
   const byId = new Map(data.map(p => [p.id, p]));
   const row = (p, on) => `
-    <div class="frow"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b><small>${p.handle ? `@${esc(p.handle)}` : ''}${p.handle && p.bio ? ' · ' : ''}${esc(p.bio || '')}</small></span></a>
-      <button class="btn${on ? '' : ' add'}" onclick="toggleFollow('${p.id}', this)">${on ? folLabel(true) : t('맞친구')}</button></div>`;
+    <div class="frow" data-key="${p.id}"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b><small>${p.handle ? `@${esc(p.handle)}` : ''}${p.handle && p.bio ? ' · ' : ''}${esc(p.bio || '')}</small></span></a>
+      <button class="btn${on ? '' : ' add'}" onclick="toggleFollow('${p.id}', this)">${on ? folLabel(true) : t('맞친구')}</button>${on ? dragHandle() : ''}</div>`;
   const backList = back.map(id => byId.get(id)).filter(Boolean);
   const backHTML = backList.length ? `<div class="fhead"><b>${t('나를 추가한 친구 {n}', { n: backList.length })}</b></div>
     <p class="hint" style="padding:0 20px 8px">${myProf?.is_private ? t('내 피드는 비공개라, 나도 추가해야 이 친구가 내 피드를 볼 수 있어요.') : t('나도 추가하면 이 친구의 새 사진이 릴스에 떠요.')}</p>
     <div class="flist">${backList.map(p => row(p, false)).join('')}</div><div style="height:12px"></div>` : '';
-  const mine = ids.map(id => byId.get(id)).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  const mine = byOrder(ids.map(id => byId.get(id)).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name, 'ko')), 'friends');
   if (!mine.length) {
     $b.innerHTML = backHTML + `<div class="empty"><div class="empty-dot">${DOT('look', { cls: 'blink' })}</div><h2>No friends, <em>yet.</em></h2><p>${t('오른쪽 위 {i}에서 이름으로 친구를 찾아 추가해 보세요.<br>추가한 친구의 새 사진이 릴스에 떠요.', { i: II.search })}</p>
       <button class="btn primary block" onclick="openSearch()">${t('친구 찾기')}</button><div style="height:8px"></div><button class="btn block" onclick="openInvite()">${t('앱에 친구 초대하기')}</button></div>`;
     return;
   }
   const head = `<div class="fhead"><b>${t('내 친구 {n}', { n: mine.length })}</b><div style="flex:1"></div><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px" onclick="openSearch()">${t('+ 친구 찾기')}</button><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px;margin-left:6px" onclick="openInvite()">${t('초대')}</button></div>`;
-  $b.innerHTML = backHTML + head + `<div class="flist">${mine.map(p => row(p, true)).join('')}</div>`;
+  $b.innerHTML = backHTML + head + `<div class="flist" id="myfr">${mine.map(p => row(p, true)).join('')}</div>`;
+  sortable($b.querySelector('#myfr'), ids => saveOrder('friends', ids));
 }
 
 // ---------- 친구 검색 (검색어가 없으면 내 친구 목록) ----------
@@ -2415,6 +2483,7 @@ function openPost(id) {
   document.body.appendChild(ov);
   if (p.status === 'approved') { loadSocial([p.id]).then(() => paintSoc(p.id)).catch(() => {}); mountComments(ov.querySelector('.pcmts'), p.id, gp ? gg?.owner_id : p.owner_id); }
   if (p.status === 'approved') loadStickers([p.id]).then(() => refreshStickerLayers(p.id)).catch(() => {});
+  ov.querySelectorAll('.post-media .stage').forEach(watchReelRatio); // 잘리지 않게 원본 비율로
   initCarousels(ov, () => true);
   cardDots(ov);
   ov.querySelector('video')?.play().catch(() => {});
@@ -3408,6 +3477,15 @@ function initCarousels(root, autoplay) {
   root.querySelectorAll('[data-car]').forEach(car => {
     const w = car.closest('.carwrap');
     let last = 0;
+    // 항상 첫 장부터: 사진이 늦게 불러와져 칸 크기가 바뀌면 iPhone 은 다른 장으로 맞춰 버림(scroll-snap 재정렬)
+    // → 사용자가 직접 넘기기 전까지는 크기가 바뀔 때마다 첫 장으로 되돌림
+    let touched = false;
+    const mark = () => { touched = true; };
+    ['pointerdown', 'touchstart', 'wheel', 'keydown'].forEach(ev => car.addEventListener(ev, mark, { passive: true, once: true }));
+    const first = () => { if (!touched && car.scrollLeft) car.scrollLeft = 0; };
+    first(); requestAnimationFrame(first); setTimeout(first, 150); setTimeout(first, 500);
+    car.querySelectorAll('img, video').forEach(m => m.addEventListener(m.tagName === 'IMG' ? 'load' : 'loadedmetadata', first, { once: true }));
+    if (window.ResizeObserver) new ResizeObserver(first).observe(car);
     car.addEventListener('scroll', () => {
       const i = Math.round(car.scrollLeft / car.clientWidth); if (i === last) return; last = i;
       w.dataset.idx = i;
@@ -3768,7 +3846,7 @@ async function loadMyGroups(force) {
   MYG.groups = groups; MYG.ok = true; MYG.at = Date.now();
   return MYG;
 }
-const myGroupList = () => [...MYG.groups.values()].sort((a, b) => (gRole(b.id) === 'owner') - (gRole(a.id) === 'owner') || a.name.localeCompare(b.name, 'ko'));
+const myGroupList = () => byOrder([...MYG.groups.values()].sort((a, b) => (gRole(b.id) === 'owner') - (gRole(a.id) === 'owner') || a.name.localeCompare(b.name, 'ko')), 'groups');
 
 // 로그인 안 한 사람이 그룹에서 참여·업로드를 누르면: 로그인 후 이 화면으로 돌아오게
 function loginSheet(msg) {
@@ -4296,9 +4374,15 @@ async function renderGroupsTab($b) {
     return;
   }
   const sub = g => { const r = gRole(g.id); return r === 'owner' ? II.crown + ' ' + t('방장') : r === 'member' ? t('참여 중') : r === 'pending' ? II.clock + ' ' + t('승인 대기') : t('팔로잉'); };
+  const row = g => `<div class="frow" data-key="${g.id}"><a href="${gUrl(g)}">${gAv(g, 'xs')}<span><b>${esc(g.name)}</b><small>${sub(g)}${g.closed ? ' · ' + t('업로드 마감') : ''} · ${t('멤버 {n}명', { n: g.member_count })}</small></span></a>
+      ${canPostTo(g) ? `<button class="btn" onclick="composeToGroup(MYG.groups.get('${g.id}'))">${t('올리기')}</button>` : ''}${dragHandle()}</div>`;
+  const pub = list.filter(g => g.visibility === 'public'), pri = list.filter(g => g.visibility !== 'public');
+  const sec = (id, icon, title, arr) => arr.length ? `<div class="gsec">${icon}<b>${title}</b><span>${arr.length}</span></div><div class="flist" id="${id}">${arr.map(row).join('')}</div>` : '';
   $b.innerHTML = `<div class="fhead"><b>${t('내 그룹 {n}', { n: list.length })}</b><div style="flex:1"></div><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px" onclick="openCreateGroup()">${t('+ 만들기')}</button><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px;margin-left:6px" onclick="openSearch()">${t('찾기')}</button></div>
-    <div class="flist">${list.map(g => `<div class="frow"><a href="${gUrl(g)}">${gAv(g, 'xs')}<span><b>${esc(g.name)}</b><small>${sub(g)} · ${gBadge(g)} · ${t('멤버 {n}명', { n: g.member_count })}</small></span></a>
-      ${canPostTo(g) ? `<button class="btn" onclick="composeToGroup(MYG.groups.get('${g.id}'))">${t('올리기')}</button>` : ''}</div>`).join('')}</div>`;
+    ${sec('gpri', II.lock, t('비공개 그룹'), pri)}${sec('gpub', II.globe, t('공개 그룹'), pub)}`;
+  // 순서는 비공개·공개 각각 끌어서 바꾸고, 저장은 한 목록으로(비공개 → 공개)
+  const save = () => saveOrder('groups', [...$b.querySelectorAll('#gpri [data-key], #gpub [data-key]')].map(x => x.dataset.key));
+  ['#gpri', '#gpub'].forEach(sel => { const l = $b.querySelector(sel); if (l) sortable(l, save); });
 }
 
 // ---------- 이미지 ----------
