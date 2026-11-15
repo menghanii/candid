@@ -3177,6 +3177,8 @@ const INVITE = (() => {
   if (v && /^[A-Za-z0-9_-]{3,40}$/.test(v)) { try { localStorage.setItem('candid_invite', v); } catch {} return v; }
   return null;
 })();
+// 공유 메시지 + 링크: 줄바꿈 없이 한 칸 띄워 이어 붙임(카톡에서 메시지 바로 뒤에 링크)
+const withLink = (msg, url) => `${msg.trim()} ${url}`;
 const inviteUrl = () => `${SITE}${location.pathname}?invite=${encodeURIComponent(myProf?.handle || me.id)}`;
 async function findInviter(key) {
   const isId = /^[0-9a-f-]{36}$/i.test(key);
@@ -3211,7 +3213,7 @@ async function applyInvite() {
 // 초대 보내기
 function openInvite() {
   if (!me) return;
-  const msg = t('candid. 같이 하자! 📸\n친구들이 내 피드를 채워주는 앱이야. 링크 누르면 바로 설치할 수 있어');
+  const msg = t('candid. 같이 하자! 📸\n친구들이 내 피드를 채워주는 앱이야. 링크 누르면 바로 설치할 수 있어!');
   const w = sheet(`
     <h3>Invite friends<i class="pd">.</i></h3>
     <p class="hint">${t('링크를 받은 친구는 바로 앱을 설치할 수 있고, 가입하면 자동으로 나와 친구가 돼요.')}</p>
@@ -3223,11 +3225,11 @@ function openInvite() {
     </div>`);
   const text = () => w.querySelector('#imsg').value;
   w.querySelector('#icopy').onclick = async () => {
-    try { await navigator.clipboard.writeText(`${text()}\n${inviteUrl()}`); toast(t('복사했어요. 카톡에 붙여넣어 보내세요')); closeSheet(); }
-    catch { prompt(t('이 내용을 복사해서 보내 주세요'), `${text()}\n${inviteUrl()}`); }
+    try { await navigator.clipboard.writeText(withLink(text(), inviteUrl())); toast(t('복사했어요. 카톡에 붙여넣어 보내세요')); closeSheet(); }
+    catch { prompt(t('이 내용을 복사해서 보내 주세요'), withLink(text(), inviteUrl())); }
   };
   const n = w.querySelector('#inative');
-  if (n) n.onclick = () => navigator.share({ title: 'candid.', text: text(), url: inviteUrl() }).then(closeSheet).catch(() => {});
+  if (n) n.onclick = () => navigator.share({ title: 'candid.', text: withLink(text(), inviteUrl()) }).then(closeSheet).catch(() => {});
 }
 
 // ---------- 가입 직후 홈 화면 추가 ----------
@@ -3855,7 +3857,7 @@ function shareFeed() {
   let mi = 0;
   const name = S.prof.name;
   const url = () => `${shareUrl(S.prof)}&m=${mi}`;
-  const msgFor = i => t("내 피드 좀 채워줘 🙏\n네 폰에 있는 내 '{m}' 하나만 보내줘! 로그인 없이 10초면 돼", { m: t(MISSIONS[i]) });
+  const msgFor = i => t("내 피드 좀 채워줘 🙏\n네 폰에 있는 내 '{m}' 하나만 보내줘! 로그인 없이 10초면 돼!", { m: t(MISSIONS[i]) });
   const w = sheet(`
     <h3>Ask your friends<i class="pd">.</i></h3>
     <p class="hint">${t('무엇을 부탁할지 고르면 메시지를 만들어 드려요. 받은 친구는 로그인 없이 바로 보낼 수 있어요.')}</p>
@@ -3875,11 +3877,11 @@ function shareFeed() {
     mi = +c.dataset.i; $msg.value = msgFor(mi);
   });
   w.querySelector('#copy').onclick = async () => {
-    try { await navigator.clipboard.writeText(`${$msg.value}\n${url()}`); toast(t('메시지와 링크를 복사했어요. 카톡에 붙여넣어 보세요')); closeSheet(); }
-    catch { prompt(t('이 내용을 복사해서 보내 주세요'), `${$msg.value}\n${url()}`); }
+    try { await navigator.clipboard.writeText(withLink($msg.value, url())); toast(t('메시지와 링크를 복사했어요. 카톡에 붙여넣어 보세요')); closeSheet(); }
+    catch { prompt(t('이 내용을 복사해서 보내 주세요'), withLink($msg.value, url())); }
   };
   const n = w.querySelector('#native');
-  if (n) n.onclick = () => navigator.share({ title: 'candid.', text: $msg.value, url: url() }).then(closeSheet).catch(() => {});
+  if (n) n.onclick = () => navigator.share({ title: 'candid.', text: withLink($msg.value, url()) }).then(closeSheet).catch(() => {});
 }
 
 // ---------- 그룹 (공유 앨범) ----------
@@ -4224,7 +4226,7 @@ async function openGroupInvite(justMade) {
     if (error) return toast(gErr(error));
     url = gInviteUrl(data);
   }
-  const msg = t("'{name}' 앨범에 초대할게! 📸\n찍은 사진 여기 다 같이 모으자", { name: g.name });
+  const msg = t("'{name}' 앨범에 초대할게! 📸\n찍은 사진 여기 다 같이 모으자!", { name: g.name });
   const w = sheet(`<h3>${justMade ? 'Invite members' : 'Invite'}<i class="pd">.</i></h3>
     <p class="hint">${needsCode ? t('링크를 받은 사람이 참여를 신청하면, 방장이 승인한 뒤에 들어올 수 있어요.') : t('링크를 받은 사람은 참여하기 한 번이면 바로 멤버가 돼요.')}</p>
     <div class="label">MESSAGE</div>
@@ -4236,11 +4238,11 @@ async function openGroupInvite(justMade) {
     </div>`);
   const text = () => w.querySelector('#gimsg').value;
   w.querySelector('#gicopy').onclick = async () => {
-    try { await navigator.clipboard.writeText(`${text()}\n${url}`); toast(t('복사했어요. 카톡에 붙여넣어 보내세요')); closeSheet(); }
-    catch { prompt(t('이 내용을 복사해서 보내 주세요'), `${text()}\n${url}`); }
+    try { await navigator.clipboard.writeText(withLink(text(), url)); toast(t('복사했어요. 카톡에 붙여넣어 보내세요')); closeSheet(); }
+    catch { prompt(t('이 내용을 복사해서 보내 주세요'), withLink(text(), url)); }
   };
   const n = w.querySelector('#ginative');
-  if (n) n.onclick = () => navigator.share({ title: g.name, text: text(), url }).then(closeSheet).catch(() => {});
+  if (n) n.onclick = () => navigator.share({ title: g.name, text: withLink(text(), url) }).then(closeSheet).catch(() => {});
   const rg = w.querySelector('#giregen');
   if (rg) rg.onclick = async () => {
     if (!confirm(t('새 링크를 만들면 지금까지 보낸 초대 링크로는 더 이상 신청할 수 없어요. 만들까요?'))) return;
