@@ -1266,6 +1266,8 @@ const sb = DEMO ? demoClient() : (window.supabase ? supabase.createClient(cfg.SU
 // 그 밖(workers.dev·로컬)에서는 캐시가 안 되므로 Supabase 주소 그대로. 외부 주소(데모 친구 사진)도 그대로
 const MEDIA_PROXY = /(^|\.)candid-feed\.com$/.test(location.hostname) || location.port === '8788';
 const photoUrl = path => /^(https?|data|blob):/.test(path) ? path : MEDIA_PROXY ? `${location.origin}/p/${path}` : sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
+// 밖으로 보내는 링크(카톡 공유·초대)는 항상 새 주소로 — 예전 주소로 설치한 홈 화면 앱에서 공유해도 candid-feed.com 링크가 나감
+const SITE = location.hostname === 'candid.candidcrew.workers.dev' ? 'https://candid-feed.com' : location.origin;
 const feedUrl = id => `${location.origin}${location.pathname}?u=${id}`;
 let me = null, myProf = null;
 
@@ -1363,7 +1365,7 @@ async function renderHandle(h) {
   renderProfile(id);
 }
 // 공유용 짧은 링크: 아이디가 있으면 ?@아이디, 없으면 기존 ?u=ID
-const shareUrl = p => p?.handle ? `${location.origin}${location.pathname}?@${p.handle}` : feedUrl(p.id);
+const shareUrl = p => p?.handle ? `${SITE}${location.pathname}?@${p.handle}` : `${SITE}${location.pathname}?u=${p.id}`;
 
 // ---------- 화면 전환 (페이지 새로고침 없이) ----------
 // 하단 바·링크 이동 때 앱을 다시 불러오지 않고 주소만 바꾼 뒤 화면을 그림 → 로고 로딩 화면이 안 뜸
@@ -2341,7 +2343,7 @@ function decorateFromReel(postId, el) {
   openDecorate(postId, idx);
 }
 function shareOther(uid, handle) {
-  const url = `${handle ? shareUrl({ handle }) : feedUrl(uid)}&m=0`;
+  const url = `${shareUrl(handle ? { handle } : { id: uid })}&m=0`;
   if (navigator.share) return navigator.share({ title: 'candid.', url }).catch(() => {});
   navigator.clipboard.writeText(url).then(() => toast(t('피드 링크를 복사했어요'))).catch(() => prompt(t('이 링크를 복사해 주세요'), url));
 }
@@ -3114,7 +3116,7 @@ const INVITE = (() => {
   if (v && /^[A-Za-z0-9_-]{3,40}$/.test(v)) { try { localStorage.setItem('candid_invite', v); } catch {} return v; }
   return null;
 })();
-const inviteUrl = () => `${location.origin}${location.pathname}?invite=${encodeURIComponent(myProf?.handle || me.id)}`;
+const inviteUrl = () => `${SITE}${location.pathname}?invite=${encodeURIComponent(myProf?.handle || me.id)}`;
 async function findInviter(key) {
   const isId = /^[0-9a-f-]{36}$/i.test(key);
   const { data } = await sb.from('profiles').select('id, name, handle, avatar_url').eq(isId ? 'id' : 'handle', isId ? key : key.toLowerCase()).maybeSingle();
@@ -3169,7 +3171,7 @@ function openInvite() {
 
 // ---------- 가입 직후 홈 화면 추가 ----------
 // 카톡 안에서 가입 → 버튼 하나로 Safari·Chrome 을 열고(?install=1) 거기서 큰 설치 안내
-const installUrl = () => `${location.origin}${location.pathname}?install=1${INVITE ? `&invite=${encodeURIComponent(INVITE)}` : ''}`;
+const installUrl = () => `${SITE}${location.pathname}?install=1${INVITE ? `&invite=${encodeURIComponent(INVITE)}` : ''}`;
 function afterSignup() {
   applyInvite().then(ok => { if (ok) loadFollows(); });
   if (!DEMO && (installed() || !isIOS)) setTimeout(autoPush, 1500); // 앱에서 막 가입: 바로 알림 켜기 권유
@@ -3827,7 +3829,7 @@ const GROUP_MAX = 99, PIN_MAX = 9, GROUP_OWN_MAX = 10;
 const G = { g: null, posts: [], mem: null, fol: null, pendingN: 0, key: null };
 const MYG = { groups: new Map(), mem: new Map(), fol: new Map(), ok: null, at: 0 }; // 내가 멤버·신청·팔로우한 그룹
 const gUrl = g => `${location.origin}${location.pathname}?g=${g.handle}`;
-const gInviteUrl = code => `${location.origin}${location.pathname}?gi=${code}`;
+const gInviteUrl = code => `${SITE}${location.pathname}?gi=${code}`;
 // 그룹 표지: 대표 사진 > 최근 사진 모자이크(4장 이상 2×2, 1~3장은 최신 1장) > 첫 글자
 const GTHUMBS = new Map(); // group_id → 최근 사진 썸네일 경로들
 const gAv = (g, cls = '') => {
@@ -4014,7 +4016,7 @@ async function toggleGroupNotify() {
   if (on && !DEMO && await pushState().catch(() => 'off') !== 'on') setTimeout(openPush, 400); // 기기 알림이 꺼져 있으면 켜기 안내
 }
 function shareGroupLink() {
-  const g = G.g, url = gUrl(g);
+  const g = G.g, url = `${SITE}${location.pathname}?g=${g.handle}`;
   if (g.visibility === 'private') return openGroupInvite();
   if (navigator.share) return navigator.share({ title: g.name, url }).catch(() => {});
   navigator.clipboard.writeText(url).then(() => toast(t('그룹 링크를 복사했어요'))).catch(() => prompt(t('이 링크를 복사해 주세요'), url));
