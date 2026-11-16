@@ -1406,6 +1406,7 @@ function route() {
 // 알림을 눌러 들어온 경우: 서비스 워커가 알려준 주소(그룹·대기 피드·사진)로 이동
 function openFromPush(url) {
   let u; try { u = new URL(url, location.href); } catch { return; }
+  LAST_TOUCH = Date.now(); // 돌아왔을 때의 자동 새로고침이 이동을 덮지 않게
   const target = location.pathname + u.search;
   if (location.pathname + location.search === target) { const pid = u.searchParams.get('p'); if (pid && !document.querySelector('.overlay')) openDeepPost(pid); return; }
   closeSheet(); document.querySelector('.overlay')?.remove();
@@ -1413,9 +1414,19 @@ function openFromPush(url) {
 }
 function listenPushOpen() {
   if (!('serviceWorker' in navigator) || listenPushOpen.on) return; listenPushOpen.on = true;
-  navigator.serviceWorker.addEventListener('message', e => { if (e.data?.type === 'candid-open') openFromPush(e.data.url); });
-  navigator.serviceWorker.ready.then(r => (navigator.serviceWorker.controller || r.active)?.postMessage('candid-pending?')).catch(() => {});
+  navigator.serviceWorker.addEventListener('message', e => { if (e.data?.type === 'candid-open') { clearPushPending(); openFromPush(e.data.url); } });
+  checkPushPending(); // 알림을 눌러 앱이 새로 켜진 경우
 }
+// 서비스 워커가 저장해 둔 '알림으로 갈 곳'(2분 이내)을 확인하고 한 번만 사용
+async function checkPushPending() {
+  try {
+    if (!window.caches) return;
+    const c = await caches.open('candid-push'), r = await c.match('candid-pending-open'); if (!r) return;
+    const d = await r.json(); await c.delete('candid-pending-open');
+    if (d?.url && Date.now() - d.at < 120000) openFromPush(d.url);
+  } catch {}
+}
+function clearPushPending() { try { window.caches?.open('candid-push').then(c => c.delete('candid-pending-open')); } catch {} }
 // 주소에 ?p=게시물 이 있으면(알림·링크) 화면이 그려진 뒤 그 게시물을 바로 열기
 function openDeepPost(pid) {
   const t0 = Date.now(), iv = setInterval(() => {
@@ -1939,6 +1950,7 @@ function openInbox() {
 let RESUME_T = 0, LAST_TOUCH = 0;
 addEventListener('pointerdown', () => { LAST_TOUCH = Date.now(); }, { passive: true, capture: true });
 function onResume() {
+  if (me) checkPushPending(); // 알림을 눌러 돌아온 경우: 그 화면으로(메시지를 못 받았어도)
   clearTimeout(RESUME_T);
   RESUME_T = setTimeout(() => {
     if (document.visibilityState !== 'visible') return;

@@ -16,13 +16,17 @@ self.addEventListener('push', e => {
 });
 
 // 알림을 누르면 그 내용(그룹·대기 피드·사진)으로 바로
-// iPhone 홈 화면 앱은 열려 있는 창을 다른 주소로 옮기는 기능(navigate)을 지원하지 않아서
-// 열려 있는 앱에는 메시지로 주소를 알려 앱이 직접 이동, 새로 켜지는 앱은 시작할 때 물어보면 알려줌
-let PENDING = null;
+//  · 알림 링크는 새 주소(candid-feed.com)로 오지만, 홈 화면 앱이 예전 주소로 설치돼 있을 수 있음 → 이 앱의 주소로 바꿔서 연다
+//    (다른 주소로 열면 앱이 아니라 Safari 에서, 로그인 안 된 채로 열림)
+//  · iPhone 은 열려 있는 창을 다른 주소로 옮기는 기능(navigate)이 없음 → 앱에 메시지로 알려 앱이 직접 이동
+//  · 앱이 꺼져 있었거나 잠들어 메시지를 못 받을 수 있음 → '갈 곳'을 저장소(Cache)에 남겨 두고, 앱이 켜지거나 돌아올 때 확인
+const PENDING_KEY = 'candid-pending-open';
 self.addEventListener('notificationclick', e => {
   e.notification.close();
-  const url = e.notification.data && e.notification.data.url || self.registration.scope;
+  let url = e.notification.data && e.notification.data.url || self.registration.scope;
+  try { const u = new URL(url, self.registration.scope); url = new URL(u.search || '', self.registration.scope).href; } catch (_) { url = self.registration.scope; }
   e.waitUntil((async () => {
+    try { const c = await caches.open('candid-push'); await c.put(PENDING_KEY, new Response(JSON.stringify({ url, at: Date.now() }))); } catch (_) {}
     const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const w = wins.find(x => x.url.startsWith(self.registration.scope));
     if (w) {
@@ -30,12 +34,6 @@ self.addEventListener('notificationclick', e => {
       w.postMessage({ type: 'candid-open', url });
       return;
     }
-    PENDING = { url, at: Date.now() };
     return self.clients.openWindow(url);
   })());
-});
-self.addEventListener('message', e => {
-  if (e.data !== 'candid-pending?') return;
-  if (PENDING && Date.now() - PENDING.at < 60000 && e.source) e.source.postMessage({ type: 'candid-open', url: PENDING.url });
-  PENDING = null;
 });
