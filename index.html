@@ -322,7 +322,10 @@
   .ph-name, .c-name, .rname { color:inherit; text-decoration:none; }
   .ph-name:active, .c-name:active, .rname:active { opacity:.6; }
   img.lq { filter:blur(.4px); transition:filter .2s; }
-  .post-media .stage { touch-action:pan-x pan-y; } /* 두 손가락 확대는 화면이 아니라 사진에 */
+  .post-media .stage, .rcar .stage { touch-action:pan-x pan-y; } /* 두 손가락 확대는 화면이 아니라 사진에 */
+  .rcar .stage > img, .rcar .stage > video { transform-origin:center center; }
+  .rcar .stage.pinching { overflow:visible; z-index:30; } /* 릴스: 벌리는 동안 사진이 화면 위로 커짐 */
+  .rcar .stage.pinching .stk-layer, .rcar .stage.zoomed .stk-layer { opacity:0; }
   .post-media .stage.zoomed { touch-action:none; z-index:5; }
   .post-media .stage > img { transform-origin:center center; will-change:transform; }
   .post-media .stage.zoomed .stk-layer { opacity:0; transition:opacity .15s; }
@@ -2611,6 +2614,7 @@ function paintHome({ posts, owners, groups }) {
     v.preload = 'auto'; v.muted = muted; v.play().catch(() => {});
   }), { threshold: 0.6 });
   initCarousels(document.getElementById('reels'), () => true);
+  document.querySelectorAll('#reels .rcar .stage').forEach(st => enableZoom(st, { snap: true })); // 사진만 잠깐 확대
   document.querySelectorAll('.rcar .stage').forEach(watchReelRatio);
   cardDots(document.getElementById('reels'));
   document.querySelectorAll('.reel[data-id]').forEach(r => {
@@ -3842,8 +3846,9 @@ function mediaEl(m, mode, alt) {
 }
 // 사진만 확대(게시물 크게 보기): 두 손가락 벌리기(최대 4배) · 확대 중 한 손가락으로 이동 · 두 번 톡 = 2.5배/원래대로
 // 화면 전체 확대는 막고(touch-action), 확대 중에는 좌우 넘기기를 멈춤. 스티커는 확대 중 잠깐 숨김
-function enableZoom(stage) {
-  const img = stage.querySelector('img'); if (!img || stage._zoom) return; stage._zoom = true;
+// snap: 릴스용 — 두 손가락으로 벌리는 동안만 커지고 손을 떼면 원래대로(위아래 넘기기·두 번 톡 좋아요와 겹치지 않게)
+function enableZoom(stage, { snap = false } = {}) {
+  const img = stage.querySelector(snap ? 'img, video' : 'img'); if (!img || stage._zoom) return; stage._zoom = true;
   let s = 1, tx = 0, ty = 0, g = null, pan = null, lastTap = 0, moved = false;
   const pts = new Map(), car = stage.closest('[data-car]');
   const center = () => { const r = stage.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height }; };
@@ -3858,7 +3863,8 @@ function enableZoom(stage) {
   stage.addEventListener('pointerdown', e => {
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = false;
     if (pts.size === 2) { const [a, b] = [...pts.values()]; g = { d: Math.hypot(a.x - b.x, a.y - b.y), s0: s, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 }; pan = null; stage.setPointerCapture?.(e.pointerId); }
-    else if (pts.size === 1 && s > 1.01) { pan = { x: e.clientX, y: e.clientY, tx0: tx, ty0: ty }; stage.setPointerCapture?.(e.pointerId); }
+    else if (!snap && pts.size === 1 && s > 1.01) { pan = { x: e.clientX, y: e.clientY, tx0: tx, ty0: ty }; stage.setPointerCapture?.(e.pointerId); }
+    if (snap && pts.size === 2) stage.classList.add('pinching');
   });
   stage.addEventListener('pointermove', e => {
     if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -3866,7 +3872,7 @@ function enableZoom(stage) {
       e.preventDefault(); moved = true;
       const [a, b] = [...pts.values()], d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
       zoomAt(Math.max(1, Math.min(4, g.s0 * d / g.d)), mx, my);
-      tx += mx - g.mx; ty += my - g.my; g.mx = mx; g.my = my; clamp(); apply(false);
+      tx += mx - g.mx; ty += my - g.my; g.mx = mx; g.my = my; if (!snap) clamp(); apply(false);
     } else if (pan) {
       e.preventDefault(); if (Math.abs(e.clientX - pan.x) + Math.abs(e.clientY - pan.y) > 4) moved = true;
       tx = pan.tx0 + e.clientX - pan.x; ty = pan.ty0 + e.clientY - pan.y; clamp(); apply(false);
@@ -3875,6 +3881,9 @@ function enableZoom(stage) {
   const up = e => {
     const was = pts.size; pts.delete(e.pointerId);
     if (pts.size < 2) g = null;
+    if (snap && pts.size < 2 && (s > 1.001 || stage.classList.contains('pinching'))) { // 릴스: 손을 떼면 원래대로
+      reset(); setTimeout(() => stage.classList.remove('pinching'), 230); return;
+    }
     if (!pts.size) {
       pan = null;
       if (s < 1.05) reset();
@@ -3889,7 +3898,7 @@ function enableZoom(stage) {
   img.addEventListener('dragstart', e => e.preventDefault());
 }
 // iPhone Safari: 게시물을 크게 볼 때 화면 전체가 확대되지 않게(사진 확대는 위 기능으로)
-document.addEventListener('gesturestart', e => { if (document.querySelector('.overlay')) e.preventDefault(); });
+document.addEventListener('gesturestart', e => { if (document.querySelector('.overlay, .reels')) e.preventDefault(); });
 // 썸네일 → 원본 교체: 지금 보이는 장과 다음 장만(나머지는 넘길 때)
 function upgradeFull(root, idx = 0) {
   const slides = root.querySelectorAll('.slide');
