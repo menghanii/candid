@@ -318,6 +318,9 @@
   .flist.sorting { user-select:none; -webkit-user-select:none; }
   .frow.dragging { position:relative; z-index:5; background:var(--card); border-radius:14px; box-shadow:0 10px 28px rgba(0,0,0,.28); border-bottom-color:transparent; transition:box-shadow .15s; }
   .frow.dragging .dh { cursor:grabbing; color:var(--accent); }
+  .ph-av, .c-av { flex:none; display:block; text-decoration:none; }
+  .ph-name, .c-name, .rname { color:inherit; text-decoration:none; }
+  .ph-name:active, .c-name:active, .rname:active { opacity:.6; }
   .post-c .edited, .crow .edited { color:var(--sub); font-size:11px; }
   .post-c .edited { display:block; margin-top:4px; }
   .epm { display:flex; gap:8px; overflow-x:auto; padding:2px 2px 6px; scrollbar-width:none; }
@@ -1477,7 +1480,9 @@ document.addEventListener('click', e => {
   if (!a || a.target || e.metaKey || e.ctrlKey || e.shiftKey) return;
   const u = new URL(a.href, location.href);
   if (u.origin !== location.origin || u.pathname !== location.pathname) return;
-  e.preventDefault(); go(u.href);
+  e.preventDefault();
+  if (a.closest('.overlay, .sheet-wrap')) { document.querySelector('.overlay')?.remove(); closeSheet(); } // 게시물·시트 안의 링크(작성자·댓글 단 사람 등): 닫고 이동
+  go(u.href);
 });
 
 // ---------- 프로필 설정 (첫 로그인 / 편집) ----------
@@ -2226,7 +2231,7 @@ const openFriends = openSearch;
 // ---------- 좋아요·댓글 (홈 릴스와 게시물 상세에서 공유) ----------
 const SOC = new Map(); // postId → { likes, liked, comments }
 // 게시물 조회 컬럼: select('*') 대신 화면에서 실제 쓰는 칸만 (media jsonb 등 큰 칸이 늘어도 영향 없게)
-const POST_COLS = 'id,owner_id,author_name,mission,text,image_path,thumb_path,media_type,media,poll_options,status,answer,answered_at,approved_at,created_at,hidden_at';
+const POST_COLS = 'id,owner_id,author_id,author_name,mission,text,image_path,thumb_path,media_type,media,poll_options,status,answer,answered_at,approved_at,created_at,hidden_at';
 async function loadSocial(ids) {
   if (!ids.length) return;
   ids.forEach(id => SOC.set(id, { likes: 0, liked: false, comments: 0 }));
@@ -2277,7 +2282,7 @@ function mountComments(w, id, ownerId) {
     if (error) return w.querySelector('[data-cl]').innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
     const s = SOC.get(id); if (s) { s.comments = data.length; paintSoc(id); }
     w.querySelector('[data-cl]').innerHTML = data.length ? data.map(c => `
-      <div class="crow" data-cid="${c.id}">${avatar(c.profiles, 'xs')}<div style="flex:1;min-width:0"><b>${esc(c.profiles?.name || t('친구'))}</b> <small>${ago(c.created_at)}${c.edited_at ? ` · <span class="edited">${t('수정됨')}</span>` : ''}</small><div class="cbody">${esc(c.body)}</div></div>
+      <div class="crow" data-cid="${c.id}"><a href="${feedUrl(c.user_id)}" class="c-av" aria-label="${t('{name} 피드로 가기', { name: esc(c.profiles?.name || t('친구')) })}">${avatar(c.profiles, 'xs')}</a><div style="flex:1;min-width:0"><a href="${feedUrl(c.user_id)}" class="c-name"><b>${esc(c.profiles?.name || t('친구'))}</b></a> <small>${ago(c.created_at)}${c.edited_at ? ` · <span class="edited">${t('수정됨')}</span>` : ''}</small><div class="cbody">${esc(c.body)}</div></div>
         ${me && c.user_id === me.id ? `<button class="cdel" data-edit="${c.id}" aria-label="${t('댓글 수정')}">${t('수정')}</button>` : ''}
         ${me && (c.user_id === me.id || ownerId === me.id) ? `<button class="cdel" data-del="${c.id}" aria-label="${t('댓글 삭제')}">${t('삭제')}</button>` : ''}</div>`).join('')
       : `<p class="hint" style="text-align:center;padding:24px 0">${t('첫 댓글을 남겨 보세요')}</p>`;
@@ -2413,7 +2418,7 @@ function paintHome({ posts, owners, groups }) {
       <div class="rinfo">
 
         ${gg ? `<a class="rgroup" href="${gUrl(gg)}">${gAv(gg, 'xs')}<span>${esc(gg.name)}</span></a>` : ''}
-        <div class="rfrom">${gg ? 'by' : 'from'} <b>${gg ? esc(p.author_name) : aname(p.author_name)}</b> ${p.mission ? `<span class="mchip">${mname(p.mission)}</span>` : ''}</div>
+        <div class="rfrom">${gg ? 'by' : 'from'} ${p.author_id ? `<a class="rname" href="${feedUrl(p.author_id)}"><b>${gg ? esc(p.author_name) : aname(p.author_name)}</b></a>` : `<b>${gg ? esc(p.author_name) : aname(p.author_name)}</b>`} ${p.mission ? `<span class="mchip">${mname(p.mission)}</span>` : ''}</div>
         ${p.text && !isText(p) ? `<div class="rtext">“${esc(p.text)}”</div>` : ''}
         <small>${ago(p.approved_at)}</small>
       </div>
@@ -2628,8 +2633,9 @@ function openPost(id) {
   ov.innerHTML = `
     <article class="post">
       <div class="post-h">
-        <div class="av sm">${esc(p.author_name.slice(0, 1))}</div>
-        <div class="who"><b>${gp ? t('{name}<span style="font-weight:400;color:var(--sub)">님이 올림</span>', { name: esc(p.author_name) }) : t('{name}<span style="font-weight:400;color:var(--sub)">님이 보냄</span>', { name: aname(p.author_name) })}</b>${gp && p.pinned_at ? `<span class="mchip">${II.pin} ${t('고정됨')}</span>` : ''}${p.mission ? `<span class="mchip">${mname(p.mission)}</span>` : ''}</div>
+        ${p.author_id ? `<a class="ph-av" href="${feedUrl(p.author_id)}" aria-label="${t('{name} 피드로 가기', { name: esc(p.author_name) })}"><div class="av sm" data-pav>${esc(p.author_name.slice(0, 1))}</div></a>` : `<div class="av sm">${esc(p.author_name.slice(0, 1))}</div>`}
+        <div class="who"><b>${(() => { const nm = gp ? esc(p.author_name) : aname(p.author_name), n = p.author_id ? `<a class="ph-name" href="${feedUrl(p.author_id)}">${nm}</a>` : nm;
+          return gp ? t('{name}<span style="font-weight:400;color:var(--sub)">님이 올림</span>', { name: n }) : t('{name}<span style="font-weight:400;color:var(--sub)">님이 보냄</span>', { name: n }); })()}</b>${gp && p.pinned_at ? `<span class="mchip">${II.pin} ${t('고정됨')}</span>` : ''}${p.mission ? `<span class="mchip">${mname(p.mission)}</span>` : ''}</div>
         <button class="icon-btn" data-close aria-label="${t('닫기')}">${I.close}</button>
       </div>
       ${gp && p.flagged ? `<div class="gflagnote">${t('신고가 3건 이상 들어와 다른 사람에게는 가려져 있어요.')}${gg?.owner_id === me?.id ? ` <button class="linkish" onclick="unflagPost('${p.id}')">${t('다시 보이게')}</button>` : ''}</div>` : ''}
@@ -2660,6 +2666,7 @@ function openPost(id) {
   if (p.status === 'approved') { loadSocial([p.id]).then(() => paintSoc(p.id)).catch(() => {}); mountComments(ov.querySelector('.pcmts'), p.id, gp ? gg?.owner_id : p.owner_id); }
   if (p.status === 'approved') loadStickers([p.id]).then(() => refreshStickerLayers(p.id)).catch(() => {});
   ov.querySelectorAll('.post-media .stage').forEach(watchReelRatio); // 잘리지 않게 원본 비율로
+  if (p.author_id) loadProfLite(p.author_id).then(pr => { const el = ov.querySelector('[data-pav]'); if (pr && el) el.outerHTML = avatar(pr, 'sm'); }); // 보낸 사람 실제 프로필 사진
   if (p.text && !isText(p) && p.edited_at === undefined) loadEdited(p).then(() => { if (p.edited_at && ov.isConnected && !ov.querySelector('.edited')) ov.querySelector('.post-c')?.insertAdjacentHTML('beforeend', `<small class="edited">${t('수정됨')}</small>`); });
   initCarousels(ov, () => true);
   cardDots(ov);
@@ -3979,7 +3986,7 @@ function shareFeed() {
 // ---------- 그룹 (공유 앨범) ----------
 // 주소: ?g=그룹아이디 (그룹 페이지) · ?gi=초대코드 (초대 링크) — 규칙은 sql/18_groups.sql 맨 위 요약 참고
 const GCOLS = 'id,handle,name,bio,cover_path,owner_id,visibility,join_mode,closed,daily_limit,member_count,follower_count,created_at';
-const GPOST_COLS = POST_COLS + ',group_id,author_id,pinned_at,flagged';
+const GPOST_COLS = POST_COLS + ',group_id,pinned_at,flagged';
 const GROUP_MAX = 99, PIN_MAX = 9, GROUP_OWN_MAX = 10;
 const G = { g: null, posts: [], mem: null, fol: null, pendingN: 0, key: null };
 const MYG = { groups: new Map(), mem: new Map(), fol: new Map(), ok: null, at: 0 }; // 내가 멤버·신청·팔로우한 그룹
@@ -4456,6 +4463,12 @@ function reelMore(id) {
   const o = HOME.owners?.get(p.owner_id);
   menu(`<button class="menu-item" onclick="closeSheet();toggleReelStickers()">${t(HIDE_STK ? '붙은 스티커 보이기' : '붙은 스티커 숨기기')}</button>
     ${p.group_id ? groupPostItems(id) : `<button class="menu-item" onclick="closeSheet();go('${feedUrl(p.owner_id)}')">${t('{name} 피드로 가기', { name: esc(o?.name || t('친구')) })}</button>${isMine(p) ? myPostItems(id) : ''}`}`);
+}
+// 작은 프로필(이름·사진) 한 번 받은 건 기억
+const PROF_LITE = new Map();
+async function loadProfLite(id) {
+  if (!PROF_LITE.has(id)) PROF_LITE.set(id, sb.from('profiles').select('id, name, handle, avatar_url').eq('id', id).maybeSingle().then(r => r.data || null).catch(() => null));
+  return PROF_LITE.get(id);
 }
 // ---------- 내가 보낸(올린) 글 수정 · 친구 피드에 보낸 사진 삭제 (23 SQL) ----------
 const isMine = p => !!me && !!p?.author_id && p.author_id === me.id && !isText(p);
