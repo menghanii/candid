@@ -3179,6 +3179,12 @@ const notiSeen = () => { try { return +localStorage.getItem(notiKey()) || 0; } c
 async function fetchNotis(force) {
   if (!me) return [];
   if (!force && NOTI.items && Date.now() - NOTI.at < 30000) return NOTI.items;
+  // 서버에서 한 번에(26 SQL). 없으면 아래 예전 방식(여러 번 차례로 조회)
+  if (NOTI.rpc !== false) {
+    const { data, error } = await sb.rpc('my_notifications', { p_limit: 60 });
+    if (!error && Array.isArray(data)) return finishNotis(data.map(r => ({ k: r.k, at: r.at, uid: r.uid, body: r.body, post: r.post, group: r.group, prof: r.prof, name: r.nm })));
+    if (error) NOTI.rpc = false; // 26 SQL 전(함수 없음) 등: 예전 방식으로
+  }
   const since = new Date(Date.now() - 30 * 864e5).toISOString();
   const NCOLS = 'id, status, author_name, author_id, mission, media_type, image_path, thumb_path, media, text, created_at';
   const { data: own, error } = await sb.from('posts').select(NCOLS).eq('owner_id', me.id).order('created_at', { ascending: false }).limit(100);
@@ -3217,7 +3223,22 @@ async function fetchNotis(force) {
   const uids = [...new Set(items.map(i => i.uid).filter(Boolean))];
   const profs = new Map();
   if (uids.length) { const { data } = await sb.from('profiles').select('id, name, handle, avatar_url').in('id', uids); (data || []).forEach(p => profs.set(p.id, p)); }
-  items.forEach(i => { i.prof = i.uid ? profs.get(i.uid) : null; i.name = i.prof?.name || (i.name === '익명의 친구' ? t(i.name) : i.name) || t('친구'); });
+  items.forEach(i => { i.prof = i.uid ? profs.get(i.uid) : null; });
+  return finishNotis(items, true);
+}
+// 알림 정리(공통): 스티커는 같은 사람·같은 사진·10분 안이면 하나로, 이름, 최신순 60개, 안 읽은 수
+function finishNotis(raw, grouped) {
+  let items = raw;
+  if (!grouped) {
+    items = []; const grp = new Map();
+    [...raw].sort((a, b) => new Date(b.at) - new Date(a.at)).forEach(r => {
+      if (r.k !== 'sticker') return items.push(r);
+      const key = r.uid + (r.post?.id || ''), g = grp.get(key), ts = new Date(r.at).getTime();
+      if (g && g.first - ts < 6e5) { g.n++; g.first = ts; return; }
+      const it = { ...r, n: 1, first: ts }; grp.set(key, it); items.push(it);
+    });
+  }
+  items.forEach(i => { i.name = i.prof?.name || (i.name === '익명의 친구' ? t(i.name) : i.name) || t('친구'); });
   items.sort((a, b) => new Date(b.at) - new Date(a.at));
   NOTI.items = items.slice(0, 60); NOTI.at = Date.now();
   const seen = notiSeen();
@@ -3243,41 +3264,48 @@ function notiText(i) {
   }
 }
 async function openNotis() {
-  // 검색처럼 위에서 내려오는 패널
+  // 검색처럼 위에서 내려오는 패널. 이미 받아 둔 알림이 있으면 바로 보여주고, 뒤에서 새로 받아 바뀌면 다시 그림
   const el = sheet(`<div class="shead"><h3>Notifications<i class="pd">.</i></h3><button class="icon-btn" aria-label="${t('닫기')}" onclick="closeSheet()">${I.close}</button></div>
     <div class="nlist" id="nl"><p class="hint" style="padding:16px 0">${t('불러오는 중…')}</p></div>`, null, { top: true });
-  let items; try { items = await fetchNotis(true); } catch (e) { return el.querySelector('#nl').innerHTML = `<p class="hint" style="padding:24px 20px">${esc(kerr(e))}</p>`; }
-  if (!el.isConnected) return;
   const seen = notiSeen();
   try { localStorage.setItem(notiKey(), Date.now()); } catch {}
   NOTI.unread = 0; const d = document.getElementById('notidot'); if (d) d.hidden = true;
   const $l = el.querySelector('#nl');
-  if (!items.length) return $l.innerHTML = `<div class="empty-dot" style="margin:8px 0 4px">${DOT('sleepy', { size: 52 })}</div><p class="hint" style="padding:4px 0 20px;text-align:center">${t('아직 알림이 없어요. 친구가 사진을 보내거나 좋아요·댓글·꾸미기를 하면 여기 떠요.')}</p>`;
-  $l.innerHTML = items.map((i, x) => {
-    const p = i.post, thumb = p && !isText(p) && mediaOf(p).length ? `<img class="nthumb" src="${thumbUrl(p)}" alt="" loading="lazy">` : '';
-    const av = i.prof ? avatar(i.prof, 'xs') : `<div class="av xs">${esc((i.name || '?').slice(0, 1))}</div>`;
-    const fol = i.k === 'follow' && !myFollows.has(i.uid) ? `<button class="btn add nfol" data-fol="${i.uid}">${t('맞친구')}</button>` : '';
-    return `<button class="nrow${new Date(i.at).getTime() > seen ? ' new' : ''}" data-i="${x}">${av}<span class="ntx">${notiText(i)}<small>${ago(i.at)}</small></span>${fol || thumb}</button>`;
-  }).join('');
-  $l.querySelectorAll('[data-fol]').forEach(b => b.onclick = e => { e.stopPropagation(); toggleFollow(b.dataset.fol); b.remove(); });
-  $l.querySelectorAll('.nrow').forEach(b => b.onclick = () => {
-    const i = items[+b.dataset.i];
-    if (i.k === 'follow') { closeSheet(); return go(feedUrl(i.uid)); }
-    if (i.k === 'post') { closeSheet(); return openInbox(); }
-    if (i.k === 'gjoin') { closeSheet(); return i.group && go(`${gUrl(i.group)}&manage=1`); }
-    if (!i.post) return toast(t('지금은 볼 수 없는 게시물이에요'));
-    if (i.post.group_id) { // 그룹 사진: 그룹으로 가서 열기
-      const g = MYG.groups.get(i.post.group_id); if (!g) return toast(t('지금은 볼 수 없는 게시물이에요'));
-      closeSheet(); go(gUrl(g));
-      const t0 = Date.now(), iv = setInterval(() => { if (G.g?.id === g.id && document.querySelector('.ghead')) { clearInterval(iv); if (findPost(i.post.id)) openPost(i.post.id); } else if (Date.now() - t0 > 8000) clearInterval(iv); }, 100);
-      return;
-    }
-    closeSheet();
-    withMyFeed(() => {
-      if (!findPost(i.post.id)) return toast(t('지금은 볼 수 없는 게시물이에요'));
-      openPost(i.post.id);
-      if (i.k === 'comment') setTimeout(() => { const c = document.querySelector('.overlay .pbtn[data-cmt]'); if (c) focusPostComments(c); }, 300);
-    });
+  let shown = '';
+  const paint = items => {
+    if (!el.isConnected) return;
+    const sig = items.map(i => i.k + i.at + (i.n || '')).join();
+    if (sig === shown) return; shown = sig;
+    if (!items.length) return $l.innerHTML = `<div class="empty-dot" style="margin:8px 0 4px">${DOT('sleepy', { size: 52 })}</div><p class="hint" style="padding:4px 0 20px;text-align:center">${t('아직 알림이 없어요. 친구가 사진을 보내거나 좋아요·댓글·꾸미기를 하면 여기 떠요.')}</p>`;
+    $l.innerHTML = items.map((i, x) => {
+      const p = i.post, thumb = p && !isText(p) && mediaOf(p).length ? `<img class="nthumb" src="${thumbUrl(p)}" alt="" loading="lazy">` : '';
+      const av = i.prof ? avatar(i.prof, 'xs') : `<div class="av xs">${esc((i.name || '?').slice(0, 1))}</div>`;
+      const fol = i.k === 'follow' && !myFollows.has(i.uid) ? `<button class="btn add nfol" data-fol="${i.uid}">${t('맞친구')}</button>` : '';
+      return `<button class="nrow${new Date(i.at).getTime() > seen ? ' new' : ''}" data-i="${x}">${av}<span class="ntx">${notiText(i)}<small>${ago(i.at)}</small></span>${fol || thumb}</button>`;
+    }).join('');
+    $l.querySelectorAll('[data-fol]').forEach(b => b.onclick = e => { e.stopPropagation(); toggleFollow(b.dataset.fol); b.remove(); });
+    $l.querySelectorAll('.nrow').forEach(b => b.onclick = () => openNoti(items[+b.dataset.i]));
+  };
+  if (NOTI.items) paint(NOTI.items);
+  try { paint(await fetchNotis(true)); }
+  catch (e) { if (!NOTI.items && el.isConnected) $l.innerHTML = `<p class="hint" style="padding:24px 20px">${esc(kerr(e))}</p>`; }
+}
+// 알림 하나를 눌렀을 때: 그 화면·그 게시물로
+function openNoti(i) {
+  if (i.k === 'follow') { closeSheet(); return go(feedUrl(i.uid)); }
+  if (i.k === 'post') { closeSheet(); return i.post?.id ? go(`${location.pathname}?u=${me.id}&tab=inbox&p=${i.post.id}`) : openInbox(); }
+  if (i.k === 'gjoin') { closeSheet(); return i.group && go(`${gUrl(i.group)}&manage=1`); }
+  if (!i.post) return toast(t('지금은 볼 수 없는 게시물이에요'));
+  if (i.post.group_id) { // 그룹 사진: 그룹으로 가서 그 사진 열기
+    const g = MYG.groups.get(i.post.group_id) || (i.post.ghandle ? { id: i.post.group_id, handle: i.post.ghandle } : null);
+    if (!g) return toast(t('지금은 볼 수 없는 게시물이에요'));
+    closeSheet(); return go(`${gUrl(g)}&p=${i.post.id}`);
+  }
+  closeSheet();
+  withMyFeed(() => {
+    if (!findPost(i.post.id)) return toast(t('지금은 볼 수 없는 게시물이에요'));
+    openPost(i.post.id);
+    if (i.k === 'comment') setTimeout(() => { const c = document.querySelector('.overlay .pbtn[data-cmt]'); if (c) focusPostComments(c); }, 300);
   });
 }
 
