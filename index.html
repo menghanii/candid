@@ -975,6 +975,8 @@
   .k-gold svg, .mdot.k-gold { filter:sepia(1) saturate(3.2) hue-rotate(-8deg) brightness(1.15) drop-shadow(0 0 6px rgba(255,200,60,.7)); }
   .k-rainbow svg, .mdot.k-rainbow { animation:dotRainbow 1.6s linear infinite; }
   @keyframes dotRainbow { from { filter:hue-rotate(0deg) saturate(1.6) drop-shadow(0 0 6px rgba(255,255,255,.6)); } to { filter:hue-rotate(360deg) saturate(1.6) drop-shadow(0 0 6px rgba(255,255,255,.6)); } }
+  .dburst { position:fixed; z-index:71; width:10px; height:10px; margin:-5px; pointer-events:none; animation:dburst .7s cubic-bezier(.2,.8,.3,1) forwards; }
+  @keyframes dburst { 0% { transform:translate(0,0) scale(var(--s)); opacity:1; } 100% { transform:translate(var(--dx), var(--dy)) scale(0); opacity:0; } }
   .huntdot.k-rainbow.pop::after { color:#ff6ec7; } .huntdot.k-gold.pop::after { color:#ffc83c; }
   /* 프로필 전시 */
   .head > .dotshelf { grid-area:dots; }
@@ -1821,6 +1823,7 @@ function spawnDot(kind = rollDot()) {
   w.onclick = async e => {
     e.stopPropagation(); if (w.classList.contains('pop')) return;
     clearTimeout(bye); eng.pause(); w.classList.add('pop', 'happy'); navigator.vibrate?.([10, 30, 10]);
+    const r = w.getBoundingClientRect(); dotBurst(r.left + r.width / 2, r.top + r.height / 2, kind);
     setTimeout(() => { w.remove(); if (HUNT === w) HUNT = null; }, 700);
     const { error } = await sb.rpc('catch_dot', { p_kind: kind });
     if (error) return toast(/daily_limit/.test(error.message) ? t('오늘은 닷을 충분히 잡았어요. 내일 또 만나요') : /catch_dot|does not exist|42883|PGRST20/.test(error.message) ? t('닷 잡기 준비 중이에요(관리자: 27 SQL 실행 필요)') : kerr(error));
@@ -1830,11 +1833,23 @@ function spawnDot(kind = rollDot()) {
       : kind === 'blue' ? t('닷을 잡았어요! 내 프로필에 전시돼요') : t('{name} 닷을 잡았어요! 내 프로필에 전시돼요', { name }));
   };
 }
-// 1분마다 25% 확률로 등장(앱을 연 뒤 20~40초에 한 번은 50%)
+// 등장 빈도: HUNT_ALWAYS = true 면 시험용으로 항상(화면에 없으면 몇 초 뒤 바로 다시). false 면 앱을 연 뒤 20~40초에 50%, 이후 1분마다 25%
+const HUNT_ALWAYS = true;
 (function huntLoop() {
+  if (HUNT_ALWAYS) { setTimeout(() => spawnDot(), 2500); setInterval(() => { if (!HUNT) spawnDot(); }, 4000); return; }
   setTimeout(() => { if (Math.random() < .5) spawnDot(); }, 20000 + Math.random() * 20000);
   setInterval(() => { if (Math.random() < .25) spawnDot(); }, 60000);
 })();
+// 잡았을 때 작은 닷들이 사방으로 튀는 효과(희귀할수록 많이)
+function dotBurst(x, y, kind) {
+  const n = kind === 'rainbow' ? 22 : kind === 'gold' ? 18 : 12;
+  for (let i = 0; i < n; i++) {
+    const d = document.createElement('i'); d.className = `dburst mdot k-${kind}`;
+    const a = Math.PI * 2 * i / n + Math.random() * .4, r = 50 + Math.random() * 50;
+    d.style.cssText = `left:${x}px;top:${y}px;--dx:${Math.cos(a) * r}px;--dy:${Math.sin(a) * r}px;--s:${.5 + Math.random() * .7}`;
+    document.body.appendChild(d); setTimeout(() => d.remove(), 800);
+  }
+}
 
 function wanderEngine(w, getBox, { tap = false, speed: SPEED = 34, start = true } = {}) {
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
