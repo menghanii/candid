@@ -318,6 +318,7 @@
   .flist.sorting { user-select:none; -webkit-user-select:none; }
   .frow.dragging { position:relative; z-index:5; background:var(--card); border-radius:14px; box-shadow:0 10px 28px rgba(0,0,0,.28); border-bottom-color:transparent; transition:box-shadow .15s; }
   .frow.dragging .dh { cursor:grabbing; color:var(--accent); }
+  .grid .from .tname { pointer-events:auto; text-decoration:underline; text-underline-offset:2px; text-decoration-color:rgba(255,255,255,.5); padding:4px 0; }
   .ph-av, .c-av { flex:none; display:block; text-decoration:none; }
   .ph-name, .c-name, .rname { color:inherit; text-decoration:none; }
   .ph-name:active, .c-name:active, .rname:active { opacity:.6; }
@@ -2006,7 +2007,7 @@ function renderBody() {
     return;
   }
   if (approved.length) {
-    $b.innerHTML = `<div class="grid">${approved.map(p => `<button onclick="openPost('${p.id}')" class="${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${t('{name}가 보낸 사진', { name: aname(p.author_name) })}${p.text ? ': ' + esc(p.text) : ''}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">`}${gridStickers(p)}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}<span class="from">${p.text && !isText(p) ? `<q>“${esc(p.text)}”</q>` : ''}from<i class="pd">.</i> ${aname(p.author_name)}</span></button>`).join('')}</div>`;
+    $b.innerHTML = `<div class="grid">${approved.map(p => `<button onclick="openPost('${p.id}')" class="${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${t('{name}가 보낸 사진', { name: aname(p.author_name) })}${p.text ? ': ' + esc(p.text) : ''}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">`}${gridStickers(p)}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}<span class="from">${p.text && !isText(p) ? `<q>“${esc(p.text)}”</q>` : ''}from<i class="pd">.</i> ${p.author_id ? `<span class="tname" role="link" tabindex="0" onclick="toFeed(event,'${p.author_id}')">${aname(p.author_name)}</span>` : aname(p.author_name)}</span></button>`).join('')}</div>`;
     S.justApproved = null;
     return;
   }
@@ -4112,7 +4113,7 @@ function paintGroup() {
   const tile = p => `<button onclick="openPost('${p.id}')" class="${p.flagged ? 'gflagged' : ''}" aria-label="${t('{name}님이 올린 사진', { name: esc(p.author_name) })}">
       <img src="${thumbUrl(p)}" alt="" loading="lazy">${gridStickers(p)}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}
       ${p.pinned_at ? `<span class="gpin" aria-label="${t('고정됨')}">${II.pin}</span>` : ''}${p.flagged ? `<span class="gflag">${t('신고로 가려짐')}</span>` : ''}
-      <span class="from">${p.text ? `<q>“${esc(p.text)}”</q>` : ''}by<i class="pd">.</i> ${esc(p.author_name)}</span></button>`;
+      <span class="from">${p.text ? `<q>“${esc(p.text)}”</q>` : ''}by<i class="pd">.</i> ${p.author_id ? `<span class="tname" role="link" tabindex="0" onclick="toFeed(event,'${p.author_id}')">${esc(p.author_name)}</span>` : esc(p.author_name)}</span></button>`;
   const body = !canSee
     ? `<div class="empty"><div class="empty-dot">${DOT('look', { cls: 'blink' })}</div><h2>Members <em>only.</em></h2><p>${t(isPending ? '방장이 승인하면 사진을 볼 수 있어요.' : '비공개 그룹이에요. 멤버만 사진을 볼 수 있어요.')}</p></div>`
     : posts.length ? `<div class="grid">${posts.map(tile).join('')}</div>`
@@ -4464,6 +4465,8 @@ function reelMore(id) {
   menu(`<button class="menu-item" onclick="closeSheet();toggleReelStickers()">${t(HIDE_STK ? '붙은 스티커 보이기' : '붙은 스티커 숨기기')}</button>
     ${p.group_id ? groupPostItems(id) : `<button class="menu-item" onclick="closeSheet();go('${feedUrl(p.owner_id)}')">${t('{name} 피드로 가기', { name: esc(o?.name || t('친구')) })}</button>${isMine(p) ? myPostItems(id) : ''}`}`);
 }
+// 썸네일 위 이름을 누르면 사진 대신 그 사람 피드로(칸 전체는 사진 열기)
+function toFeed(e, uid) { e.stopPropagation(); e.preventDefault(); document.querySelector('.overlay')?.remove(); closeSheet(); go(feedUrl(uid)); }
 // 작은 프로필(이름·사진) 한 번 받은 건 기억
 const PROF_LITE = new Map();
 async function loadProfLite(id) {
