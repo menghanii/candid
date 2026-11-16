@@ -1810,8 +1810,7 @@ function dotShelfHTML(uid) {
   const counts = {}, order = [];
   list.forEach(d => { if (!counts[d.kind]) order.push(d.kind); counts[d.kind] = (counts[d.kind] || 0) + 1; });
   const moods = { blue: 'base', mint: 'happy', pink: 'wink', lemon: 'wow', purple: 'look', ink: 'sleepy', gold: 'wow', rainbow: 'happy' };
-  return `<div class="ds-dots">${order.map(k => `<span class="sdot k-${k}" title="${t(DOT_NAME[k])} ${counts[k]}">${DOT(moods[k] || 'base', { size: 26, tail: false })}${counts[k] > 1 ? `<b>×${counts[k]}</b>` : ''}</span>`).join('')}</div>
-    <small class="ds-cap">${t('닷 컬렉션 {a}/{b}종 · 잡은 닷 {n}', { a: order.length, b: DOT_KINDS.length, n: list.length })}</small>`;
+  return `<div class="ds-dots">${order.map(k => `<span class="sdot k-${k}" title="${t(DOT_NAME[k])} ${counts[k]}">${DOT(moods[k] || 'base', { size: 26, tail: false })}${counts[k] > 1 ? `<b>×${counts[k]}</b>` : ''}</span>`).join('')}</div>`;
 }
 function paintDotShelf(uid) { document.querySelectorAll(`[data-shelf="${uid}"]`).forEach(el => { el.innerHTML = dotShelfHTML(uid); }); }
 let HUNT = null; // 지금 돌아다니는 닷
