@@ -42,7 +42,7 @@
 ## 설정 순서
 
 1. SQL Editor 에서 `sql/18_groups.sql` 실행
-2. 알림 함수(`super-responder`)를 `supabase/functions/notify-owner/index.ts` 로 다시 배포
+2. 알림 함수(`notify-owner`)를 `supabase/functions/notify-owner/index.ts` 로 다시 배포
 3. (선택) 참여 신청 푸시: Database → Webhooks → Create, Table `group_members`, Events `Insert` → 같은 함수, 헤더 `x-webhook-secret`
 
 ## 검증

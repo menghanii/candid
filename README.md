@@ -88,7 +88,7 @@ python3 -m http.server 3000   # → http://localhost:3000
    - HTTP Headers 에 `x-webhook-secret: <WEBHOOK_SECRET 값>` 추가
    - **같은 방법으로 하나 더**: Table `post_stickers`, Events `Insert` → 같은 함수 (친구가 내 사진을 꾸미면 알림)
    - (그룹) Table `group_members`, Events `Insert` → 같은 함수 (그룹 참여 신청이 오면 방장에게 알림)
-   - 현재 배포된 함수 이름은 `super-responder` (대시보드에서 만들 때 자동으로 붙은 이름, 코드는 `notify-owner` 와 같음)
+   - 대시보드의 함수 이름은 `notify-owner` (Edge Functions → notify-owner → Code 에 이 파일을 붙여넣고 Deploy updates)
 5. 앱에서 🔔 → 알림 켜기 (iPhone 은 Safari 공유 → 홈 화면에 추가 후 홈 화면 아이콘으로 열어야 함)
 
 ## 6. 프로필 설정 (이름/사진 직접 선택)
