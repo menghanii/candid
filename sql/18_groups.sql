@@ -2,7 +2,7 @@
 -- 17_profile_lang.sql 까지 실행한 뒤에 실행 (16 을 안 했어도 이 파일이 스티커 규칙을 최신으로 맞춤)
 --
 -- 규칙 요약
---  · 그룹은 누구나 개설(1인 10개까지), 개설한 사람이 방장
+--  · 그룹은 누구나 개설(1인 30개까지, 25 SQL), 개설한 사람이 방장
 --  · private: 초대 링크로 참여 신청 → 방장 승인 → 멤버. 멤버만 보고 올림. 검색 안 됨
 --  · public : 누구나 봄. join_mode 'open' = 참여하면 바로 멤버+팔로우 / 'approval' = 팔로우는 누구나, 멤버는 신청 후 방장 승인
 --  · public/private 은 만든 뒤 바꿀 수 없음
@@ -154,12 +154,12 @@ grant update (notify) on public.group_follows to authenticated;  -- 팔로우 �
 -- ============================================================
 -- 4) 자동 처리 (트리거)
 -- ============================================================
--- 개설: 1인 10개까지, 방장을 멤버·팔로워(알림 켬)로 등록
+-- 개설: 1인 30개까지, 방장을 멤버·팔로워(알림 켬)로 등록
 create or replace function public.groups_before_insert() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
-  if (select count(*) from public.groups where owner_id = new.owner_id) >= 10 then
-    raise exception 'group_limit' using errcode = 'P0001', hint = '그룹은 1인당 10개까지 만들 수 있어요';
+  if (select count(*) from public.groups where owner_id = new.owner_id) >= 30 then
+    raise exception 'group_limit' using errcode = 'P0001', hint = '그룹은 1인당 30개까지 만들 수 있어요';
   end if;
   if new.visibility = 'private' then new.join_mode := 'approval'; end if;
   new.member_count := 0; new.follower_count := 0; new.closed := false;
