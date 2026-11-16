@@ -665,5 +665,22 @@
  "업로드가 마감된 그룹이라 사진을 빼기만 할 수 있어요": "Uploads are closed in this group, so you can only remove photos",
  "최대 10장까지 · 빼거나 더할 수 있어요": "Up to 10 · add or remove photos",
  "사진 수정 기능 준비 중이에요(관리자: 24 SQL 실행 필요)": "Photo editing isn't ready yet (admin: run SQL 24)",
- "수정했어요": "Saved"
+ "수정했어요": "Saved",
+ "{n}장 중 {i}번째": "{i} of {n}",
+ "블루": "Blue",
+ "민트": "Mint",
+ "핑크": "Pink",
+ "레몬": "Lemon",
+ "퍼플": "Purple",
+ "잉크": "Ink",
+ "골드": "Gold",
+ "무지개": "Rainbow",
+ "잡은 닷 {n}": "{n} dots caught",
+ "{name} 닷 잡기": "Catch the {name} dot",
+ "오늘은 닷을 충분히 잡았어요. 내일 또 만나요": "You've caught plenty of dots today. See you tomorrow",
+ "닷 잡기 준비 중이에요(관리자: 27 SQL 실행 필요)": "Dot catching isn't ready yet (admin: run SQL 27)",
+ "무지개 닷을 잡았어요! 0.2% 확률이에요": "You caught a rainbow dot! That's a 0.2% chance",
+ "골드 닷을 잡았어요! 아주 희귀해요": "You caught a gold dot! Super rare",
+ "닷을 잡았어요! 내 프로필에 전시돼요": "You caught a dot! It's on display on your profile",
+ "{name} 닷을 잡았어요! 내 프로필에 전시돼요": "You caught a {name} dot! It's on display on your profile"
 };

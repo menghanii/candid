@@ -959,7 +959,32 @@
   .rcar .carwrap.multi, .rcar .car { height:100%; }
   .rcar .slide { display:flex; align-items:center; justify-content:center; }
   .rcar .stage.fit > img, .rcar .stage.fit > video { aspect-ratio:var(--ar); object-fit:cover; }
-  .rcar .car-n { top:8px; right:8px; }
+  .rcar .car-n { display:none; } /* 릴스: 화면 맨 위(상단 바 뒤)에 가려져서, 사진마다 오른쪽 위에 표시(.rmulti) */
+  /* 닷 잡기: 색은 파란 닷에 필터를 씌워서(무지개는 색이 계속 변함) */
+  .huntdot { position:fixed !important; z-index:70 !important; transition:opacity .5s; }
+  .huntdot.leave { opacity:0; }
+  .huntdot.pop svg { animation:dotPop .55s cubic-bezier(.2,1.6,.4,1) forwards; }
+  .huntdot.pop::after { content:""; position:absolute; left:50%; top:45%; width:60px; height:60px; margin:-30px; border-radius:50%; border:3px solid currentColor; color:#5c7cff; animation:dotRing .55s ease-out forwards; }
+  @keyframes dotPop { 0% { transform:scale(1); } 35% { transform:scale(1.35); } 100% { transform:scale(0); opacity:0; } }
+  @keyframes dotRing { 0% { transform:scale(.3); opacity:1; } 100% { transform:scale(1.8); opacity:0; } }
+  .k-mint svg, .mdot.k-mint { filter:hue-rotate(-70deg) saturate(1.1); }
+  .k-pink svg, .mdot.k-pink { filter:hue-rotate(95deg) saturate(1.2); }
+  .k-lemon svg, .mdot.k-lemon { filter:hue-rotate(175deg) saturate(1.6) brightness(1.35); }
+  .k-purple svg, .mdot.k-purple { filter:hue-rotate(38deg); }
+  .k-ink svg, .mdot.k-ink { filter:grayscale(1) brightness(.5); }
+  .k-gold svg, .mdot.k-gold { filter:sepia(1) saturate(3.2) hue-rotate(-8deg) brightness(1.15) drop-shadow(0 0 6px rgba(255,200,60,.7)); }
+  .k-rainbow svg, .mdot.k-rainbow { animation:dotRainbow 1.6s linear infinite; }
+  @keyframes dotRainbow { from { filter:hue-rotate(0deg) saturate(1.6) drop-shadow(0 0 6px rgba(255,255,255,.6)); } to { filter:hue-rotate(360deg) saturate(1.6) drop-shadow(0 0 6px rgba(255,255,255,.6)); } }
+  .huntdot.k-rainbow.pop::after { color:#ff6ec7; } .huntdot.k-gold.pop::after { color:#ffc83c; }
+  /* 프로필 전시 */
+  .head > .dotshelf { grid-area:dots; }
+  .dotshelf:empty { display:none; }
+  .dotshelf { margin-top:12px; }
+  .ds-dots { display:flex; flex-wrap:wrap; gap:5px; }
+  .mdot { width:14px; height:14px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #8aa2ff, #3d5cff 55%, #1a2fb0); box-shadow:0 1px 2px rgba(0,0,0,.25); }
+  .ds-cap { display:block; margin-top:6px; color:var(--sub); font-size:12px; }
+  .rmulti { position:absolute; top:10px; right:10px; z-index:4; display:flex; align-items:center; gap:5px; padding:5px 9px 5px 7px; border-radius:999px; background:rgba(0,0,0,.5); color:#fff; font-size:12px; font-weight:700; pointer-events:none; -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
+  .rmulti svg { width:14px; height:14px; }
   .rcar .car-dots { display:none; } /* 릴스는 오른쪽 위 1/3 표시로 충분(글과 겹치지 않게) */
   .rinfo { bottom:calc(74px + env(safe-area-inset-bottom)); right:20px; }
   .rinfo .rtext { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:16px; }
@@ -1059,7 +1084,7 @@
   .crow2.hl .av.xs, .crow2.hl .gav.xs { width:40px; height:40px; }
 
   /* P1 다듬기 ─ 프로필·그룹 머리: 왼쪽 정렬(이름 왼쪽, 사진 오른쪽), 숫자는 한 줄 */
-  .head { display:grid; grid-template-columns:1fr auto; grid-template-areas:"name av" "handle av" "desc desc" "stats stats"; column-gap:16px; text-align:left; padding:14px 20px 0; align-items:end; }
+  .head { display:grid; grid-template-columns:1fr auto; grid-template-areas:"name av" "handle av" "desc desc" "dots dots" "stats stats"; column-gap:16px; text-align:left; padding:14px 20px 0; align-items:end; }
   .head > .avwrap { grid-area:av; align-self:center; }
   .head > .name { grid-area:name; margin:0; font-size:28px; min-width:0; overflow-wrap:anywhere; }
   .head > .handle { grid-area:handle; margin:4px 0 0; align-self:start; }
@@ -1757,6 +1782,60 @@ function cardDots(root = document) {
   });
 }
 // 꼬물꼬물 걷기 엔진: getBox() = 다닐 수 있는 범위(부모 기준 px). tap: 누르면 깡충, speed: 걷는 속도(px/초)
+// ---------- 닷 잡기(이스터에그) ----------
+// 가끔 화면에 닷이 나타나 돌아다님 → 누르면 팡! 잡힘. 색마다 희귀도가 다르고(무지개 0.2%), 잡은 닷은 프로필 소개 아래에 차례대로 전시(27 SQL)
+const DOT_KINDS = [
+  ['blue', '블루', 70], ['mint', '민트', 10], ['pink', '핑크', 8], ['lemon', '레몬', 5.5],
+  ['purple', '퍼플', 4], ['ink', '잉크', 1.5], ['gold', '골드', .8], ['rainbow', '무지개', .2],
+];
+const DOT_NAME = Object.fromEntries(DOT_KINDS.map(([k, n]) => [k, n]));
+const DOTS = new Map(); // user id → [{kind, created_at}] (잡은 순서)
+const rollDot = () => { let r = Math.random() * 100; for (const [k, , w] of DOT_KINDS) { if ((r -= w) < 0) return k; } return 'blue'; };
+async function loadDots(uid) {
+  const { data, error } = await sb.from('dot_catches').select('kind, created_at').eq('user_id', uid).order('created_at', { ascending: true }).limit(500);
+  DOTS.set(uid, error ? [] : data || []); paintDotShelf(uid);
+}
+function dotShelfHTML(uid) {
+  const list = DOTS.get(uid) || []; if (!list.length) return '';
+  const counts = {}; list.forEach(d => counts[d.kind] = (counts[d.kind] || 0) + 1);
+  const rare = ['rainbow', 'gold', 'ink', 'purple'].filter(k => counts[k]).map(k => `${t(DOT_NAME[k])} ${counts[k]}`).join(' · ');
+  const show = list.slice(-48); // 최근 48마리(잡은 순서대로)
+  return `<div class="ds-dots">${show.map(d => `<i class="mdot k-${d.kind}" title="${t(DOT_NAME[d.kind])}"></i>`).join('')}</div>
+    <small class="ds-cap">${t('잡은 닷 {n}', { n: list.length })}${rare ? ' · ' + rare : ''}</small>`;
+}
+function paintDotShelf(uid) { document.querySelectorAll(`[data-shelf="${uid}"]`).forEach(el => { el.innerHTML = dotShelfHTML(uid); }); }
+let HUNT = null; // 지금 돌아다니는 닷
+function huntOk() {
+  return me && document.visibilityState === 'visible' && !HUNT
+    && !document.querySelector('.sheet-wrap, .overlay, .composer, .pov, .landing, .authwait, #splash:not(.out)');
+}
+function spawnDot(kind = rollDot()) {
+  if (!huntOk()) return;
+  const w = document.createElement('button');
+  w.className = `wander huntdot k-${kind}`; w.setAttribute('aria-label', t('{name} 닷 잡기', { name: t(DOT_NAME[kind]) }));
+  w.innerHTML = DOT3D(46);
+  document.body.appendChild(w); HUNT = w;
+  const top = 70, bottom = 90; // 상단 바·하단 메뉴 피해서
+  const eng = wanderEngine(w, () => ({ x0: 8, x1: innerWidth - 60, y0: top, y1: innerHeight - bottom - 50 }), { speed: 46 });
+  const bye = setTimeout(() => { w.classList.add('leave'); setTimeout(() => { w.remove(); if (HUNT === w) HUNT = null; }, 600); }, 15000);
+  w.onclick = async e => {
+    e.stopPropagation(); if (w.classList.contains('pop')) return;
+    clearTimeout(bye); eng.pause(); w.classList.add('pop', 'happy'); navigator.vibrate?.([10, 30, 10]);
+    setTimeout(() => { w.remove(); if (HUNT === w) HUNT = null; }, 700);
+    const { error } = await sb.rpc('catch_dot', { p_kind: kind });
+    if (error) return toast(/daily_limit/.test(error.message) ? t('오늘은 닷을 충분히 잡았어요. 내일 또 만나요') : /catch_dot|does not exist|42883|PGRST20/.test(error.message) ? t('닷 잡기 준비 중이에요(관리자: 27 SQL 실행 필요)') : kerr(error));
+    const list = DOTS.get(me.id) || []; list.push({ kind, created_at: new Date().toISOString() }); DOTS.set(me.id, list); paintDotShelf(me.id);
+    const name = t(DOT_NAME[kind]);
+    toast(kind === 'rainbow' ? t('무지개 닷을 잡았어요! 0.2% 확률이에요') : kind === 'gold' ? t('골드 닷을 잡았어요! 아주 희귀해요')
+      : kind === 'blue' ? t('닷을 잡았어요! 내 프로필에 전시돼요') : t('{name} 닷을 잡았어요! 내 프로필에 전시돼요', { name }));
+  };
+}
+// 1분마다 25% 확률로 등장(앱을 연 뒤 20~40초에 한 번은 50%)
+(function huntLoop() {
+  setTimeout(() => { if (Math.random() < .5) spawnDot(); }, 20000 + Math.random() * 20000);
+  setInterval(() => { if (Math.random() < .25) spawnDot(); }, 60000);
+})();
+
 function wanderEngine(w, getBox, { tap = false, speed: SPEED = 34, start = true } = {}) {
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const svg = w.firstElementChild, body = svg.querySelector('.d3-body'), eyes = svg.querySelector('.d3-eyes'), shadow = svg.querySelector('.d3-shadow');
@@ -1886,6 +1965,7 @@ function paintProfile() {
         : isOwner
           ? `<button class="desc bio-empty" onclick="renderSetup(false)">${t('+ 프로필 메시지 추가')}</button>`
           : `<div class="desc">${t('친구들이 만들어주는 {name}의 피드', { name: esc(prof.name) })}</div>`}
+      <div class="dotshelf" data-shelf="${uid}">${dotShelfHTML(uid)}</div>
       <div class="stats"${S.locked ? ' hidden' : ''}>
         <div><b>${approved.length}</b><span>${t('게시물')}</span></div>
         <div><b>${friends}</b><span>${t('참여한 친구')}</span></div>
@@ -1915,6 +1995,7 @@ function paintProfile() {
   renderBody();
   scrollTo(0, y);
   if (me) refreshNotiDot();
+  if (!DOTS.has(uid)) loadDots(uid);
   if (isOwner && GACHA_ON) refreshTickets();
 }
 
@@ -3778,7 +3859,7 @@ function mediaCarousel(p, mode) {
   const items = mediaOf(p), alt = t('{name}가 보낸 사진', { name: aname(p.author_name) });
   if (items.length <= 1) return `<div class="carwrap" data-idx="0"><div class="stage">${items[0] ? mediaEl(items[0], mode, alt) : ''}${stickerLayer(p.id, 0)}</div></div>`;
   return `<div class="carwrap multi" data-idx="0">
-    <div class="car" data-car>${items.map((m, i) => `<div class="slide"><div class="stage">${mediaEl(m, mode, alt)}${stickerLayer(p.id, i)}</div></div>`).join('')}</div>
+    <div class="car" data-car>${items.map((m, i) => `<div class="slide"><div class="stage">${mediaEl(m, mode, alt)}${stickerLayer(p.id, i)}${mode === 'reel' ? `<span class="rmulti" aria-label="${t('{n}장 중 {i}번째', { n: items.length, i: i + 1 })}">${I.multi}<b>${i + 1}/${items.length}</b></span>` : ''}</div></div>`).join('')}</div>
     <span class="car-n">1/${items.length}</span>
     <div class="car-dots">${items.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div></div>`;
 }
@@ -4974,6 +5055,7 @@ function demoClient() {
     if (fn === 'group_invite_code') { const g = G_(args.p_group); if (args.p_new) g.invite_code = Math.random().toString(36).slice(2, 14); return ok(g.invite_code); }
     if (fn === 'transfer_group') { const g = G_(args.p_group); mem(g.id, ME.id).role = 'member'; mem(g.id, args.p_user).role = 'owner'; g.owner_id = args.p_user; return ok(null); }
     if (fn === 'pin_post') { const p = db.posts.find(x => x.id === args.p_post); if (args.p_on && db.posts.filter(x => x.group_id === p.group_id && x.pinned_at && x.id !== p.id).length >= 9) return no('pin_limit'); p.pinned_at = args.p_on ? new Date().toISOString() : null; return ok(null); }
+    if (fn === 'catch_dot') { db.dot_catches = db.dot_catches || []; db.dot_catches.push({ user_id: ME.id, kind: args.p_kind, created_at: new Date().toISOString() }); return ok(db.dot_catches.filter(d => d.user_id === ME.id).length); }
     if (fn === 'edit_post_media') { const p = db.posts.find(x => x.id === args.p_post); if (!p || p.author_id !== ME.id) return no('not_allowed'); const m = args.p_media; Object.assign(p, { media: m.length > 1 ? m : null, image_path: m[0].p, thumb_path: m[0].t, media_type: m[0].k, edited_at: new Date().toISOString() }); return ok(p.edited_at); }
     if (fn === 'edit_post_text') { const p = db.posts.find(x => x.id === args.p_post); if (!p || p.author_id !== ME.id) return no('not_allowed'); p.text = args.p_text || null; p.edited_at = new Date().toISOString(); return ok(p.edited_at); }
     if (fn === 'delete_my_post') { const i = db.posts.findIndex(x => x.id === args.p_post && x.author_id === ME.id && !x.group_id); if (i < 0) return no('not_allowed'); db.posts.splice(i, 1); return ok(null); }
