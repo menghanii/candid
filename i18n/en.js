@@ -682,5 +682,6 @@
  "무지개 닷을 잡았어요! 0.2% 확률이에요": "You caught a rainbow dot! That's a 0.2% chance",
  "골드 닷을 잡았어요! 아주 희귀해요": "You caught a gold dot! Super rare",
  "닷을 잡았어요! 내 프로필에 전시돼요": "You caught a dot! It's on display on your profile",
- "{name} 닷을 잡았어요! 내 프로필에 전시돼요": "You caught a {name} dot! It's on display on your profile"
+ "{name} 닷을 잡았어요! 내 프로필에 전시돼요": "You caught a {name} dot! It's on display on your profile",
+ "닷 컬렉션 {a}/{b}종 · 잡은 닷 {n}": "Dot collection {a}/{b} · {n} caught"
 };
