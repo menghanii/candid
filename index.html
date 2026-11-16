@@ -1294,7 +1294,18 @@ const SPLASH_MORPH = !/[#&?](access_token|code|error_description)=/.test(locatio
   new MutationObserver((_, ob) => { if (app.children.length) { ob.disconnect(); requestAnimationFrame(hide); } }).observe(app, { childList: true });
   setTimeout(hide, 12000); // 안전장치
 })();
-const sb = DEMO ? demoClient() : (window.supabase ? supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY) : null);
+// 다른 앱에 갔다 돌아오면 휴대폰 네트워크가 깨어나는 동안 요청이 끝없이 매달릴 수 있음 → 시간 제한(파일 올리기는 넉넉히)
+// 로그인 토큰 갱신 잠금은 이 화면 안에서만(브라우저 공용 잠금이 돌아온 직후 오래 붙잡혀 모든 버튼이 멈추던 문제)
+const fetchT = (url, opts = {}) => {
+  if (opts.signal) return fetch(url, opts);
+  const c = new AbortController(), ms = /\/storage\/v1\/object\//.test(String(url)) && opts.method && opts.method !== 'GET' ? 120000 : 15000;
+  const tm = setTimeout(() => c.abort(), ms);
+  return fetch(url, { ...opts, signal: c.signal }).finally(() => clearTimeout(tm));
+};
+const sb = DEMO ? demoClient() : (window.supabase ? supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, {
+  global: { fetch: fetchT },
+  auth: supabase.processLock ? { lock: supabase.processLock } : {},
+}) : null);
 // 사진·영상 주소: 직접 연결한 도메인(candid-feed.com)에서는 Cloudflare 캐시 중계(/p/…)로 → Supabase 전송량 절약
 // 그 밖(workers.dev·로컬)에서는 캐시가 안 되므로 Supabase 주소 그대로. 외부 주소(데모 친구 사진)도 그대로
 const MEDIA_PROXY = /(^|\.)candid-feed\.com$/.test(location.hostname) || location.port === '8788';
@@ -1752,12 +1763,12 @@ function wanderEngine(w, getBox, { tap = false, speed: SPEED = 34, start = true 
 function tabOf(t) { return t === 'inbox' ? t : 'grid'; } // 친구·그룹은 하단 탭으로 옮김
 const S = { tab: tabOf(new URLSearchParams(location.search).get('tab')) };
 
-async function renderProfile(uid, fresh) {
+async function renderProfile(uid, fresh, quiet) { // quiet: 돌아왔을 때 뒤에서만 갱신(저장된 화면을 다시 그리지 않음)
   CUR = pageKey();
   const myKey = CUR;
   // 한 번 본 피드는 저장해 둔 화면을 바로 보여주고, 최신 데이터는 뒤에서 받아 갱신
   const cached = CACHE.prof.get(uid);
-  if (cached && !fresh) { Object.assign(S, cached, { uid }); if (!S.isOwner) S.tab = 'grid'; paintProfile(); }
+  if (cached && !fresh && !quiet) { Object.assign(S, cached, { uid }); if (!S.isOwner) S.tab = 'grid'; paintProfile(); }
   let res;
   try {
     res = await withTimeout(Promise.all([
@@ -1882,13 +1893,32 @@ function openInbox() {
   if (tabs) scrollTo({ top: tabs.getBoundingClientRect().top + scrollY - 64, behavior: 'smooth' });
 }
 
-// 앱으로 돌아왔을 때(홈 화면 앱 포함) 30초 이상 지났으면 새로 불러오기
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible') return;
-  if (document.querySelector('.reels')) { if (Date.now() - (S.homeAt || 0) > 30000) { S.homeAt = Date.now(); renderHome(); } }
-  else if (G.g && new URLSearchParams(location.search).get('g')) { if (Date.now() - (G.at || 0) > 30000) renderGroup(G.key, true); }
-  else if (S.uid && Date.now() - (S.fetchedAt || 0) > 30000) renderProfile(S.uid);
-});
+// 앱으로 돌아왔을 때(홈 화면 앱 포함): 화면을 통째로 다시 그리지 않고, 뒤에서 조용히 새로 받아 바뀐 게 있을 때만 반영
+//  · 돌아오자마자는 휴대폰이 깨어나는 중이라 잠깐(0.8초) 기다렸다가
+//  · 무언가 열려 있거나(게시물·시트·작성 화면) 방금 화면을 만지는 중이면 건너뜀 → 누르던 버튼이 바뀌어 안 눌리는 일 방지
+//  · 릴스는 맨 위에 있을 때만 교체(보던 위치가 튀지 않게)
+let RESUME_T = 0, LAST_TOUCH = 0;
+addEventListener('pointerdown', () => { LAST_TOUCH = Date.now(); }, { passive: true, capture: true });
+function onResume() {
+  clearTimeout(RESUME_T);
+  RESUME_T = setTimeout(() => {
+    if (document.visibilityState !== 'visible') return;
+    if (document.querySelector('.sheet-wrap, .overlay, .composer, .pov') || Date.now() - LAST_TOUCH < 1500) return;
+    const myKey = pageKey();
+    if (document.querySelector('.reels')) {
+      if (Date.now() - (S.homeAt || 0) < 60000) return; S.homeAt = Date.now();
+      fetchHome().then(d => {
+        const same = CACHE.home && d.posts.map(p => p.id).join() === CACHE.home.posts.map(p => p.id).join();
+        CACHE.home = d; const r = document.querySelector('.reels');
+        if (!same && pageKey() === myKey && r && r.scrollTop < 10 && !document.querySelector('.sheet-wrap, .overlay')) paintHome(d);
+      }).catch(() => {});
+    } else if (G.g && new URLSearchParams(location.search).get('g')) { if (Date.now() - (G.at || 0) > 60000) renderGroup(G.key, true); }
+    else if (S.uid && Date.now() - (S.fetchedAt || 0) > 60000) renderProfile(S.uid, false, true);
+    if (me) refreshNotiDot();
+  }, 800);
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') onResume(); });
+addEventListener('pageshow', e => { if (e.persisted) onResume(); });
 
 function renderBody() {
   const $b = document.getElementById('body');
