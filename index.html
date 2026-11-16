@@ -1821,10 +1821,10 @@ function spawnDot(kind = rollDot()) {
   const w = document.createElement('button');
   w.className = `wander huntdot k-${kind}`; w.setAttribute('aria-label', t('{name} 닷 잡기', { name: t(DOT_NAME[kind]) }));
   w.innerHTML = DOT3D(46);
-  document.body.appendChild(w); HUNT = w;
+  document.body.appendChild(w); HUNT = w; HUNT_LAST = Date.now();
   const top = 70, bottom = 90; // 상단 바·하단 메뉴 피해서
   const eng = wanderEngine(w, () => ({ x0: 8, x1: innerWidth - 60, y0: top, y1: innerHeight - bottom - 50 }), { speed: 46 });
-  const bye = setTimeout(() => { w.classList.add('leave'); setTimeout(() => { w.remove(); if (HUNT === w) HUNT = null; }, 600); }, 15000);
+  const bye = setTimeout(() => { w.classList.add('leave'); setTimeout(() => { w.remove(); if (HUNT === w) HUNT = null; }, 500); }, 3000 + Math.random() * 2000); // 3~5초만 보이고 사라짐
   w.onclick = async e => {
     e.stopPropagation(); if (w.classList.contains('pop')) return;
     clearTimeout(bye); eng.pause(); w.classList.add('pop', 'happy'); navigator.vibrate?.([10, 30, 10]);
@@ -1838,12 +1838,13 @@ function spawnDot(kind = rollDot()) {
       : kind === 'blue' ? t('닷을 잡았어요! 내 프로필에 전시돼요') : t('{name} 닷을 잡았어요! 내 프로필에 전시돼요', { name }));
   };
 }
-// 등장 빈도: HUNT_ALWAYS = true 면 시험용으로 항상(화면에 없으면 몇 초 뒤 바로 다시). false 면 앱을 연 뒤 20~40초에 50%, 이후 1분마다 25%
-const HUNT_ALWAYS = true;
+// 등장 빈도: '가끔 보인다' 정도. 1분마다 12% 확률, 한 번 나온 뒤 최소 4분은 쉼 → 평균 8~10분에 한 번쯤
+// (HUNT_ALWAYS = true 로 바꾸면 시험용으로 항상 나옴)
+const HUNT_ALWAYS = false;
+let HUNT_LAST = 0;
 (function huntLoop() {
   if (HUNT_ALWAYS) { setTimeout(() => spawnDot(), 2500); setInterval(() => { if (!HUNT) spawnDot(); }, 4000); return; }
-  setTimeout(() => { if (Math.random() < .5) spawnDot(); }, 20000 + Math.random() * 20000);
-  setInterval(() => { if (Math.random() < .25) spawnDot(); }, 60000);
+  setInterval(() => { if (Date.now() - HUNT_LAST > 240000 && Math.random() < .12) spawnDot(); }, 60000);
 })();
 // 잡았을 때 폭죽: 화면 위에 잠깐 캔버스를 깔고 불꽃을 터뜨림(중력으로 떨어지며 반짝이다 사라짐). 희귀할수록 크고 화려하게
 const FW_COLORS = {
