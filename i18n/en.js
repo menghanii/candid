@@ -646,5 +646,15 @@
  "친구가 찍어 보내고, 나는 고르기만.": "Friends shoot and send. I just pick.",
  "친구들이 채워주는<br>내 피드": "My feed,<br>filled by friends",
  "서로 찍어주고,<br>우리끼리 채우는 피드": "We shoot each other,<br>and fill our feeds together",
- "내 피드는 친구가, 그룹 앨범은 다 같이.": "Friends fill my feed. Group albums, we fill together."
+ "내 피드는 친구가, 그룹 앨범은 다 같이.": "Friends fill my feed. Group albums, we fill together.",
+ "수정됨": "edited",
+ "글 수정": "Edit text",
+ "보낸 사진 삭제": "Delete my photo",
+ "수정 기능 준비 중이에요(관리자: 23 SQL 실행 필요)": "Editing isn't ready yet (admin: run SQL 23)",
+ "내가 보낸 글만 고칠 수 있어요": "You can only edit what you sent",
+ "고치면 '수정됨'이 표시돼요": "An 'edited' label will be shown",
+ "글을 고쳤어요": "Updated",
+ "친구 피드에서 이 사진을 지울까요? 되돌릴 수 없어요.": "Delete this photo from your friend's feed? This can't be undone.",
+ "보낸 사진을 지웠어요": "Photo deleted",
+ "댓글 수정": "Edit comment"
 };
