@@ -975,14 +975,16 @@
   .k-gold svg, .mdot.k-gold { filter:sepia(1) saturate(3.2) hue-rotate(-8deg) brightness(1.15) drop-shadow(0 0 6px rgba(255,200,60,.7)); }
   .k-rainbow svg, .mdot.k-rainbow { animation:dotRainbow 1.6s linear infinite; }
   @keyframes dotRainbow { from { filter:hue-rotate(0deg) saturate(1.6) drop-shadow(0 0 6px rgba(255,255,255,.6)); } to { filter:hue-rotate(360deg) saturate(1.6) drop-shadow(0 0 6px rgba(255,255,255,.6)); } }
-  .dburst { position:fixed; z-index:71; width:10px; height:10px; margin:-5px; pointer-events:none; animation:dburst .7s cubic-bezier(.2,.8,.3,1) forwards; }
-  @keyframes dburst { 0% { transform:translate(0,0) scale(var(--s)); opacity:1; } 100% { transform:translate(var(--dx), var(--dy)) scale(0); opacity:0; } }
+  .fwcan { position:fixed; inset:0; width:100vw; height:100vh; z-index:71; pointer-events:none; }
   .huntdot.k-rainbow.pop::after { color:#ff6ec7; } .huntdot.k-gold.pop::after { color:#ffc83c; }
   /* 프로필 전시 */
   .head > .dotshelf { grid-area:dots; }
   .dotshelf:empty { display:none; }
   .dotshelf { margin-top:12px; }
-  .ds-dots { display:flex; flex-wrap:wrap; gap:5px; }
+  .ds-dots { display:flex; flex-wrap:wrap; gap:4px 6px; }
+  .sdot { display:inline-flex; --accent:#3d5cff; } /* 테마와 상관없이 같은 파랑에서 색을 바꿈 */
+  .sdot svg { display:block; overflow:visible; }
+  .sdot.k-gold svg, .sdot.k-rainbow svg { filter:none; } .sdot.k-gold svg { filter:sepia(1) saturate(3.2) hue-rotate(-8deg) brightness(1.15) drop-shadow(0 0 4px rgba(255,200,60,.8)); }
   .mdot { width:14px; height:14px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #8aa2ff, #3d5cff 55%, #1a2fb0); box-shadow:0 1px 2px rgba(0,0,0,.25); }
   .ds-cap { display:block; margin-top:6px; color:var(--sub); font-size:12px; }
   .rmulti { position:absolute; top:10px; right:10px; z-index:4; display:flex; align-items:center; gap:5px; padding:5px 9px 5px 7px; border-radius:999px; background:rgba(0,0,0,.5); color:#fff; font-size:12px; font-weight:700; pointer-events:none; -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
@@ -1802,7 +1804,8 @@ function dotShelfHTML(uid) {
   const counts = {}; list.forEach(d => counts[d.kind] = (counts[d.kind] || 0) + 1);
   const rare = ['rainbow', 'gold', 'ink', 'purple'].filter(k => counts[k]).map(k => `${t(DOT_NAME[k])} ${counts[k]}`).join(' · ');
   const show = list.slice(-48); // 최근 48마리(잡은 순서대로)
-  return `<div class="ds-dots">${show.map(d => `<i class="mdot k-${d.kind}" title="${t(DOT_NAME[d.kind])}"></i>`).join('')}</div>
+  const moods = ['base', 'happy', 'wow', 'base', 'look', 'wink'];
+  return `<div class="ds-dots">${show.map((d, i) => `<span class="sdot k-${d.kind}" title="${t(DOT_NAME[d.kind])}">${DOT(moods[(i * 7 + d.kind.length) % moods.length], { size: 24, tail: false })}</span>`).join('')}</div>
     <small class="ds-cap">${t('잡은 닷 {n}', { n: list.length })}${rare ? ' · ' + rare : ''}</small>`;
 }
 function paintDotShelf(uid) { document.querySelectorAll(`[data-shelf="${uid}"]`).forEach(el => { el.innerHTML = dotShelfHTML(uid); }); }
@@ -1840,15 +1843,47 @@ const HUNT_ALWAYS = true;
   setTimeout(() => { if (Math.random() < .5) spawnDot(); }, 20000 + Math.random() * 20000);
   setInterval(() => { if (Math.random() < .25) spawnDot(); }, 60000);
 })();
-// 잡았을 때 작은 닷들이 사방으로 튀는 효과(희귀할수록 많이)
+// 잡았을 때 폭죽: 화면 위에 잠깐 캔버스를 깔고 불꽃을 터뜨림(중력으로 떨어지며 반짝이다 사라짐). 희귀할수록 크고 화려하게
+const FW_COLORS = {
+  blue: ['#3d5cff', '#8aa2ff', '#ffffff'], mint: ['#14c8a0', '#7ff0d4', '#ffffff'], pink: ['#ff3d8b', '#ff9cc4', '#ffffff'],
+  lemon: ['#ffb300', '#ffe27a', '#ffffff'], purple: ['#9b4dff', '#cfa8ff', '#ffffff'], ink: ['#2a2a33', '#8e8e93', '#ffffff'],
+  gold: ['#ffc83c', '#fff3b0', '#ff9f0a', '#ffffff'], rainbow: null,
+};
 function dotBurst(x, y, kind) {
-  const n = kind === 'rainbow' ? 22 : kind === 'gold' ? 18 : 12;
-  for (let i = 0; i < n; i++) {
-    const d = document.createElement('i'); d.className = `dburst mdot k-${kind}`;
-    const a = Math.PI * 2 * i / n + Math.random() * .4, r = 50 + Math.random() * 50;
-    d.style.cssText = `left:${x}px;top:${y}px;--dx:${Math.cos(a) * r}px;--dy:${Math.sin(a) * r}px;--s:${.5 + Math.random() * .7}`;
-    document.body.appendChild(d); setTimeout(() => d.remove(), 800);
-  }
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches; // '동작 줄이기'를 켠 사람: 작고 짧게
+  const c = document.createElement('canvas'), dpr = Math.min(2, devicePixelRatio || 1);
+  c.className = 'fwcan'; c.width = innerWidth * dpr; c.height = innerHeight * dpr;
+  document.body.appendChild(c); const g = c.getContext('2d'); g.scale(dpr, dpr);
+  const big = kind === 'rainbow' || kind === 'gold', P = [];
+  const col = i => FW_COLORS[kind] ? FW_COLORS[kind][i % FW_COLORS[kind].length] : `hsl(${(i * 37) % 360} 95% 62%)`;
+  const shot = (cx, cy, n, sp, delay = 0) => { for (let i = 0; i < n; i++) {
+    const a = Math.PI * 2 * i / n + Math.random() * .25, v = sp * (.55 + Math.random() * .6);
+    P.push({ x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - sp * .15, life: 0, max: calm ? .45 : .9 + Math.random() * .5, c: col(i), r: 1.6 + Math.random() * 1.8, d: delay, tw: Math.random() * 6 });
+  } };
+  shot(x, y, calm ? 24 : big ? 90 : 56, calm ? 140 : big ? 330 : 260);
+  if (big && !calm) { shot(x - 70, y - 90, 40, 220, .25); shot(x + 80, y - 70, 40, 220, .42); } // 희귀: 연달아 두 번 더
+  let flash = 1, last = performance.now();
+  const tick = now => {
+    const dt = Math.min(.04, (now - last) / 1000); last = now;
+    g.clearRect(0, 0, innerWidth, innerHeight);
+    if (flash > 0) { g.globalAlpha = flash * .55; g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y, 34 + (1 - flash) * 40, 0, 7); g.fill(); flash -= dt * 5; }
+    let alive = 0;
+    for (const p of P) {
+      if (p.d > 0) { p.d -= dt; alive++; continue; }
+      p.life += dt; if (p.life > p.max) continue; alive++;
+      p.vx *= 1 - dt * 1.6; p.vy = p.vy * (1 - dt * 1.6) + 260 * dt; // 공기 저항 + 중력
+      const px = p.x, py = p.y; p.x += p.vx * dt; p.y += p.vy * dt;
+      const k = 1 - p.life / p.max, tw = .65 + .35 * Math.sin(p.life * 30 + p.tw);
+      g.globalAlpha = Math.max(0, k * tw);
+      g.strokeStyle = p.c; g.lineWidth = p.r; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(px - p.vx * dt * 2.5, py - p.vy * dt * 2.5); g.lineTo(p.x, p.y); g.stroke(); // 꼬리
+      g.fillStyle = p.c; g.beginPath(); g.arc(p.x, p.y, p.r * .9, 0, 7); g.fill();
+    }
+    g.globalAlpha = 1;
+    if (alive) requestAnimationFrame(tick); else c.remove();
+  };
+  requestAnimationFrame(tick);
+  setTimeout(() => c.remove(), 3000); // 안전장치
 }
 
 function wanderEngine(w, getBox, { tap = false, speed: SPEED = 34, start = true } = {}) {
