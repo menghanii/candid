@@ -656,5 +656,14 @@
  "글을 고쳤어요": "Updated",
  "친구 피드에서 이 사진을 지울까요? 되돌릴 수 없어요.": "Delete this photo from your friend's feed? This can't be undone.",
  "보낸 사진을 지웠어요": "Photo deleted",
- "댓글 수정": "Edit comment"
+ "댓글 수정": "Edit comment",
+ "게시물 수정": "Edit post",
+ "이 사진 빼기": "Remove this photo",
+ "사진 더하기": "Add photos",
+ "사진은 1장 이상 있어야 해요. 다 지우려면 게시물을 삭제해 주세요": "A post needs at least one photo. To remove everything, delete the post",
+ "친구 피드에 올라간 게시물은 사진을 빼기만 할 수 있어요": "Posts on a friend's feed can only have photos removed",
+ "업로드가 마감된 그룹이라 사진을 빼기만 할 수 있어요": "Uploads are closed in this group, so you can only remove photos",
+ "최대 10장까지 · 빼거나 더할 수 있어요": "Up to 10 · add or remove photos",
+ "사진 수정 기능 준비 중이에요(관리자: 24 SQL 실행 필요)": "Photo editing isn't ready yet (admin: run SQL 24)",
+ "수정했어요": "Saved"
 };

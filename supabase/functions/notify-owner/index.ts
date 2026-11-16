@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
     payload = JSON.stringify({
       title: L.postTitle,
       body: fill(L.postBody, { name, mission }),
-      url: `${SITE}?u=${post.owner_id}&tab=inbox`,
+      url: `${SITE}?u=${post.owner_id}&tab=inbox&p=${post.id}`, // 그 사진을 바로 열기
     });
   } else if (body.table === 'post_stickers') {
     const { data: st } = await sb!.from('post_stickers').select('id, post_id, user_id, created_at').eq('id', id).maybeSingle();
@@ -164,10 +164,10 @@ Deno.serve(async (req) => {
     if (batch?.[0] && batch[0].id !== st.id) return new Response('skip (batched)');
     const { data: who } = await sb!.from('profiles').select('name').eq('id', st.user_id).maybeSingle();
     ownerId = target;
-    let url = `${SITE}?u=${target}`;
+    let url = `${SITE}?u=${target}&p=${post.id}`; // 꾸민 그 사진을 바로 열기
     if (post.group_id) {
       const { data: g } = await sb!.from('groups').select('handle').eq('id', post.group_id).maybeSingle();
-      url = `${SITE}?g=${g?.handle ?? ''}`;
+      url = `${SITE}?g=${g?.handle ?? ''}&p=${post.id}`;
     }
     const L = MSG[await langOf(target)];
     payload = JSON.stringify({ title: L.stkTitle, body: fill(L.stkBody, { name: who?.name ?? L.friend }), url });

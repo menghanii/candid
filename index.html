@@ -320,6 +320,14 @@
   .frow.dragging .dh { cursor:grabbing; color:var(--accent); }
   .post-c .edited, .crow .edited { color:var(--sub); font-size:11px; }
   .post-c .edited { display:block; margin-top:4px; }
+  .epm { display:flex; gap:8px; overflow-x:auto; padding:2px 2px 6px; scrollbar-width:none; }
+  .epm-i, .epm-add { position:relative; flex:none; width:76px; height:95px; border-radius:12px; overflow:hidden; background:var(--soft); }
+  .epm-i img, .epm-i video { width:100%; height:100%; object-fit:cover; display:block; }
+  .epm-v { position:absolute; left:6px; bottom:6px; color:#fff; filter:drop-shadow(0 1px 3px rgba(0,0,0,.5)); }
+  .epm-v svg { width:16px; height:16px; }
+  .epm-x { position:absolute; top:4px; right:4px; width:24px; height:24px; padding:0; border:0; border-radius:50%; background:rgba(0,0,0,.6); color:#fff; display:flex; align-items:center; justify-content:center; }
+  .epm-x .ii { width:14px; height:14px; }
+  .epm-add { display:flex; align-items:center; justify-content:center; border:1.5px dashed var(--line); background:none; color:var(--sub); font-size:28px; cursor:pointer; }
   .ep-row { display:flex; justify-content:space-between; margin:6px 2px 14px; color:var(--sub); }
   .cedit { display:flex; gap:6px; margin-top:4px; } .cedit input { flex:1; min-width:0; }
   .gsec { display:flex; align-items:center; gap:6px; padding:18px 20px 0; font-size:13px; color:var(--sub); }
@@ -1352,6 +1360,7 @@ async function boot() {
   const wantInstall = new URLSearchParams(location.search).has('install');
   if (wantInstall) { const u = new URL(location.href); u.searchParams.delete('install'); history.replaceState(history.state, '', u.pathname + u.search); }
   route();
+  listenPushOpen();
   if (wantInstall && !inApp) setTimeout(showInstallGuide, 400);
   else if (window.__OLD_HOME_APP) setTimeout(() => { // 예전 주소로 설치한 홈 화면 앱: 하루 한 번 새 주소 안내
     let last = 0; try { last = +localStorage.getItem('candid_moved_tip') || 0; } catch {}
@@ -1374,6 +1383,7 @@ function route() {
   CUR = pageKey();
   document.documentElement.classList.remove('noscroll', 'paperbg'); document.getElementById('tcpaper')?.remove();
   const qs = new URLSearchParams(location.search);
+  if (qs.get('p') && (qs.get('u') || qs.get('g'))) openDeepPost(qs.get('p'));
   if (qs.get('gi')) return renderGroupInvite(qs.get('gi'));
   if (me && qs.has('friends')) return renderTabPage('friends', 'Friends', renderFriendsTab);
   if (me && qs.has('groups')) return renderTabPage('groups', 'Groups', renderGroupsTab);
@@ -1388,6 +1398,30 @@ function route() {
   if (new URLSearchParams(location.search).has('home')) return renderHome(); // 하단 바 릴스 탭
   // 로그인: 친구가 있으면 홈(릴스), 없으면 내 피드
   myFollows.size || MYG.fol.size ? renderHome() : go(feedUrl(me.id), true);
+}
+
+// 알림을 눌러 들어온 경우: 서비스 워커가 알려준 주소(그룹·대기 피드·사진)로 이동
+function openFromPush(url) {
+  let u; try { u = new URL(url, location.href); } catch { return; }
+  const target = location.pathname + u.search;
+  if (location.pathname + location.search === target) { const pid = u.searchParams.get('p'); if (pid && !document.querySelector('.overlay')) openDeepPost(pid); return; }
+  closeSheet(); document.querySelector('.overlay')?.remove();
+  go(target);
+}
+function listenPushOpen() {
+  if (!('serviceWorker' in navigator) || listenPushOpen.on) return; listenPushOpen.on = true;
+  navigator.serviceWorker.addEventListener('message', e => { if (e.data?.type === 'candid-open') openFromPush(e.data.url); });
+  navigator.serviceWorker.ready.then(r => (navigator.serviceWorker.controller || r.active)?.postMessage('candid-pending?')).catch(() => {});
+}
+// 주소에 ?p=게시물 이 있으면(알림·링크) 화면이 그려진 뒤 그 게시물을 바로 열기
+function openDeepPost(pid) {
+  const t0 = Date.now(), iv = setInterval(() => {
+    if (findPost(pid)) {
+      clearInterval(iv); if (!document.querySelector('.overlay')) openPost(pid);
+      const u = new URL(location.href); if (u.searchParams.get('p') === pid) { u.searchParams.delete('p'); history.replaceState(history.state, '', u.pathname + u.search); } // 뒤로 갔다 와도 다시 열리지 않게
+    }
+    else if (Date.now() - t0 > 8000) clearInterval(iv);
+  }, 120);
 }
 
 // ---------- 아이디(@handle) ----------
@@ -4429,31 +4463,93 @@ async function loadEdited(p) { // '수정됨' 표시용(23 SQL 전이면 조용�
   const { data, error } = await sb.from('posts').select('edited_at').eq('id', p.id).maybeSingle();
   p.edited_at = error ? null : data?.edited_at || null;
 }
-const myPostItems = id => `<button class="menu-item" onclick="closeSheet();setTimeout(() => editPostText('${id}'), 250)">${t('글 수정')}</button>
+const myPostItems = id => `<button class="menu-item" onclick="closeSheet();setTimeout(() => editPostText('${id}'), 250)">${t('게시물 수정')}</button>
     <button class="menu-item danger" onclick="deleteMyPost('${id}')">${t('보낸 사진 삭제')}</button>`;
 function myPostMenu(id) { menu(myPostItems(id)); }
 const editErr = e => /edit_post_text|delete_my_post|edited_at/.test(e?.message || '') && /does not exist|not find|42883|PGRST20/.test(e?.message || '')
   ? t('수정 기능 준비 중이에요(관리자: 23 SQL 실행 필요)') : /not_allowed/.test(e?.message || '') ? t('내가 보낸 글만 고칠 수 있어요') : kerr(e);
+// 게시물 수정: 한마디 + 사진 빼기·더하기(24 SQL). 그룹은 더하기 가능(마감 전), 친구 피드는 이미 올라간 것이라 빼기만
 function editPostText(id) {
   const p = findAny(id); if (!p) return;
+  const orig = mediaOf(p).map(m => ({ ...m }));
+  let items = orig.map(m => ({ ...m, old: true }));
+  const g = p.group_id ? groupOf(p.group_id) : null;
+  const canAdd = !!p.group_id && !g?.closed;
   const w = sheet(`<div class="shead"><h3>Edit<i class="pd">.</i></h3><button class="icon-btn" aria-label="${t('닫기')}" onclick="closeSheet()">${I.close}</button></div>
+    <div class="epm" id="epm"></div>
+    <p class="hint" id="epmh"></p>
     <textarea class="field" id="eptext" maxlength="80" rows="3" placeholder="${t('한마디 (선택)')}">${esc(p.text || '')}</textarea>
     <div class="ep-row"><small id="epn">${[...(p.text || '')].length}/80</small><small>${t("고치면 '수정됨'이 표시돼요")}</small></div>
     <button class="btn primary block" id="epsave">${t('저장')}</button>`);
-  const ta = w.querySelector('#eptext'), b = w.querySelector('#epsave');
+  const ta = w.querySelector('#eptext'), b = w.querySelector('#epsave'), strip = w.querySelector('#epm');
+  const thumbOf = m => m.old ? thumbUrl({ thumb_path: m.t, image_path: m.p }) : m.previewUrl || (m.thumb ? URL.createObjectURL(m.thumb) : '');
+  const paint = () => {
+    strip.innerHTML = items.map((m, i) => `<div class="epm-i">${(m.k || m.kind) === 'video' && !m.old ? `<video src="${m.previewUrl}" muted playsinline></video>` : `<img src="${thumbOf(m)}" alt="">`}
+        ${(m.k || m.kind) === 'video' ? `<span class="epm-v">${I.play}</span>` : ''}
+        ${items.length > 1 ? `<button class="epm-x" data-rm="${i}" aria-label="${t('이 사진 빼기')}">${II.x}</button>` : ''}</div>`).join('')
+      + (canAdd && items.length < 10 ? `<label class="epm-add" aria-label="${t('사진 더하기')}">+<input type="file" accept="image/*,video/*" multiple hidden></label>` : '');
+    w.querySelector('#epmh').textContent = items.length < 2 ? t('사진은 1장 이상 있어야 해요. 다 지우려면 게시물을 삭제해 주세요')
+      : !p.group_id ? t('친구 피드에 올라간 게시물은 사진을 빼기만 할 수 있어요') : g?.closed ? t('업로드가 마감된 그룹이라 사진을 빼기만 할 수 있어요') : t('최대 10장까지 · 빼거나 더할 수 있어요');
+    strip.querySelectorAll('[data-rm]').forEach(x => x.onclick = () => { items.splice(+x.dataset.rm, 1); paint(); });
+    const inp = strip.querySelector('.epm-add input');
+    if (inp) inp.onchange = async () => {
+      let files = [...inp.files].slice(0, 10 - items.length);
+      for (const f of files) {
+        if (f.type.startsWith('video/')) { try { const m = await prepareVideoMeta(f); m.start = 0; m.end = Math.min(m.duration, MAX_VIDEO_SEC); items.push(m); } catch {} }
+        else items.push(quickImage(f));
+      }
+      paint();
+    };
+  };
+  paint();
   ta.oninput = () => { w.querySelector('#epn').textContent = `${[...ta.value].length}/80`; };
-  setTimeout(() => { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }, 300);
   b.onclick = async () => {
-    const v = ta.value.trim(); if (v === (p.text || '')) return closeSheet();
+    const v = ta.value.trim(), textChanged = v !== (p.text || '');
+    const mediaChanged = items.length !== orig.length || items.some((m, i) => !m.old || m.p !== orig[i].p);
+    if (!textChanged && !mediaChanged) return closeSheet();
     b.disabled = true;
-    const { data, error } = await sb.rpc('edit_post_text', { p_post: id, p_text: v });
-    b.disabled = false;
-    if (error) return toast(editErr(error));
-    [findPost(id), HOME.posts?.find(x => x.id === id), p].filter(Boolean).forEach(x => Object.assign(x, { text: v || null, edited_at: data || new Date().toISOString() }));
-    closeSheet(); toast(t('글을 고쳤어요'));
-    const ov = document.querySelector('.overlay'); if (ov) { ov.remove(); openPost(id); } // 열려 있던 게시물 다시 그리기
-    if (G.g && document.querySelector('.ghead')) paintGroup(); else if (S.prof && document.getElementById('body')) renderBody();
-    const r = document.querySelector(`.reel[data-id="${id}"] .rtext`); if (r) r.textContent = v ? `“${v}”` : '';
+    const status = x => { b.textContent = x; };
+    try {
+      let at = null;
+      if (mediaChanged) {
+        const fresh = items.filter(m => !m.old); if (fresh.some(m => m.kind === 'video')) unlockMedia(fresh);
+        const list = [];
+        for (const [i, m] of items.entries()) {
+          if (m.old) { list.push({ p: m.p, t: m.t, k: m.k || 'image' }); continue; }
+          const tag = ` (${i + 1}/${items.length})`;
+          let main = m.main;
+          if (m.job) { status(t('사진 준비 중{tag}…', { tag })); await m.job; main = m.main; }
+          if (m.kind === 'video') main = await compressVideo(m, q => status(t('영상 줄이는 중{tag} {p}%', { tag, p: Math.round(q * 100) })));
+          status(t('올리는 중{tag}…', { tag }));
+          const uid = crypto.randomUUID(), dir = p.group_id || p.owner_id;
+          const path = `${dir}/${uid}.${extOf(main)}`, tpath = `${dir}/${uid}_t.${extOf(m.thumb)}`;
+          await Promise.all([uploadBlob(path, main), uploadBlob(tpath, m.thumb)]);
+          list.push({ p: path, t: tpath, k: m.kind });
+        }
+        status(t('저장 중…'));
+        const { data, error } = await sb.rpc('edit_post_media', { p_post: id, p_media: list });
+        if (error) throw error;
+        at = data;
+        const patch = { media: list.length > 1 ? list : null, image_path: list[0].p, thumb_path: list[0].t, media_type: list[0].k };
+        [findPost(id), HOME.posts?.find(x => x.id === id), p].filter(Boolean).forEach(x => Object.assign(x, patch));
+      }
+      if (textChanged) {
+        const { data, error } = await sb.rpc('edit_post_text', { p_post: id, p_text: v });
+        if (error) throw error;
+        at = data;
+      }
+      [findPost(id), HOME.posts?.find(x => x.id === id), p].filter(Boolean).forEach(x => Object.assign(x, { text: v || null, edited_at: at || new Date().toISOString() }));
+      if (mediaChanged) await loadStickers([id]).catch(() => {}); // 스티커 순서가 바뀌었을 수 있음
+    } catch (e) {
+      b.disabled = false; status(t('저장'));
+      return toast(/no_add_after_approval/.test(e?.message || '') ? t('친구 피드에 올라간 게시물은 사진을 빼기만 할 수 있어요')
+        : /closed/.test(e?.message || '') ? t('업로드가 마감된 그룹이에요') : /edit_post_media/.test(e?.message || '') && /does not exist|not find|42883|PGRST20/.test(e?.message || '') ? t('사진 수정 기능 준비 중이에요(관리자: 24 SQL 실행 필요)') : e?.user ? e.message : editErr(e));
+    }
+    closeSheet(); toast(t('수정했어요'));
+    const ov = document.querySelector('.overlay'); if (ov) { ov.remove(); openPost(id); }
+    if (G.g && document.querySelector('.ghead')) { setThumbs?.(G.posts); paintGroup(); } else if (S.prof && document.getElementById('body')) renderBody();
+    if (mediaChanged && document.querySelector(`.reel[data-id="${id}"]`) && CACHE.home) paintHome(CACHE.home);
+    else { const r = document.querySelector(`.reel[data-id="${id}"] .rtext`); if (r) r.textContent = v ? `“${v}”` : ''; }
   };
 }
 async function deleteMyPost(id) {
@@ -4474,7 +4570,7 @@ function groupPostItems(id) {
     ${owner ? `<button class="menu-item" onclick="pinPost('${id}', ${!p.pinned_at})">${t(p.pinned_at ? '고정 해제' : '맨 위에 고정')}</button>` : ''}
     ${owner && p.flagged ? `<button class="menu-item" onclick="unflagPost('${id}')">${t('다시 보이게 하기 (신고 기록 지우기)')}</button>` : ''}
     ${me && !mine ? `<button class="menu-item danger" onclick="closeSheet();setTimeout(() => reportPost('${id}'), 250)">${t('신고하기')}</button>` : ''}
-    ${mine && !isText(p) ? `<button class="menu-item" onclick="closeSheet();setTimeout(() => editPostText('${id}'), 250)">${t('글 수정')}</button>` : ''}
+    ${mine && !isText(p) ? `<button class="menu-item" onclick="closeSheet();setTimeout(() => editPostText('${id}'), 250)">${t('게시물 수정')}</button>` : ''}
     ${owner || mine ? `<button class="menu-item danger" onclick="deleteGroupPost('${id}')">${t('삭제')}</button>` : ''}`);
 }
 const curMediaIdx = id => +(document.querySelector(`.overlay .carwrap`)?.dataset.idx || document.querySelector(`.reel[data-id="${id}"] .carwrap`)?.dataset.idx || 0);
@@ -4748,6 +4844,7 @@ function demoClient() {
     if (fn === 'group_invite_code') { const g = G_(args.p_group); if (args.p_new) g.invite_code = Math.random().toString(36).slice(2, 14); return ok(g.invite_code); }
     if (fn === 'transfer_group') { const g = G_(args.p_group); mem(g.id, ME.id).role = 'member'; mem(g.id, args.p_user).role = 'owner'; g.owner_id = args.p_user; return ok(null); }
     if (fn === 'pin_post') { const p = db.posts.find(x => x.id === args.p_post); if (args.p_on && db.posts.filter(x => x.group_id === p.group_id && x.pinned_at && x.id !== p.id).length >= 9) return no('pin_limit'); p.pinned_at = args.p_on ? new Date().toISOString() : null; return ok(null); }
+    if (fn === 'edit_post_media') { const p = db.posts.find(x => x.id === args.p_post); if (!p || p.author_id !== ME.id) return no('not_allowed'); const m = args.p_media; Object.assign(p, { media: m.length > 1 ? m : null, image_path: m[0].p, thumb_path: m[0].t, media_type: m[0].k, edited_at: new Date().toISOString() }); return ok(p.edited_at); }
     if (fn === 'edit_post_text') { const p = db.posts.find(x => x.id === args.p_post); if (!p || p.author_id !== ME.id) return no('not_allowed'); p.text = args.p_text || null; p.edited_at = new Date().toISOString(); return ok(p.edited_at); }
     if (fn === 'delete_my_post') { const i = db.posts.findIndex(x => x.id === args.p_post && x.author_id === ME.id && !x.group_id); if (i < 0) return no('not_allowed'); db.posts.splice(i, 1); return ok(null); }
     if (fn === 'can_view_feed') { const o = db.profiles.find(p => p.id === args.o); return { data: !o?.is_private || args.o === ME.id || db.follows.some(f => f.follower_id === args.o && f.followee_id === ME.id), error: null }; }

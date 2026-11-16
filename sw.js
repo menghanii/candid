@@ -15,14 +15,27 @@ self.addEventListener('push', e => {
   }));
 });
 
+// 알림을 누르면 그 내용(그룹·대기 피드·사진)으로 바로
+// iPhone 홈 화면 앱은 열려 있는 창을 다른 주소로 옮기는 기능(navigate)을 지원하지 않아서
+// 열려 있는 앱에는 메시지로 주소를 알려 앱이 직접 이동, 새로 켜지는 앱은 시작할 때 물어보면 알려줌
+let PENDING = null;
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   const url = e.notification.data && e.notification.data.url || self.registration.scope;
   e.waitUntil((async () => {
     const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    for (const w of wins) {
-      if (w.url.startsWith(self.registration.scope)) { await w.focus(); return w.navigate(url); }
+    const w = wins.find(x => x.url.startsWith(self.registration.scope));
+    if (w) {
+      try { await w.focus(); } catch (_) {}
+      w.postMessage({ type: 'candid-open', url });
+      return;
     }
+    PENDING = { url, at: Date.now() };
     return self.clients.openWindow(url);
   })());
+});
+self.addEventListener('message', e => {
+  if (e.data !== 'candid-pending?') return;
+  if (PENDING && Date.now() - PENDING.at < 60000 && e.source) e.source.postMessage({ type: 'candid-open', url: PENDING.url });
+  PENDING = null;
 });
