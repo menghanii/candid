@@ -1673,12 +1673,12 @@ function login(provider) {
   if (!IN_APP && inApp && !DEMO && !(inKakao && provider === 'kakao')) return openExternal();
   try { localStorage.setItem('candid_last_login', provider); sessionStorage.setItem('candid_oauth', '1'); } catch {}
   showAuthWait(t('{provider} 로그인으로 이동 중…', { provider: PROVIDER_NAME[provider] || '' }));
-  if (IN_APP) return nativeOAuth(provider).catch(e => { cancelAuthWait(); toast(kerr(e)); });
+  if (IN_APP) return nativeOAuth(provider).catch(e => { console.error('[candid] login fail', e?.code, e?.message, JSON.stringify(e)); cancelAuthWait(); toast(kerr(e)); });
   sb.auth.signInWithOAuth({ provider, options: { redirectTo: location.origin + location.pathname } });
 }
 // iOS 앱: 앱 화면 안에서는 Google 등이 로그인을 막음 → iPhone 로그인 창(Safari)으로 열고, 끝나면 candid://auth-callback 으로 앱에 돌아옴
 const APP_CB = 'candid://auth-callback';
-const capPlugin = name => window.Capacitor?.registerPlugin?.(name);
+const capPlugin = name => window.Capacitor?.Plugins?.[name] || window.Capacitor?.registerPlugin?.(name); // 앱 안에서는 Capacitor.Plugins 에 들어 있음
 async function nativeOAuth(provider, link) {
   const opts = { provider, options: { redirectTo: APP_CB, skipBrowserRedirect: true } };
   const { data, error } = link ? await sb.auth.linkIdentity(opts) : await sb.auth.signInWithOAuth(opts);
@@ -1703,7 +1703,7 @@ async function finishNativeOAuth(url) {
   location.reload();
 }
 if (IN_APP) {
-  console.log('[candid] native plugins', ['AuthSession', 'MediaPicker', 'App', 'Browser'].map(n => n + ':' + !!window.Capacitor?.isPluginAvailable?.(n)).join(' '));
+  console.log('[candid] native plugins', ['AuthSession', 'MediaPicker', 'App', 'Browser'].map(n => n + ':' + !!window.Capacitor?.isPluginAvailable?.(n) + '/' + typeof capPlugin(n)?.addListener).join(' '));
   capPlugin('App')?.addListener('appUrlOpen', ({ url }) => { if (url?.startsWith(APP_CB)) finishNativeOAuth(url); });
   capPlugin('Browser')?.addListener('browserFinished', () => setTimeout(() => { if (document.querySelector('.authwait') && !me) cancelAuthWait(); }, 600)); // 로그인 창을 그냥 닫음
 }
