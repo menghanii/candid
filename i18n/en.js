@@ -734,5 +734,8 @@
  "차단한 사용자가 없어요": "No blocked users",
  "차단한 사용자예요. 서로의 게시물과 댓글이 보이지 않아요.": "You blocked this user. You can't see each other's posts or comments.",
  "댓글 신고": "Report comment",
- "차단한 사용자": "Blocked users"
+ "차단한 사용자": "Blocked users",
+ "이용약관": "Terms of Service",
+ "개인정보처리방침": "Privacy Policy",
+ "계속하면 {a}과 {b}에 동의하는 것으로 봐요": "By continuing, you agree to the {a} and {b}"
 };

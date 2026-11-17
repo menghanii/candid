@@ -342,6 +342,9 @@
   .epm-add { display:flex; align-items:center; justify-content:center; border:1.5px dashed var(--line); background:none; color:var(--sub); font-size:28px; cursor:pointer; }
   .ep-row { display:flex; justify-content:space-between; margin:6px 2px 14px; color:var(--sub); }
   .cedit { display:flex; gap:6px; margin-top:4px; } .cedit input { flex:1; min-width:0; }
+  .legal-links { text-align:center; margin:16px 0 0; font-size:12px; color:var(--sub); }
+  .legal-links a, .legal-fine a { color:inherit; text-decoration:underline; text-underline-offset:2px; }
+  .legal-fine { margin-top:6px !important; font-size:11px !important; opacity:.85; }
   .del-acc { display:block; margin:18px auto 4px; color:var(--sub); font-size:13px; text-decoration:underline; text-underline-offset:3px; }
   .del-list { margin:6px 0 12px; padding-left:20px; color:var(--fg); font-size:14px; line-height:1.7; }
   .danger-btn { background:var(--danger) !important; color:#fff !important; border:0; } .danger-btn:disabled { opacity:.35; }
@@ -1727,6 +1730,7 @@ function renderLanding(inviter) {
       })()}
       ${inKakao && all.includes('google') ? `<button class="fine linkish" onclick="openExternal()">${t('Google로 하려면 Safari·Chrome에서 열기')}</button>` : ''}
       ${appFirst ? '' : `<p class="fine">${t('친구는 로그인 없이 사진을 보낼 수 있어요.<br>내가 승인한 사진만 피드에 올라갑니다.')}</p>`}
+      <p class="fine legal-fine">${t('계속하면 {a}과 {b}에 동의하는 것으로 봐요', { a: `<a href="${SITE}/terms.html" target="_blank" rel="noopener">${t('이용약관')}</a>`, b: `<a href="${SITE}/privacy.html" target="_blank" rel="noopener">${t('개인정보처리방침')}</a>` })}</p>
 
     </div>`;
   startWander();
@@ -2937,6 +2941,7 @@ function openMenu() {
       ${GACHA_ON ? row(I.sparkle, '꾸미기', 'closeSheet();openCloset()') + row(I.sparkle, '뽑기', 'closeSheet();openGacha()') : ''}
     </div>
     <div class="clist2" style="margin-top:12px">${row(I.logout, t('로그아웃'), 'logout()', 'danger')}</div>
+    <p class="legal-links"><a href="${SITE}/terms.html" target="_blank" rel="noopener">${t('이용약관')}</a> · <a href="${SITE}/privacy.html" target="_blank" rel="noopener">${t('개인정보처리방침')}</a></p>
     ${DEMO ? '' : `<button class="linkish del-acc" onclick="closeSheet();setTimeout(openDeleteAccount,250)">${t('계정 삭제')}</button>`}`);
 }
 // 개인 피드 공개 범위: 전체 공개 / 비공개(내가 친구로 추가한 사람만). 19 SQL
