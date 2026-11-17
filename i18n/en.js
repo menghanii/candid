@@ -737,5 +737,6 @@
  "차단한 사용자": "Blocked users",
  "이용약관": "Terms of Service",
  "개인정보처리방침": "Privacy Policy",
- "계속하면 {a}과 {b}에 동의하는 것으로 봐요": "By continuing, you agree to the {a} and {b}"
+ "계속하면 {a}과 {b}에 동의하는 것으로 봐요": "By continuing, you agree to the {a} and {b}",
+ "Apple로 계속하기": "Continue with Apple"
 };

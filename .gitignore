@@ -3,3 +3,5 @@ secrets.local.env
 tools/decor-preview.png
 .wrangler/
 node_modules/
+secrets/
+*.p8
