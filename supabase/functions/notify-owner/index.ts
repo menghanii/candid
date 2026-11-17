@@ -17,15 +17,18 @@ const MSG: Record<string, Record<string, string>> = {
   ko: { postTitle: '누군가 너에게 사진을 보냈어 👀', postBody: "{name}님이 '{mission}'을(를) 보냈어요. 대기 피드에서 확인해 보세요.",
         stkTitle: '누가 내 사진을 꾸몄어요 ✨', stkBody: '{name}님이 내 사진에 스티커를 붙였어요. 확인해 보세요.', photo: '사진', friend: '친구', anon: '익명의 친구',
         gTitle: '{group} 📸', gOne: '{name}님이 새 사진을 올렸어요', gMany: '새 사진 {n}장이 올라왔어요',
-        joinTitle: '참여 신청이 왔어요 🙋', joinBody: "{name}님이 '{group}' 참여를 신청했어요. 승인해 주세요." },
+        joinTitle: '참여 신청이 왔어요 🙋', joinBody: "{name}님이 '{group}' 참여를 신청했어요. 승인해 주세요.",
+        invTitle: '그룹 초대가 왔어요 💌', invBody: "{name}님이 '{group}'에 초대했어요. 수락하면 같이 사진을 모을 수 있어요." },
   en: { postTitle: 'Someone sent you a photo 👀', postBody: '{name} sent you “{mission}”. Check it in Pending.',
         stkTitle: 'Someone decorated your photo ✨', stkBody: '{name} added stickers to your photo. Take a look!', photo: 'a photo', friend: 'A friend', anon: 'Anonymous friend',
         gTitle: '{group} 📸', gOne: '{name} posted a new photo', gMany: '{n} new photos were posted',
-        joinTitle: 'New join request 🙋', joinBody: '{name} asked to join “{group}”. Review the request.' },
+        joinTitle: 'New join request 🙋', joinBody: '{name} asked to join “{group}”. Review the request.',
+        invTitle: 'You’re invited 💌', invBody: '{name} invited you to “{group}”. Accept to share photos together.' },
   ja: { postTitle: '誰かが写真を送ってくれたよ 👀', postBody: '{name}さんが「{mission}」を送りました。承認待ちで確認してね。',
         stkTitle: '誰かが写真をデコったよ ✨', stkBody: '{name}さんがあなたの写真にステッカーを貼りました。見てみて！', photo: '写真', friend: '友達', anon: '匿名の友達',
         gTitle: '{group} 📸', gOne: '{name}さんが新しい写真を投稿しました', gMany: '新しい写真が{n}枚投稿されました',
-        joinTitle: '参加リクエストが届きました 🙋', joinBody: '{name}さんが「{group}」への参加をリクエストしました。承認してね。' },
+        joinTitle: '参加リクエストが届きました 🙋', joinBody: '{name}さんが「{group}」への参加をリクエストしました。承認してね。',
+        invTitle: 'グループに招待されました 💌', invBody: '{name}さんが「{group}」に招待しました。承認すると一緒に写真を集められます。' },
 };
 // DB 에 한국어로 저장되는 미션 이름
 const MISSION: Record<string, Record<string, string>> = {
@@ -93,6 +96,21 @@ Deno.serve(async (req) => {
   const id = rec.id;
   const fresh = (iso: string) => Date.now() - new Date(iso).getTime() <= 5 * 60_000;
 
+  // 그룹 초대(친구 골라서) → 초대받은 사람 (28 SQL, 웹훅: group_invites Insert)
+  if (body.table === 'group_invites') {
+    const { data: v } = await sb!.from('group_invites').select('group_id, user_id, invited_by, created_at')
+      .eq('group_id', rec.group_id).eq('user_id', rec.user_id).maybeSingle();
+    if (!v || !fresh(v.created_at)) return new Response('skip');
+    const [{ data: g }, { data: who }] = await Promise.all([
+      sb!.from('groups').select('name').eq('id', v.group_id).maybeSingle(),
+      sb!.from('profiles').select('name').eq('id', v.invited_by).maybeSingle()]);
+    if (!g) return new Response('skip');
+    const L = MSG[await langOf(v.user_id)];
+    const sent = await sendTo(v.user_id, JSON.stringify({
+      title: L.invTitle, body: fill(L.invBody, { name: who?.name ?? L.friend, group: g.name }), url: `${SITE}?groups=1`,
+    }));
+    return Response.json({ sent });
+  }
   // 그룹 참여 신청 → 방장
   if (body.table === 'group_members') {
     const { data: m } = await sb!.from('group_members').select('group_id, user_id, status, created_at')

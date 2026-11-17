@@ -342,6 +342,9 @@
   .epm-add { display:flex; align-items:center; justify-content:center; border:1.5px dashed var(--line); background:none; color:var(--sub); font-size:28px; cursor:pointer; }
   .ep-row { display:flex; justify-content:space-between; margin:6px 2px 14px; color:var(--sub); }
   .cedit { display:flex; gap:6px; margin-top:4px; } .cedit input { flex:1; min-width:0; }
+  .gpick { cursor:pointer; } .gpick.off { opacity:.55; } .gpick input { width:22px; height:22px; accent-color:var(--accent); flex:none; }
+  .gp-st { color:var(--sub); font-size:12px; flex:none; }
+  .ninv { display:flex; gap:6px; flex:none; } .ninv .btn { padding:6px 10px; font-size:12px; }
   .gsec { display:flex; align-items:center; gap:6px; padding:18px 20px 0; font-size:13px; color:var(--sub); }
   .gsec b { color:var(--fg); font-size:14px; }
   .gsec svg { width:16px; height:16px; }
@@ -3405,6 +3408,7 @@ function notiText(i) {
     case 'sticker': return t('{n}님이 내 {what}을(를) 꾸몄어요', { n, what: what(i.post) }) + (i.n > 1 ? t(' (스티커 {k}개)', { k: i.n }) : '');
     case 'follow': return t('{n}님이 나를 친구로 추가했어요', { n });
     case 'gjoin': return t("{n}님이 '{g}' 그룹 참여를 신청했어요", { n, g: esc(i.group?.name || '') });
+    case 'ginvite': return t("{n}님이 '{g}' 그룹에 초대했어요", { n, g: esc(i.group?.name || '') });
   }
 }
 async function openNotis() {
@@ -3424,10 +3428,12 @@ async function openNotis() {
     $l.innerHTML = items.map((i, x) => {
       const p = i.post, thumb = p && !isText(p) && mediaOf(p).length ? `<img class="nthumb" src="${thumbUrl(p)}" alt="" loading="lazy">` : '';
       const av = i.prof ? avatar(i.prof, 'xs') : `<div class="av xs">${esc((i.name || '?').slice(0, 1))}</div>`;
-      const fol = i.k === 'follow' && !myFollows.has(i.uid) ? `<button class="btn add nfol" data-fol="${i.uid}">${t('맞친구')}</button>` : '';
+      const fol = i.k === 'follow' && !myFollows.has(i.uid) ? `<button class="btn add nfol" data-fol="${i.uid}">${t('맞친구')}</button>`
+        : i.k === 'ginvite' && i.group ? `<span class="ninv"><button class="btn primary nfol" data-acc="${x}">${t('수락')}</button><button class="btn nfol" data-dec="${x}">${t('거절')}</button></span>` : '';
       return `<button class="nrow${new Date(i.at).getTime() > seen ? ' new' : ''}" data-i="${x}">${av}<span class="ntx">${notiText(i)}<small>${ago(i.at)}</small></span>${fol || thumb}</button>`;
     }).join('');
     $l.querySelectorAll('[data-fol]').forEach(b => b.onclick = e => { e.stopPropagation(); toggleFollow(b.dataset.fol); b.remove(); });
+    $l.querySelectorAll('[data-acc], [data-dec]').forEach(b => b.onclick = e => { e.stopPropagation(); const it = items[+(b.dataset.acc ?? b.dataset.dec)]; b.closest('.ninv').remove(); answerInvite(it.group.id, !!b.dataset.acc, it.group.handle); });
     $l.querySelectorAll('.nrow').forEach(b => b.onclick = () => openNoti(items[+b.dataset.i]));
   };
   if (NOTI.items) paint(NOTI.items);
@@ -3439,6 +3445,7 @@ function openNoti(i) {
   if (i.k === 'follow') { closeSheet(); return go(feedUrl(i.uid)); }
   if (i.k === 'post') { closeSheet(); return i.post?.id ? go(`${location.pathname}?u=${me.id}&tab=inbox&p=${i.post.id}`) : openInbox(); }
   if (i.k === 'gjoin') { closeSheet(); return i.group && go(`${gUrl(i.group)}&manage=1`); }
+  if (i.k === 'ginvite') { closeSheet(); return go(`${location.pathname}?groups=1`); } // 그룹 탭 맨 위 '받은 초대'에서 수락·거절
   if (!i.post) return toast(t('지금은 볼 수 없는 게시물이에요'));
   if (i.post.group_id) { // 그룹 사진: 그룹으로 가서 그 사진 열기
     const g = MYG.groups.get(i.post.group_id) || (i.post.ghandle ? { id: i.post.group_id, handle: i.post.ghandle } : null);
@@ -4574,6 +4581,59 @@ async function openGroupEdit() {
 }
 
 // ---------- 초대 ----------
+// 친구 골라서 그룹에 초대(28 SQL): 내가 친구로 추가한 사람 중에서, 이미 멤버·신청 중·초대한 사람은 표시만
+async function pickFriendsToGroup(g) {
+  const w = sheet(`<div class="shead"><h3>Invite friends<i class="pd">.</i></h3><button class="icon-btn" aria-label="${t('닫기')}" onclick="closeSheet()">${I.close}</button></div>
+    <input class="field" id="gpq" placeholder="${t('이름이나 아이디로 찾기')}" autocomplete="off" style="margin-bottom:8px">
+    <div class="flist" id="gpl" style="max-height:52vh;overflow:auto;padding:0"><p class="hint">${t('불러오는 중…')}</p></div>
+    <div class="sheet-foot"><button class="btn primary block" id="gpsend" disabled>${t('초대 보내기')}</button></div>`);
+  const ids = [...myFollows];
+  const [pr, mem, inv] = await Promise.all([
+    ids.length ? sb.from('profiles').select('id, name, handle, avatar_url').in('id', ids) : { data: [] },
+    sb.from('group_members').select('user_id, status').eq('group_id', g.id),
+    sb.from('group_invites').select('user_id').eq('group_id', g.id),
+  ]);
+  if (!w.isConnected) return;
+  const st = new Map((mem.data || []).map(m => [m.user_id, m.status === 'active' ? t('멤버') : t('신청 중')]));
+  (inv.data || []).forEach(r => { if (!st.has(r.user_id)) st.set(r.user_id, t('초대함')); });
+  const people = byOrder((pr.data || []).sort((a, b) => a.name.localeCompare(b.name, 'ko')), 'friends');
+  const picked = new Set();
+  const $l = w.querySelector('#gpl'), $b = w.querySelector('#gpsend');
+  const paint = () => {
+    const q = w.querySelector('#gpq').value.trim().toLowerCase();
+    const list = people.filter(p => !q || p.name.toLowerCase().includes(q) || (p.handle || '').includes(q));
+    $l.innerHTML = !people.length ? `<p class="hint" style="padding:12px 0">${t('아직 친구가 없어요. 친구를 추가하거나 링크로 초대해 보세요.')}</p>`
+      : list.map(p => { const s0 = st.get(p.id); return `<label class="frow gpick${s0 ? ' off' : ''}">${avatar(p, 'xs')}<span style="flex:1;min-width:0"><b>${esc(p.name)}</b><small>${p.handle ? '@' + esc(p.handle) : ''}</small></span>
+          ${s0 ? `<small class="gp-st">${s0}</small>` : `<input type="checkbox" data-u="${p.id}"${picked.has(p.id) ? ' checked' : ''}>`}</label>`; }).join('') || `<p class="hint" style="padding:12px 0">${t('찾는 친구가 없어요')}</p>`;
+    $l.querySelectorAll('[data-u]').forEach(c => c.onchange = () => { c.checked ? picked.add(c.dataset.u) : picked.delete(c.dataset.u); upd(); });
+  };
+  const upd = () => { $b.disabled = !picked.size; $b.textContent = picked.size ? t('{n}명에게 초대 보내기', { n: picked.size }) : t('초대 보내기'); };
+  w.querySelector('#gpq').oninput = paint; paint();
+  $b.onclick = async () => {
+    $b.disabled = true;
+    const { data, error } = await sb.rpc('invite_to_group', { p_group: g.id, p_users: [...picked] });
+    if (error) { $b.disabled = false; return toast(/invite_to_group|does not exist|42883|PGRST20/.test(error.message) ? t('친구 초대 기능 준비 중이에요(관리자: 28 SQL 실행 필요)') : gErr(error)); }
+    closeSheet(); toast(data ? t('{n}명에게 초대를 보냈어요', { n: data }) : t('이미 초대했거나 멤버인 친구예요'));
+  };
+}
+// 받은 그룹 초대에 답하기
+async function answerInvite(gid, accept, handle) {
+  const { data, error } = await sb.rpc('answer_group_invite', { p_group: gid, p_accept: accept });
+  if (error) return toast(gErr(error));
+  NOTI.at = 0; MYG.at = 0; INVITES.at = 0;
+  if (!accept) { toast(t('초대를 거절했어요')); return refreshInvitesUI(); }
+  toast(data === 'active' ? t('그룹에 들어왔어요') : t('참여를 신청했어요. 방장이 승인하면 들어갈 수 있어요'));
+  closeSheet();
+  if (data === 'active' && handle) go(`${location.pathname}?g=${handle}`); else refreshInvitesUI();
+}
+const INVITES = { list: null, at: 0 };
+async function loadInvites() {
+  if (!me) return [];
+  if (INVITES.list && Date.now() - INVITES.at < 20000) return INVITES.list;
+  const { data, error } = await sb.rpc('my_group_invites');
+  INVITES.list = error ? [] : data || []; INVITES.at = Date.now(); return INVITES.list;
+}
+function refreshInvitesUI() { if (new URLSearchParams(location.search).has('groups')) route(); }
 async function openGroupInvite(justMade) {
   const g = G.g; if (!g) return;
   const isOwner = me?.id === g.owner_id;
@@ -4589,12 +4649,14 @@ async function openGroupInvite(justMade) {
     <p class="hint">${needsCode ? t('링크를 받은 사람이 참여를 신청하면, 방장이 승인한 뒤에 들어올 수 있어요.') : t('링크를 받은 사람은 참여하기 한 번이면 바로 멤버가 돼요.')}</p>
     <div class="label">MESSAGE</div>
     <textarea class="field msg-box" id="gimsg" maxlength="200">${esc(msg)}</textarea>
+    <button class="crow2 hl" id="gipick" style="margin:4px 0 14px"><span class="cic">${I.user}</span><span class="ctx"><b>${t('친구 골라서 초대')}</b><small>${t('앱에 가입한 친구에게 바로 초대를 보내요')}</small></span>${I.chevron}</button>
     <div class="sheet-foot">
       ${navigator.share ? `<button class="btn primary block" id="ginative">${t('카톡으로 초대하기')}</button><div style="height:8px"></div>` : ''}
       <button class="btn ${navigator.share ? '' : 'primary'} block" id="gicopy">${t('메시지 + 링크 복사')}</button>
       ${needsCode && isOwner ? `<button class="btn block" style="margin-top:8px;border:0;background:none;color:var(--sub);font-size:13px" id="giregen">${t('링크 새로 만들기 (예전 링크는 막혀요)')}</button>` : ''}
     </div>`);
   const text = () => w.querySelector('#gimsg').value;
+  w.querySelector('#gipick').onclick = () => { closeSheet(); setTimeout(() => pickFriendsToGroup(g), 250); };
   w.querySelector('#gicopy').onclick = async () => {
     try { await navigator.clipboard.writeText(withLink(text(), url)); toast(t('복사했어요. 카톡에 붙여넣어 보내세요')); closeSheet(); }
     catch { prompt(t('이 내용을 복사해서 보내 주세요'), withLink(text(), url)); }
@@ -4929,12 +4991,15 @@ function composeToGroup(g) {
 // ---------- 내 피드 > 그룹 탭 ----------
 async function renderGroupsTab($b) {
   $b.innerHTML = `<div class="flist"><p class="hint" style="padding:16px 20px">${t('불러오는 중…')}</p></div>`;
-  await loadMyGroups(true);
+  const [, invs] = await Promise.all([loadMyGroups(true), loadInvites().catch(() => [])]);
+  const invHTML = invs.length ? `<div class="gsec">${I.user}<b>${t('받은 초대')}</b><span>${invs.length}</span></div><div class="flist">${invs.map(v => `
+      <div class="frow">${gAv(v.group, 'xs')}<span style="flex:1;min-width:0"><b>${esc(v.group.name)}</b><small>${t('{name}님이 초대했어요', { name: esc(v.by?.name || t('친구')) })} · ${v.group.visibility === 'private' ? t('비공개') : t('공개')}</small></span>
+        <button class="btn primary" onclick="answerInvite('${v.group.id}', true, '${v.group.handle}')">${t('수락')}</button><button class="btn" onclick="answerInvite('${v.group.id}', false)">${t('거절')}</button></div>`).join('')}</div>` : '';
   if (!document.body.contains($b)) return;
   if (MYG.ok === false) return $b.innerHTML = `<div class="empty"><div class="empty-dot">${DOT('down', { cls: 'float' })}</div><h2>Coming <em>soon.</em></h2><p>${t('그룹 기능 준비 중이에요(관리자: 18 SQL 실행 필요)')}</p></div>`;
   const list = myGroupList();
   if (!list.length) {
-    $b.innerHTML = `<div class="empty"><div class="empty-dot">${DOT('wow', { cls: 'float' })}</div><h2>Shared <em>albums.</em></h2>
+    $b.innerHTML = invHTML + `<div class="empty"><div class="empty-dot">${DOT('wow', { cls: 'float' })}</div><h2>Shared <em>albums.</em></h2>
       <p>${t('결혼식·여행·동아리처럼 한 주제로<br>여러 명이 같이 사진을 모으는 그룹을 만들어 보세요.')}</p>
       <button class="btn primary block" onclick="openCreateGroup()">${t('+ 그룹 만들기')}</button><div style="height:8px"></div>
       <button class="btn block" onclick="openSearch()">${t('공개 그룹 찾기')}</button></div>`;
@@ -4945,7 +5010,7 @@ async function renderGroupsTab($b) {
       ${canPostTo(g) ? `<button class="btn" onclick="composeToGroup(MYG.groups.get('${g.id}'))">${t('올리기')}</button>` : ''}${dragHandle()}</div>`;
   const pub = list.filter(g => g.visibility === 'public'), pri = list.filter(g => g.visibility !== 'public');
   const sec = (id, icon, title, arr) => arr.length ? `<div class="gsec">${icon}<b>${title}</b><span>${arr.length}</span></div><div class="flist" id="${id}">${arr.map(row).join('')}</div>` : '';
-  $b.innerHTML = `<div class="fhead"><b>${t('내 그룹 {n}', { n: list.length })}</b><div style="flex:1"></div><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px" onclick="openCreateGroup()">${t('+ 만들기')}</button><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px;margin-left:6px" onclick="openSearch()">${t('찾기')}</button></div>
+  $b.innerHTML = invHTML + `<div class="fhead"><b>${t('내 그룹 {n}', { n: list.length })}</b><div style="flex:1"></div><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px" onclick="openCreateGroup()">${t('+ 만들기')}</button><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px;margin-left:6px" onclick="openSearch()">${t('찾기')}</button></div>
     ${sec('gpri', II.lock, t('비공개 그룹'), pri)}${sec('gpub', II.globe, t('공개 그룹'), pub)}`;
   // 순서는 비공개·공개 각각 끌어서 바꾸고, 저장은 한 목록으로(비공개 → 공개)
   const save = () => saveOrder('groups', [...$b.querySelectorAll('#gpri [data-key], #gpub [data-key]')].map(x => x.dataset.key));
@@ -5116,6 +5181,9 @@ function demoClient() {
     if (fn === 'group_invite_code') { const g = G_(args.p_group); if (args.p_new) g.invite_code = Math.random().toString(36).slice(2, 14); return ok(g.invite_code); }
     if (fn === 'transfer_group') { const g = G_(args.p_group); mem(g.id, ME.id).role = 'member'; mem(g.id, args.p_user).role = 'owner'; g.owner_id = args.p_user; return ok(null); }
     if (fn === 'pin_post') { const p = db.posts.find(x => x.id === args.p_post); if (args.p_on && db.posts.filter(x => x.group_id === p.group_id && x.pinned_at && x.id !== p.id).length >= 9) return no('pin_limit'); p.pinned_at = args.p_on ? new Date().toISOString() : null; return ok(null); }
+    if (fn === 'invite_to_group') { db.group_invites = db.group_invites || []; let n = 0; args.p_users.forEach(u => { if (!db.group_invites.some(x => x.group_id === args.p_group && x.user_id === u) && !db.group_members.some(m => m.group_id === args.p_group && m.user_id === u)) { db.group_invites.push({ group_id: args.p_group, user_id: u, invited_by: ME.id, created_at: new Date().toISOString() }); n++; } }); return ok(n); }
+    if (fn === 'my_group_invites') { const inv = (db.group_invites || []).filter(x => x.user_id === ME.id); return { data: inv.map(x => ({ group: G_(x.group_id), by: db.profiles.find(p => p.id === x.invited_by), at: x.created_at })), error: null }; }
+    if (fn === 'answer_group_invite') { db.group_invites = (db.group_invites || []).filter(x => !(x.group_id === args.p_group && x.user_id === ME.id)); if (!args.p_accept) return ok('declined'); db.group_members.push({ group_id: args.p_group, user_id: ME.id, role: 'member', status: 'active' }); db.group_follows.push({ group_id: args.p_group, user_id: ME.id }); recount(args.p_group); return ok('active'); }
     if (fn === 'catch_dot') { db.dot_catches = db.dot_catches || []; db.dot_catches.push({ user_id: ME.id, kind: args.p_kind, created_at: new Date().toISOString() }); return ok(db.dot_catches.filter(d => d.user_id === ME.id).length); }
     if (fn === 'edit_post_media') { const p = db.posts.find(x => x.id === args.p_post); if (!p || p.author_id !== ME.id) return no('not_allowed'); const m = args.p_media; Object.assign(p, { media: m.length > 1 ? m : null, image_path: m[0].p, thumb_path: m[0].t, media_type: m[0].k, edited_at: new Date().toISOString() }); return ok(p.edited_at); }
     if (fn === 'edit_post_text') { const p = db.posts.find(x => x.id === args.p_post); if (!p || p.author_id !== ME.id) return no('not_allowed'); p.text = args.p_text || null; p.edited_at = new Date().toISOString(); return ok(p.edited_at); }

@@ -133,6 +133,7 @@ SQL Editor 에서 `sql/03_profile.sql` 실행. 첫 로그인 시 프로필 설�
 | `25_group_limit.sql` | 1인당 만들 수 있는 그룹 10 → 30개 |
 | `26_notifications.sql` | 알림 목록을 서버에서 한 번에(최근 30일 최신 60개, 이름·사진·게시물 포함) |
 | `27_dot_catches.sql` | 닷 잡기 이스터에그: 잡은 닷 저장·프로필 전시(누구나 보기), 하루 30마리 |
+| `28_group_invites.sql` | 그룹에 친구 골라서 초대(내 친구만, 수락·거절), 알림 목록에 초대 추가 |
 | `demo/seed.sql` | (선택) 데모 친구 4명 + 게시물 |
 | `demo/cleanup.sql` | (선택) 데모 친구 전부 삭제 |
 

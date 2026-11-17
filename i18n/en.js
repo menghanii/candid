@@ -683,5 +683,22 @@
  "골드 닷을 잡았어요! 아주 희귀해요": "You caught a gold dot! Super rare",
  "닷을 잡았어요! 내 프로필에 전시돼요": "You caught a dot! It's on display on your profile",
  "{name} 닷을 잡았어요! 내 프로필에 전시돼요": "You caught a {name} dot! It's on display on your profile",
- "닷 컬렉션 {a}/{b}종 · 잡은 닷 {n}": "Dot collection {a}/{b} · {n} caught"
+ "닷 컬렉션 {a}/{b}종 · 잡은 닷 {n}": "Dot collection {a}/{b} · {n} caught",
+ "친구 골라서 초대": "Invite friends",
+ "앱에 가입한 친구에게 바로 초대를 보내요": "Send an invite to friends already on candid.",
+ "이름이나 아이디로 찾기": "Search by name or ID",
+ "초대 보내기": "Send invites",
+ "{n}명에게 초대 보내기": "Invite {n}",
+ "신청 중": "Requested",
+ "초대함": "Invited",
+ "아직 친구가 없어요. 친구를 추가하거나 링크로 초대해 보세요.": "No friends yet. Add friends or invite with a link.",
+ "친구 초대 기능 준비 중이에요(관리자: 28 SQL 실행 필요)": "Friend invites aren't ready yet (admin: run SQL 28)",
+ "{n}명에게 초대를 보냈어요": "Invited {n} friends",
+ "이미 초대했거나 멤버인 친구예요": "Already invited or already a member",
+ "초대를 거절했어요": "Invite declined",
+ "그룹에 들어왔어요": "You joined the group",
+ "{n}님이 '{g}' 그룹에 초대했어요": "{n} invited you to “{g}”",
+ "수락": "Accept",
+ "받은 초대": "Invitations",
+ "{name}님이 초대했어요": "Invited by {name}"
 };
