@@ -1683,7 +1683,11 @@ async function nativeOAuth(provider, link) {
   const opts = { provider, options: { redirectTo: APP_CB, skipBrowserRedirect: true } };
   const { data, error } = link ? await sb.auth.linkIdentity(opts) : await sb.auth.signInWithOAuth(opts);
   if (error) throw error;
-  await capPlugin('Browser').open({ url: data.url, presentationStyle: 'popover' });
+  // iPhone 로그인 전용 창(AuthSession 플러그인): candid:// 로 돌아오면 창이 닫히고 그 주소를 돌려줌
+  const auth = capPlugin('AuthSession');
+  try { const r = await auth.start({ url: data.url, scheme: 'candid' }); return finishNativeOAuth(r.url); }
+  catch (e) { if (/canceled/.test(e?.message || e?.code || '')) return cancelAuthWait(); if (!/not implemented|UNIMPLEMENTED/i.test(e?.message || e?.code || '')) throw e; }
+  await capPlugin('Browser').open({ url: data.url, presentationStyle: 'popover' }); // 예전 앱(플러그인 없음) 대비
 }
 // 로그인 창에서 앱으로 돌아왔을 때: 받은 코드(또는 토큰)로 로그인 마무리 → 새로 시작
 async function finishNativeOAuth(url) {
@@ -1699,6 +1703,7 @@ async function finishNativeOAuth(url) {
   location.reload();
 }
 if (IN_APP) {
+  console.log('[candid] native plugins', ['AuthSession', 'App', 'Browser'].map(n => n + ':' + !!window.Capacitor?.isPluginAvailable?.(n)).join(' '));
   capPlugin('App')?.addListener('appUrlOpen', ({ url }) => { if (url?.startsWith(APP_CB)) finishNativeOAuth(url); });
   capPlugin('Browser')?.addListener('browserFinished', () => setTimeout(() => { if (document.querySelector('.authwait') && !me) cancelAuthWait(); }, 600)); // 로그인 창을 그냥 닫음
 }
