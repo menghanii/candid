@@ -1,0 +1,16 @@
+{
+  "name": "candid-ios",
+  "version": "0.1.0",
+  "private": true,
+  "description": "candid. iOS 앱(Capacitor): 웹앱을 앱 안에 담고 iPhone 기능(푸시·링크 열기·진동)을 연결",
+  "scripts": {
+    "build": "node build-www.js",
+    "sync": "node build-www.js && npx cap sync ios",
+    "open": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/cli": "^7.6.10",
+    "@capacitor/core": "^7.6.10",
+    "@capacitor/ios": "^7.6.10"
+  }
+}

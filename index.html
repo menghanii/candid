@@ -1365,12 +1365,15 @@ const sb = DEMO ? demoClient() : (window.supabase ? supabase.createClient(cfg.SU
 }) : null);
 // 사진·영상 주소: 직접 연결한 도메인(candid-feed.com)에서는 Cloudflare 캐시 중계(/p/…)로 → Supabase 전송량 절약
 // 그 밖(workers.dev·로컬)에서는 캐시가 안 되므로 Supabase 주소 그대로. 외부 주소(데모 친구 사진)도 그대로
-const MEDIA_PROXY = /(^|\.)candid-feed\.com$/.test(location.hostname) || location.port === '8788';
-const photoUrl = path => /^(https?|data|blob):/.test(path) ? path : MEDIA_PROXY ? `${location.origin}/p/${path}` : sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
+// iOS 앱(Capacitor) 안에서는 주소가 capacitor://localhost → 사진·공유 링크는 항상 candid-feed.com 으로
+const IN_APP = location.protocol === 'capacitor:' || !!window.Capacitor?.isNativePlatform?.();
+const MEDIA_PROXY = IN_APP || /(^|\.)candid-feed\.com$/.test(location.hostname) || location.port === '8788';
+const MEDIA_BASE = IN_APP ? 'https://candid-feed.com' : location.origin;
+const photoUrl = path => /^(https?|data|blob):/.test(path) ? path : MEDIA_PROXY ? `${MEDIA_BASE}/p/${path}` : sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
 // 밖으로 보내는 링크(카톡 공유·초대)는 항상 새 주소로 — 예전 주소로 설치한 홈 화면 앱에서 공유해도 candid-feed.com 링크가 나감
 // 카톡은 같은 주소의 미리보기(이미지·제목)를 오래 저장해 둠 → 미리보기를 바꿀 때마다 이 숫자를 올려 공유 링크 주소를 바꿈(카톡이 새로 읽어 감)
 const OGV = '6';
-const SITE = location.hostname === 'candid.candidcrew.workers.dev' ? 'https://candid-feed.com' : location.origin;
+const SITE = IN_APP || location.hostname === 'candid.candidcrew.workers.dev' ? 'https://candid-feed.com' : location.origin;
 const feedUrl = id => `${location.origin}${location.pathname}?u=${id}`;
 let me = null, myProf = null;
 
