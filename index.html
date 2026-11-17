@@ -5262,6 +5262,7 @@ function demoClient() {
   const persist = () => ss.set('demo_db2', JSON.stringify(db));
   const demoCanView = gid => { const g = db.groups.find(x => x.id === gid); return !!g && (g.visibility === 'public' || (loggedIn() && db.group_members.some(m => m.group_id === gid && m.user_id === ME.id && m.status === 'active'))); };
   const loggedIn = () => ss.get('demo_login') === '1';
+  if (cfg.DEMO_AUTO_LOGIN && ss.get('demo_login') == null) ss.set('demo_login', '1'); // 개발용 앱: 로그인 없이 바로 데모 계정으로
   const files = {};
 
   function from(table) {

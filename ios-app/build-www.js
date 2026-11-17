@@ -4,4 +4,9 @@ const root = path.join(__dirname, '..'), out = path.join(__dirname, 'www');
 fs.rmSync(out, { recursive: true, force: true }); fs.mkdirSync(out, { recursive: true });
 const copy = rel => fs.cpSync(path.join(root, rel), path.join(out, rel), { recursive: true });
 ['index.html', 'config.js', 'manifest.json', 'favicon.ico', 'apple-touch-icon.png', 'brand', 'i18n', 'terms.html', 'privacy.html', 'legal.css'].forEach(copy);
+// 개발용(node build-www.js --demo): 서버 접속 정보를 비워 데모 모드(샘플 데이터, 서버에 아무것도 안 씀) + 자동 로그인
+if (process.argv.includes('--demo')) {
+  fs.writeFileSync(path.join(out, 'config.js'), "window.FG_CONFIG = { SUPABASE_URL: '', SUPABASE_ANON_KEY: '', PROVIDERS: ['kakao', 'google'], DEMO_AUTO_LOGIN: true };\n");
+  console.log('개발용 데모 모드로 준비');
+}
 console.log('www 준비 완료:', fs.readdirSync(out).join(', '));

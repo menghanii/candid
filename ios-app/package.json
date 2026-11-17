@@ -6,6 +6,7 @@
   "scripts": {
     "build": "node build-www.js",
     "sync": "node build-www.js && npx cap sync ios",
+    "dev": "node build-www.js --demo && npx cap copy ios",
     "open": "npx cap open ios"
   },
   "dependencies": {
