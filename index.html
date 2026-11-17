@@ -1703,7 +1703,7 @@ async function finishNativeOAuth(url) {
   location.reload();
 }
 if (IN_APP) {
-  console.log('[candid] native plugins', ['AuthSession', 'App', 'Browser'].map(n => n + ':' + !!window.Capacitor?.isPluginAvailable?.(n)).join(' '));
+  console.log('[candid] native plugins', ['AuthSession', 'MediaPicker', 'App', 'Browser'].map(n => n + ':' + !!window.Capacitor?.isPluginAvailable?.(n)).join(' '));
   capPlugin('App')?.addListener('appUrlOpen', ({ url }) => { if (url?.startsWith(APP_CB)) finishNativeOAuth(url); });
   capPlugin('Browser')?.addListener('browserFinished', () => setTimeout(() => { if (document.querySelector('.authwait') && !me) cancelAuthWait(); }, 600)); // 로그인 창을 그냥 닫음
 }
@@ -3120,8 +3120,9 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
   $('#pq').oninput = refresh; $('#qq').oninput = refresh;
 
   // 여러 장 선택(최대 10장): 한 장씩 준비하고, 2장 이상이면 좌우로 넘기는 미리보기
-  $file.onchange = async () => {
-    let files = [...$file.files]; if (!files.length) return;
+  // 고른 사진·영상 처리(웹: 파일 입력 / iOS 앱: iPhone 사진 선택창이 준비해 준 목록 preReady)
+  const handlePick = async preReady => {
+    let files = preReady || [...$file.files]; if (!files.length) return;
     if (files.length > 10) { files = files.slice(0, 10); toast(t('한 번에 10장까지 보낼 수 있어요. 앞 10장만 골랐어요')); }
     const pk = $('#pick');
     pk.classList.remove('has'); pk.classList.add('busy');
@@ -3129,8 +3130,8 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
     $send.disabled = true;
     // 사진은 원본을 바로 미리보기로 보여주고, 줄이기(압축)는 뒤에서 2장씩 진행 → 보내기 누를 때 끝난 걸 씀
     // 영상만 길이·대표 이미지가 있어야 구간 선택을 보여줄 수 있어서 기다림
-    const ready = [], vids = files.filter(f => f.type.startsWith('video/')).length; let vi = 0;
-    for (const f of files) {
+    const ready = preReady ? [...files] : [], vids = preReady ? 0 : files.filter(f => f.type.startsWith('video/')).length; let vi = 0;
+    for (const f of preReady ? [] : files) {
       if (!f.type.startsWith('video/')) { ready.push(quickImage(f)); continue; }
       vi++; pk.querySelector('.cmp-empty b').textContent = vids > 1 ? t('영상 준비 중 ({i}/{n})', { i: vi, n: vids }) : t('영상 준비 중…');
       try { ready.push(await prepareVideoMeta(f)); } catch {}
@@ -3187,6 +3188,13 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
       paint();
     }
   };
+  $file.onchange = () => handlePick();
+  // iOS 앱: 사진 칸을 누르면 웹 파일 선택 대신 iPhone 사진 선택창(빠른 HEIC 처리·줄이기는 iPhone 이 함)
+  if (IN_APP && window.Capacitor?.isPluginAvailable?.('MediaPicker')) $('#pick').addEventListener('click', async e => {
+    if (e.target.closest('input[type=range], .trim')) return;
+    e.preventDefault();
+    const items = await nativePick(); if (items?.length) handlePick(items);
+  });
   // 보내는 사람 선택 버튼
   let who = 'name';
   const setWho = w => {
@@ -5485,7 +5493,7 @@ async function prepareVideoMeta(file) {
 // iPhone 은 버튼을 누른 '바로 그 순간'에만 소리 있는 재생을 허락 → 보내기 누르자마자 오디오·영상 재생 권한을 미리 받아 둠
 function unlockMedia(list) {
   try { const A = window.AudioContext || window.webkitAudioContext; window.__candidActx = window.__candidActx || new A(); window.__candidActx.resume(); } catch {}
-  (list || []).filter(m => m.kind === 'video' && !m.el).forEach(m => {
+  (list || []).filter(m => m.kind === 'video' && !m.el && !m.nativePath).forEach(m => {
     const v = document.createElement('video');
     v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto'; v.src = URL.createObjectURL(m.file);
     v.muted = false; v._unlocking = true; v._sl = true; // 압축용 영상은 반복 재생 제외
@@ -5494,8 +5502,26 @@ function unlockMedia(list) {
   });
 }
 
+// iOS 앱: iPhone 사진 선택창(MediaPicker 플러그인)으로 고르고, iPhone 이 줄여 둔 파일을 읽어 웹의 미디어 목록 모양으로
+const capFile = async (path, type) => new Blob([await (await fetch(window.Capacitor.convertFileSrc(path))).arrayBuffer()], { type });
+async function nativePick() {
+  let r; try { r = await capPlugin('MediaPicker').pick({ max: 10 }); }
+  catch (e) { if (!/canceled/.test(e?.message || e?.code || '')) toast(kerr(e)); return null; }
+  if (r.skipped) toast(t('{n}개는 열 수 없어서 뺐어요', { n: r.skipped }));
+  return Promise.all(r.items.map(async it => {
+    if (it.kind === 'image') { const main = await capFile(it.path, 'image/jpeg'), thumb = await capFile(it.thumbPath, 'image/jpeg'); return { kind: 'image', main, thumb, previewUrl: URL.createObjectURL(main) }; }
+    const thumb = it.thumbPath ? await capFile(it.thumbPath, 'image/jpeg') : await fallbackPoster();
+    return { kind: 'video', nativePath: it.path, duration: it.duration, w: it.width, h: it.height, thumb, previewUrl: window.Capacitor.convertFileSrc(it.path), main: null };
+  }));
+}
 // 영상 압축: 고른 구간(최대 10초)만 720p·약 1.6Mbps 로 다시 인코딩
 async function compressVideo(meta, onProgress) {
+  if (meta.nativePath) { // iOS 앱: iPhone 영상 변환으로 구간만 잘라 720p MP4
+    onProgress?.(0.3);
+    const r = await capPlugin('MediaPicker').exportVideo({ path: meta.nativePath, start: meta.start || 0, end: meta.end ?? meta.duration });
+    onProgress?.(1);
+    return capFile(r.path, 'video/mp4');
+  }
   const dur = meta.duration || MAX_VIDEO_SEC;
   const start = Math.max(0, meta.start || 0), end = Math.min(meta.end ?? dur, start + MAX_VIDEO_SEC), len = Math.max(0.5, end - start);
   const trimmed = start > 0.05 || end < dur - 0.05;

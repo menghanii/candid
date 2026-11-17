@@ -16,10 +16,12 @@
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		A084ECDBA7D38E1E42DFC39D /* Pods_App.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF277DCFFFF123FFC6DF26C7 /* Pods_App.framework */; };
+		E0B56966CCB7C8F33329FEE8 /* MediaPickerPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 182EDB3EF82BCF235975DED7 /* MediaPickerPlugin.swift */; };
 		F54732B1A7F4013E2C3F139C /* AppViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79F259BE9AE4F91AC5EF3A5C /* AppViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		182EDB3EF82BCF235975DED7 /* MediaPickerPlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MediaPickerPlugin.swift; sourceTree = "<group>"; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -87,6 +89,7 @@
 				50B271D01FEDC1A000F3C39B /* public */,
 				D80F1298A49DB3E477D881A6 /* AuthSessionPlugin.swift */,
 				79F259BE9AE4F91AC5EF3A5C /* AppViewController.swift */,
+				182EDB3EF82BCF235975DED7 /* MediaPickerPlugin.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -216,6 +219,7 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				4D69E2519A01B98871683D78 /* AuthSessionPlugin.swift in Sources */,
 				F54732B1A7F4013E2C3F139C /* AppViewController.swift in Sources */,
+				E0B56966CCB7C8F33329FEE8 /* MediaPickerPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
