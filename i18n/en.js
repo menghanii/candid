@@ -700,5 +700,17 @@
  "{n}님이 '{g}' 그룹에 초대했어요": "{n} invited you to “{g}”",
  "수락": "Accept",
  "받은 초대": "Invitations",
- "{name}님이 초대했어요": "Invited by {name}"
+ "{name}님이 초대했어요": "Invited by {name}",
+ "탈퇴한 친구": "Deleted user",
+ "계정 삭제": "Delete account",
+ "계정을 삭제하면 되돌릴 수 없어요. 아래 내용이 모두 지워져요.": "Deleting your account can't be undone. All of the following will be removed.",
+ "내 피드와 받은 사진, 대기 중인 사진": "Your feed, received photos and pending photos",
+ "내가 만든 그룹(그룹 안의 사진 포함), 내가 그룹에 올린 사진": "Groups you created (with their photos) and photos you posted in groups",
+ "좋아요·댓글·스티커, 친구 관계, 알림 설정, 잡은 닷": "Likes, comments, stickers, friends, notification settings and caught dots",
+ "친구 피드에 보내서 친구가 받은 사진은 친구의 것이라 남고, 보낸 사람은 '탈퇴한 친구'로 바뀌어요.": "Photos you sent to friends stay on their feeds, shown as from a 'Deleted user'.",
+ "확인을 위해 '삭제'라고 입력해 주세요": "Type 'delete' to confirm",
+ "계정 영구 삭제": "Delete permanently",
+ "삭제하는 중…": "Deleting…",
+ "계정 삭제 기능 준비 중이에요(관리자: 29 SQL 실행 필요)": "Account deletion isn't ready yet (admin: run SQL 29)",
+ "계정을 삭제했어요. 그동안 고마웠어요": "Your account has been deleted. Thanks for being here"
 };

@@ -342,6 +342,9 @@
   .epm-add { display:flex; align-items:center; justify-content:center; border:1.5px dashed var(--line); background:none; color:var(--sub); font-size:28px; cursor:pointer; }
   .ep-row { display:flex; justify-content:space-between; margin:6px 2px 14px; color:var(--sub); }
   .cedit { display:flex; gap:6px; margin-top:4px; } .cedit input { flex:1; min-width:0; }
+  .del-acc { display:block; margin:18px auto 4px; color:var(--sub); font-size:13px; text-decoration:underline; text-underline-offset:3px; }
+  .del-list { margin:6px 0 12px; padding-left:20px; color:var(--fg); font-size:14px; line-height:1.7; }
+  .danger-btn { background:var(--danger) !important; color:#fff !important; border:0; } .danger-btn:disabled { opacity:.35; }
   .gpick { cursor:pointer; } .gpick.off { opacity:.55; } .gpick input { width:22px; height:22px; accent-color:var(--accent); flex:none; }
   .gp-st { color:var(--sub); font-size:12px; flex:none; }
   .ninv { display:flex; gap:6px; flex:none; } .ninv .btn { padding:6px 10px; font-size:12px; }
@@ -1161,7 +1164,7 @@ async function setLang(k) {
   location.reload();
 }
 const LOGO = 'candid<i>.</i>';
-const aname = n => esc(n === '익명의 친구' ? t(n) : n); // 보낸 사람 이름(익명만 번역)
+const aname = n => esc(n === '익명의 친구' || n === '탈퇴한 친구' ? t(n) : n); // 보낸 사람 이름(익명·탈퇴만 번역)
 const mname = m => esc(m ? t(m) : ''); // 미션 이름
 const sv = (d, s = 22, w = 1.6) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 // 글자 사이에 넣는 작은 아이콘(글자 크기·색을 따라감). 앱 안에서는 이모지 대신 이것을 씀
@@ -1678,6 +1681,7 @@ addEventListener('pageshow', e => {
 async function logout() { await sb.auth.signOut(); location.href = location.pathname; }
 
 function renderLanding(inviter) {
+  try { if (sessionStorage.getItem('candid_deleted')) { sessionStorage.removeItem('candid_deleted'); setTimeout(() => toast(t('계정을 삭제했어요. 그동안 고마웠어요')), 600); } } catch {}
   document.documentElement.classList.add('noscroll'); // 첫 화면은 스크롤 없이 한 화면에 고정
   document.documentElement.classList.toggle('paperbg', !inviter && !(isStandalone && !DEMO));
   // 종이 톤 첫 화면: 브라우저 위쪽 바 색도 종이색으로(다른 화면으로 가면 원래대로)
@@ -2914,7 +2918,8 @@ function openMenu() {
       ${!installed() && !DEMO ? row(I.phone, t('앱으로 설치 (홈 화면에 추가)'), 'closeSheet();setTimeout(startInstall,250)') : ''}
       ${GACHA_ON ? row(I.sparkle, '꾸미기', 'closeSheet();openCloset()') + row(I.sparkle, '뽑기', 'closeSheet();openGacha()') : ''}
     </div>
-    <div class="clist2" style="margin-top:12px">${row(I.logout, t('로그아웃'), 'logout()', 'danger')}</div>`);
+    <div class="clist2" style="margin-top:12px">${row(I.logout, t('로그아웃'), 'logout()', 'danger')}</div>
+    ${DEMO ? '' : `<button class="linkish del-acc" onclick="closeSheet();setTimeout(openDeleteAccount,250)">${t('계정 삭제')}</button>`}`);
 }
 // 개인 피드 공개 범위: 전체 공개 / 비공개(내가 친구로 추가한 사람만). 19 SQL
 function openPrivacy() {
@@ -2935,6 +2940,35 @@ function openPrivacy() {
     toast(t(v ? '비공개로 바꿨어요. 내가 친구로 추가한 사람만 볼 수 있어요' : '전체 공개로 바꿨어요'));
     if (S.isOwner && S.prof) { S.prof.is_private = v; paintProfile(); }
   });
+}
+// 회원 탈퇴(29 SQL): 무엇이 지워지는지 알려주고, '삭제'를 직접 입력해야 진행
+function openDeleteAccount() {
+  const w = sheet(`<div class="shead"><h3>Delete account<i class="pd">.</i></h3><button class="icon-btn" aria-label="${t('닫기')}" onclick="closeSheet()">${I.close}</button></div>
+    <p class="hint" style="line-height:1.6">${t('계정을 삭제하면 되돌릴 수 없어요. 아래 내용이 모두 지워져요.')}</p>
+    <ul class="del-list">
+      <li>${t('내 피드와 받은 사진, 대기 중인 사진')}</li>
+      <li>${t('내가 만든 그룹(그룹 안의 사진 포함), 내가 그룹에 올린 사진')}</li>
+      <li>${t('좋아요·댓글·스티커, 친구 관계, 알림 설정, 잡은 닷')}</li>
+    </ul>
+    <p class="hint" style="line-height:1.6">${t("친구 피드에 보내서 친구가 받은 사진은 친구의 것이라 남고, 보낸 사람은 '탈퇴한 친구'로 바뀌어요.")}</p>
+    <div class="label">${t("확인을 위해 '삭제'라고 입력해 주세요")}</div>
+    <input class="field" id="delin" autocomplete="off" placeholder="${t('삭제')}">
+    <button class="btn block danger-btn" id="delgo" disabled style="margin-top:12px">${t('계정 영구 삭제')}</button>`);
+  const inp = w.querySelector('#delin'), b = w.querySelector('#delgo');
+  inp.oninput = () => { b.disabled = inp.value.trim().toLowerCase() !== t('삭제').toLowerCase(); };
+  b.onclick = async () => {
+    b.disabled = true; b.textContent = t('삭제하는 중…');
+    try { // 프로필 사진 파일(본인 폴더)은 먼저 직접 지움
+      const { data: files } = await sb.storage.from('avatars').list(me.id);
+      if (files?.length) await sb.storage.from('avatars').remove(files.map(f => `${me.id}/${f.name}`));
+    } catch {}
+    const { error } = await sb.rpc('delete_my_account', { p_confirm: 'DELETE' });
+    if (error) { b.disabled = false; b.textContent = t('계정 영구 삭제'); return toast(/delete_my_account|does not exist|42883|PGRST20/.test(error.message) ? t('계정 삭제 기능 준비 중이에요(관리자: 29 SQL 실행 필요)') : kerr(error)); }
+    try { Object.keys(localStorage).filter(k => k.startsWith('candid_')).forEach(k => localStorage.removeItem(k)); } catch {}
+    await sb.auth.signOut().catch(() => {});
+    try { sessionStorage.setItem('candid_deleted', '1'); } catch {}
+    location.href = location.pathname;
+  };
 }
 function postMenu(id) {
   const p = findPost(id);
