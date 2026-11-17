@@ -1,6 +1,6 @@
 require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
-platform :ios, '14.0'
+platform :ios, '15.0'
 use_frameworks!
 
 # workaround to avoid Xcode caching of Pods that requires
@@ -22,4 +22,8 @@ end
 
 post_install do |installer|
   assertDeploymentTarget(installer)
+  # 최신 Xcode 는 iOS 15 미만을 받지 않음 → 라이브러리도 모두 15 로
+  installer.pods_project.targets.each do |t|
+    t.build_configurations.each { |c| c.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0' }
+  end
 end
