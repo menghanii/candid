@@ -1670,10 +1670,37 @@ const PROVIDER_NAME = { kakao: t('카카오'), google: 'Google', apple: 'Apple' 
 function login(provider) {
   // 카톡 안의 카카오 로그인: 이미 카톡에 로그인돼 있어 동의 한 번이면 끝 → 그 자리에서 진행
   // 그 외 인앱(인스타 등)·Google: 인앱에서 막히므로 외부 브라우저로
-  if (inApp && !DEMO && !(inKakao && provider === 'kakao')) return openExternal();
+  if (!IN_APP && inApp && !DEMO && !(inKakao && provider === 'kakao')) return openExternal();
   try { localStorage.setItem('candid_last_login', provider); sessionStorage.setItem('candid_oauth', '1'); } catch {}
   showAuthWait(t('{provider} 로그인으로 이동 중…', { provider: PROVIDER_NAME[provider] || '' }));
+  if (IN_APP) return nativeOAuth(provider).catch(e => { cancelAuthWait(); toast(kerr(e)); });
   sb.auth.signInWithOAuth({ provider, options: { redirectTo: location.origin + location.pathname } });
+}
+// iOS 앱: 앱 화면 안에서는 Google 등이 로그인을 막음 → iPhone 로그인 창(Safari)으로 열고, 끝나면 candid://auth-callback 으로 앱에 돌아옴
+const APP_CB = 'candid://auth-callback';
+const capPlugin = name => window.Capacitor?.registerPlugin?.(name);
+async function nativeOAuth(provider, link) {
+  const opts = { provider, options: { redirectTo: APP_CB, skipBrowserRedirect: true } };
+  const { data, error } = link ? await sb.auth.linkIdentity(opts) : await sb.auth.signInWithOAuth(opts);
+  if (error) throw error;
+  await capPlugin('Browser').open({ url: data.url, presentationStyle: 'popover' });
+}
+// 로그인 창에서 앱으로 돌아왔을 때: 받은 코드(또는 토큰)로 로그인 마무리 → 새로 시작
+async function finishNativeOAuth(url) {
+  capPlugin('Browser').close().catch(() => {});
+  const u = new URL(url.replace(APP_CB, 'https://app.local/cb'));
+  const h = new URLSearchParams(u.hash.slice(1)), err = u.searchParams.get('error_description') || h.get('error_description');
+  if (err) { cancelAuthWait(); return toast(err); }
+  let r = { error: null };
+  if (u.searchParams.get('code')) r = await sb.auth.exchangeCodeForSession(u.searchParams.get('code'));
+  else if (h.get('access_token')) r = await sb.auth.setSession({ access_token: h.get('access_token'), refresh_token: h.get('refresh_token') });
+  if (r.error) { cancelAuthWait(); return toast(kerr(r.error)); }
+  try { sessionStorage.removeItem('candid_oauth'); } catch {}
+  location.reload();
+}
+if (IN_APP) {
+  capPlugin('App')?.addListener('appUrlOpen', ({ url }) => { if (url?.startsWith(APP_CB)) finishNativeOAuth(url); });
+  capPlugin('Browser')?.addListener('browserFinished', () => setTimeout(() => { if (document.querySelector('.authwait') && !me) cancelAuthWait(); }, 600)); // 로그인 창을 그냥 닫음
 }
 // 로그인 중 화면: 버튼을 누른 뒤·로그인에서 돌아오는 동안 첫 화면(로그인 버튼)이 다시 비치지 않게
 function showAuthWait(msg = t('로그인하는 중…')) {
@@ -3351,7 +3378,7 @@ async function autoPush() {
 // 안드로이드 크롬·삼성인터넷: 브라우저가 주는 설치 이벤트를 잡아 두었다가 우리 버튼으로 기본 설치 팝업을 띄움
 // iPhone: 앱이 설치 팝업을 띄울 수 없어서 '공유 → 홈 화면에 추가' 안내만 가능
 let installEvt = null;
-const installed = () => isStandalone || matchMedia('(display-mode: standalone)').matches;
+const installed = () => IN_APP || isStandalone || matchMedia('(display-mode: standalone)').matches; // iOS 앱 안이면 설치 안내 불필요
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; maybeShowInstall(); });
 addEventListener('appinstalled', () => { installEvt = null; document.querySelector('.ibanner')?.remove(); toast(t('설치했어요! 홈 화면의 candid. 아이콘으로 열어 보세요')); });
 
@@ -3674,7 +3701,8 @@ async function openLinks() {
   $l.querySelectorAll('[data-p]').forEach(b => b.onclick = async () => {
     b.disabled = true; b.textContent = t('이동 중…');
     try { localStorage.setItem('candid_last_login', b.dataset.p); } catch {}
-    const { error } = await sb.auth.linkIdentity({ provider: b.dataset.p, options: { redirectTo: location.origin + location.pathname } });
+    const { error } = IN_APP ? await nativeOAuth(b.dataset.p, true).then(() => ({ error: null }), e => ({ error: e }))
+      : await sb.auth.linkIdentity({ provider: b.dataset.p, options: { redirectTo: location.origin + location.pathname } });
     if (error) {
       b.disabled = false; b.textContent = t('연결하기');
       toast(/manual linking|disabled/i.test(error.message) ? t('아직 연결 기능이 꺼져 있어요(관리자 설정 필요)')
