@@ -1227,6 +1227,10 @@
   .ofoot .btn { width:auto; padding:9px 18px; text-decoration:none; background:#fff; color:#000; }
   .ostack ~ .overlay { z-index:40; } /* 사진 더미 위로 사진 페이지 */
   .ofoot small { color:#8e8e93; font-size:12px; }
+  /* 피드·대기 피드 탭: 아이콘 */
+  .tabs button svg { display:block; }
+  .tabs .tico { position:relative; display:inline-flex; }
+  .tabs .tico .n { position:absolute; right:-12px; top:-7px; margin:0; min-width:17px; height:17px; padding:0 4px; border-radius:9px; background:var(--accent); color:#fff; font-size:10.5px; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid var(--bg); line-height:1; }
 </style>
 </head>
 <body>
@@ -1304,6 +1308,9 @@ const I = {
   reelsNav: dotIcon(false),
   // 선택된 하단 탭: 같은 모양을 면으로 채움(Instagram·Threads 방식)
   reelsOn: dotIcon(true),
+  // 내 피드 탭: 피드 = 네 칸 격자, 대기 피드 = 받은편지함(+ 숫자)
+  gridTab: sv('<rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/>', 24, 1.8),
+  inboxTab: sv('<path d="M3 13.5l2.6-8A1.8 1.8 0 0 1 7.3 4.2h9.4a1.8 1.8 0 0 1 1.7 1.3l2.6 8V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 13.5h5l1.5 2.5h5l1.5-2.5h5"/>', 24, 1.8),
   usersOn: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="9" cy="8" r="3.6" fill="currentColor"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5z" fill="currentColor"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M18.5 14.8c1.7.8 2.8 2.5 3 5.2"/></svg>',
   createOn: '<svg width="28" height="28" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M12 2.5a9.5 9.5 0 1 1 0 19 9.5 9.5 0 0 1 0-19zM11.05 7.5v3.55H7.5v1.9h3.55v3.55h1.9v-3.55h3.55v-1.9h-3.55V7.5z"/></svg>',
   groupsOn: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h10.5A3.5 3.5 0 0 1 21 7v10.5"/><path fill="currentColor" fill-rule="evenodd" stroke="none" d="M6.5 6h7A4.5 4.5 0 0 1 18 10.5v7a4.5 4.5 0 0 1-4.5 4.5h-7A4.5 4.5 0 0 1 2 17.5v-7A4.5 4.5 0 0 1 6.5 6zM3.8 17.6l3.2-2.8 3.5 3 2.5-2 3.2 2.8v-.1l-3.2-3.6-2.5 2-3.5-3-3.2 2.8z"/></svg>',
@@ -2268,8 +2275,8 @@ function paintProfile() {
     </div>
     ${!isOwner && !me ? `<p style="text-align:center;margin:-6px 0 16px;font-size:13px;color:var(--sub)">${t('나도 친구들한테 받아보고 싶다면?')} <a href="${location.pathname}" style="color:var(--fg);font-weight:600">${t('내 피드 만들기')}</a></p>` : ''}
     <nav class="tabs">
-      <button class="${S.tab === 'grid' ? 'on' : ''}" onclick="setTab('grid')">${t('피드')}</button>
-      ${isOwner ? `<button class="${S.tab === 'inbox' ? 'on' : ''}" onclick="setTab('inbox')">${t('대기 피드')}${pending.length ? `<span class="n">${pending.length}</span>` : ''}</button>
+      <button class="${S.tab === 'grid' ? 'on' : ''}" onclick="setTab('grid')" aria-label="${t('피드')}">${I.gridTab}</button>
+      ${isOwner ? `<button class="${S.tab === 'inbox' ? 'on' : ''}" onclick="setTab('inbox')" aria-label="${t('대기 피드')}${pending.length ? ' ' + pending.length : ''}"><span class="tico">${I.inboxTab}${pending.length ? `<span class="n">${pending.length}</span>` : ''}</span></button>
 ` : ''}
     </nav>
     <main id="body"></main>
