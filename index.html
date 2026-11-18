@@ -1179,8 +1179,53 @@
   .bnav button { touch-action:manipulation; -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
   .bnav button * { pointer-events:none; -webkit-user-drag:none; }
   .rmore { display:inline-block; margin:0 0 6px 6px; padding:3px 9px; border-radius:999px; background:rgba(255,255,255,.18); color:#fff; font-size:11.5px; font-weight:700; text-decoration:none; }
-  .rowner .av.xs { width:24px; height:24px; }
-  .rinfo .rgroup { margin-bottom:8px; }
+  /* Candids: from 위 프로필(피드 주인·그룹) 이름표 — 크게, 누르기 쉽게 */
+  .rinfo .rgroup { margin-bottom:10px; min-height:44px; gap:9px; padding:5px 14px 5px 5px; font-size:14.5px; background:rgba(255,255,255,.2); }
+  .rinfo .rgroup .av.xs, .rinfo .rgroup .gav.xs { width:34px; height:34px; font-size:14px; }
+  .rinfo .rgroup .gav.xs { border-radius:11px; }
+  .rinfo .rgroup::after { content:"›"; margin-left:2px; font-size:18px; line-height:1; opacity:.7; }
+  .rinfo .rgroup:active { transform:scale(.96); }
+  .rinfo .rgroup span { color:#fff; font-weight:700; }
+  /* 보기 방식 스위치 */
+  .vseg { display:flex; padding:3px; border-radius:999px; background:rgba(255,255,255,.14); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); margin-right:2px; }
+  .vseg button { border:0; background:none; color:rgba(255,255,255,.75); font:inherit; font-size:11.5px; font-weight:700; padding:5px 10px; border-radius:999px; }
+  .vseg button.on { background:#fff; color:#000; }
+  /* 궤도 */
+  .orbitv { position:fixed; inset:0; max-width:480px; margin:0 auto; overflow:hidden; background:radial-gradient(120% 80% at 50% 50%, #0d1230 0%, #000 62%); color:#fff; }
+  .ohint { position:absolute; left:20px; right:20px; top:calc(env(safe-area-inset-top) + 64px); margin:0; color:#8e8e93; font-size:13px; }
+  .oring { position:absolute; transform:translate(-50%, -50%); border:1px dashed rgba(255,255,255,.08); border-radius:50%; pointer-events:none; }
+  .ome { position:absolute; transform:translate(-50%, -50%); filter:drop-shadow(0 0 22px rgba(92,124,255,.55)); pointer-events:none; }
+  .orb { position:absolute; transform:translate(-50%, -50%); border:0; background:none; padding:0; color:#fff; font:inherit; text-align:center; animation:ofloat var(--d,6s) ease-in-out infinite; animation-delay:var(--dl,0s); -webkit-tap-highlight-color:transparent; }
+  .orb .oface { position:relative; display:block; width:var(--s); height:var(--s); margin:0 auto; border-radius:50%; }
+  .orb .oface .av, .orb .oface .gav { width:var(--s) !important; height:var(--s) !important; font-size:calc(var(--s) * .36); }
+  .orb.grp .oface, .orb.grp .oface .gav { border-radius:30%; }
+  .orb.new .oface { box-shadow:0 0 0 3px #000, 0 0 0 6px var(--accent), 0 0 28px 6px rgba(92,124,255,.5); }
+  .orb.new .oface::after { content:""; position:absolute; inset:-9px; border-radius:inherit; border:2px solid var(--accent); opacity:0; animation:opulse 2.4s ease-out infinite; }
+  .orb.seen { opacity:.55; }
+  .orb .on { position:absolute; right:-5px; top:-5px; min-width:22px; height:22px; padding:0 6px; border-radius:11px; background:var(--accent); color:#fff; font-size:12px; font-weight:800; font-style:normal; display:flex; align-items:center; justify-content:center; border:2px solid #000; }
+  .orb b { display:block; margin-top:7px; font-size:12px; max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .orb em { display:block; font-style:normal; font-size:10.5px; color:#8e8e93; margin-top:1px; }
+  .orb:active { scale:.94; }
+  @keyframes ofloat { 0%,100% { translate:0 0; } 33% { translate:6px -8px; } 66% { translate:-5px 5px; } }
+  @keyframes opulse { 0% { opacity:.9; transform:scale(1); } 100% { opacity:0; transform:scale(1.35); } }
+  @media (prefers-reduced-motion: reduce) { .orb, .orb.new .oface::after { animation:none; } }
+  /* 사진 더미 */
+  .ostack { position:fixed; inset:0; z-index:30; background:rgba(0,0,0,.78); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:calc(env(safe-area-inset-top) + 10px) 20px calc(env(safe-area-inset-bottom) + 16px); color:#fff; animation:fade .22s; }
+  .ostack.out { opacity:0; transition:opacity .2s; }
+  .osh { position:absolute; top:calc(env(safe-area-inset-top) + 14px); left:16px; right:10px; display:flex; align-items:center; gap:10px; }
+  .osh b { flex:1; font-size:15px; } .osh .icon-btn { color:#fff; } .osh .av.xs, .osh .gav.xs { width:34px; height:34px; }
+  .opile { position:relative; width:min(78vw, 320px); aspect-ratio:4/5.3; touch-action:none; }
+  .oprint { position:absolute; inset:0; background:#fff; padding:10px 10px 44px; border-radius:6px; box-shadow:0 14px 40px rgba(0,0,0,.5); transform:rotate(var(--r)); user-select:none; -webkit-user-select:none; }
+  .oprint .oph { position:relative; width:100%; height:100%; overflow:hidden; border-radius:2px; background:#ddd; }
+  .oprint .oph img { width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; }
+  .oprint .oph .ttile { width:100%; height:100%; }
+  .oprint .vplay { position:absolute; right:8px; top:8px; color:#fff; }
+  .ocap { position:absolute; left:12px; right:12px; bottom:12px; color:#222; font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .oend { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; z-index:0; }
+  .oend .btn { width:auto; padding:9px 18px; text-decoration:none; }
+  .ofoot { display:flex; align-items:center; gap:14px; margin-top:26px; }
+  .ofoot .ocount { color:#8e8e93; font-size:13px; min-width:44px; text-align:right; }
+  .ofoot .btn { width:auto; padding:9px 18px; text-decoration:none; background:#fff; color:#000; }
 </style>
 </head>
 <body>
@@ -2820,6 +2865,77 @@ function prePaintHome() {
     paintHome(CACHE.home);
   } catch { PREPAINTED = false; CACHE.home = null; }
 }
+// ---------- Candids 보기 방식: 넘기기(기본) / 궤도 ----------
+const homeView = () => { try { return localStorage.getItem('candid_view') === 'orbit' ? 'orbit' : 'reels'; } catch { return 'reels'; } };
+function setHomeView(v) { if (v === homeView()) return; try { localStorage.setItem('candid_view', v); } catch {} navigator.vibrate?.(6); if (CACHE.home) paintHome(CACHE.home); }
+// 궤도: 가운데 나(블루닷), 둘레에 친구·그룹. 새 사진이 있으면 크고 파랗게 빛남(숫자 = 안 본 사진 수)
+function orbitSources(posts, owners) {
+  const seen = lsGet(SEEN_KEY), m = new Map();
+  for (const p of posts) {
+    const k = srcOf(p);
+    if (!m.has(k)) {
+      const g = p.group_id && HOME.groups.get(p.group_id), o = !p.group_id && owners.get(p.owner_id);
+      m.set(k, { k, g, o, name: g ? g.name : o?.name || t('친구'), posts: [], fresh: 0, at: 0 });
+    }
+    const x = m.get(k); x.posts.push(p); if (!seen[p.id]) x.fresh++; x.at = Math.max(x.at, new Date(p.approved_at).getTime());
+  }
+  return [...m.values()].sort((a, b) => (b.fresh > 0) - (a.fresh > 0) || b.fresh - a.fresh || b.at - a.at).slice(0, 12);
+}
+function paintOrbit(posts, owners, top) {
+  const src = orbitSources(posts, owners);
+  const W = Math.min(innerWidth, 480), H = innerHeight, cx = W / 2, cy = H * 0.5;
+  const inner = src.slice(0, Math.min(4, src.length)), outer = src.slice(inner.length);
+  const R1 = Math.min(W * 0.29, 118), R2 = Math.min(W * 0.41, 172);
+  const place = (arr, R, off) => arr.map((x, i) => { const a = off + i * 2 * Math.PI / arr.length; return { x, X: cx + R * Math.cos(a), Y: cy + R * Math.sin(a) * 1.08 }; });
+  const all = [...place(inner, R1, -Math.PI / 2 + 0.35), ...place(outer, R2, -Math.PI / 2 + 0.1)];
+  const orb = ({ x, X, Y }, i) => {
+    const s = x.fresh ? Math.min(74, 52 + x.fresh * 4) : 44, px = Math.max(s / 2 + 8, Math.min(W - s / 2 - 8, X));
+    const face = x.g ? gAv(x.g, 'xs') : avatar(x.o || { name: x.name }, 'xs');
+    return `<button class="orb${x.g ? ' grp' : ''}${x.fresh ? ' new' : ' seen'}" style="left:${px}px;top:${Y}px;--s:${s}px;--d:${5 + i % 4}s;--dl:-${(i * .7).toFixed(1)}s" data-k="${x.k}">
+      <span class="oface">${face}${x.fresh ? `<i class="on">${x.fresh}</i>` : ''}</span><b>${esc(x.name)}</b><em>${x.fresh ? (x.g ? t('새 사진 {n}장', { n: x.fresh }) : t('새 사진')) : t('다 봤어요')}</em></button>`;
+  };
+  const freshTotal = src.reduce((n, x) => n + x.fresh, 0);
+  $app.innerHTML = `<div class="orbitv" id="orbitv">${top}
+    <p class="ohint">${freshTotal ? t('빛나는 곳에 새 사진이 있어요') : t('새 사진을 다 봤어요. 눌러서 다시 볼 수 있어요')}</p>
+    <i class="oring" style="width:${R1 * 2}px;height:${R1 * 2.16}px;left:${cx}px;top:${cy}px"></i><i class="oring" style="width:${R2 * 2}px;height:${R2 * 2.16}px;left:${cx}px;top:${cy}px"></i>
+    <div class="ome" style="left:${cx}px;top:${cy}px">${DOT(freshTotal ? 'look' : 'happy', { size: 58, cls: 'float' })}</div>
+    ${all.map(orb).join('')}</div>${navBar('reels')}`;
+  $app.querySelectorAll('.orb').forEach(b => b.onclick = () => openOrbitStack(src.find(x => x.k === b.dataset.k)));
+}
+// 궤도에서 누르면: 그 친구·그룹 사진을 인화 사진 더미로. 맨 위 장을 옆으로 밀거나 눌러 다음 장
+function openOrbitStack(x) {
+  if (!x) return;
+  const seen = lsGet(SEEN_KEY), list = [...x.posts].sort((a, b) => (!!seen[a.id] - !!seen[b.id]) || new Date(b.approved_at) - new Date(a.approved_at));
+  const img = p => isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" draggable="false">${isVideo(p) ? `<span class="vplay">${I.play}</span>` : mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : ''}`;
+  const ov = document.createElement('div'); ov.className = 'ostack';
+  const face = x.g ? gAv(x.g, 'xs') : avatar(x.o || { name: x.name }, 'xs');
+  const link = p => p.group_id ? `${gUrl(x.g)}&p=${p.id}` : `${feedUrl(p.owner_id)}&p=${p.id}`;
+  ov.innerHTML = `<div class="osh">${face}<b>${esc(x.name)}</b><button class="icon-btn" data-x aria-label="${t('닫기')}">${I.close}</button></div>
+    <div class="opile">${list.map((p, i) => `<div class="oprint" data-id="${p.id}" style="--r:${(i % 2 ? 1 : -1) * (1.5 + (i % 4) * 1.2)}deg;z-index:${list.length - i}">
+      <div class="oph">${img(p)}</div><span class="ocap">from<i class="pd">.</i> ${esc(p.group_id ? p.author_name : aname(p.author_name))}${p.text && !isText(p) ? ` · “${esc(p.text)}”` : ''}</span></div>`).join('')}
+      <div class="oend">${DOT('happy', { size: 56 })}<b>${t('다 봤어요')}</b><a class="btn" href="${x.g ? gUrl(x.g) : feedUrl(x.o?.id || x.posts[0].owner_id)}">${x.g ? t('그룹으로 가기') : t('피드로 가기')}</a></div></div>
+    <div class="ofoot"><span class="ocount"></span><a class="btn" data-open>${t('크게 보기')}</a></div>`;
+  document.body.appendChild(ov);
+  const prints = [...ov.querySelectorAll('.oprint')]; let i = 0;
+  const paint = () => {
+    ov.querySelector('.ocount').textContent = i < prints.length ? `${i + 1} / ${prints.length}` : '';
+    const op = ov.querySelector('[data-open]'); op.hidden = i >= prints.length; if (i < prints.length) op.href = link(list[i]);
+    if (i < prints.length) markSeen(list[i].id);
+  };
+  const next = dir => { if (i >= prints.length) return; const el = prints[i]; el.style.transition = 'transform .35s ease-in, opacity .35s'; el.style.transform = `translateX(${dir * 130}%) rotate(${dir * 24}deg)`; el.style.opacity = '0'; i++; navigator.vibrate?.(5); paint(); };
+  // 끌어서 던지기 / 그냥 누르면 다음 장
+  let x0 = null, dx = 0;
+  ov.querySelector('.opile').addEventListener('pointerdown', e => { if (i >= prints.length || !e.target.closest('.oprint')) return; x0 = e.clientX; dx = 0; prints[i].style.transition = 'none'; });
+  const mv = e => { if (x0 == null) return; dx = e.clientX - x0; prints[i].style.transform = `translateX(${dx}px) rotate(${dx / 14}deg)`; };
+  const up = () => { if (x0 == null) return; x0 = null; if (Math.abs(dx) > 70 || Math.abs(dx) < 6) next(dx < 0 ? -1 : 1); else { prints[i].style.transition = 'transform .25s'; prints[i].style.transform = ''; } };
+  addEventListener('pointermove', mv); addEventListener('pointerup', up);
+  new MutationObserver((_, ob) => { if (!ov.isConnected) { ob.disconnect(); removeEventListener('pointermove', mv); removeEventListener('pointerup', up); } }).observe(document.body, { childList: true });
+  const close = () => { ov.classList.add('out'); setTimeout(() => ov.remove(), 200); if (homeView() === 'orbit' && CACHE.home && document.getElementById('orbitv')) paintHome(CACHE.home); };
+  ov.querySelector('[data-x]').onclick = close;
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+  ov.querySelectorAll('a').forEach(a => a.addEventListener('click', () => ov.remove()));
+  paint();
+}
 function fillHomeExtras(posts) {
   posts.forEach(p => {
     paintSoc(p.id); refreshStickerLayers(p.id);
@@ -2837,7 +2953,7 @@ async function renderHome(fresh) {
       const same = sameSet(d.posts, CACHE.home.posts);
       CACHE.home = d;
       const r = document.querySelector('.reels');
-      if (!same && pageKey() === myKey && r && r.scrollTop < 10) paintHome(d); // 맨 위에 있을 때만 조용히 교체
+      if (!same && pageKey() === myKey && ((r && r.scrollTop < 10) || (document.getElementById('orbitv') && !document.querySelector('.ostack')))) paintHome(d); // 맨 위에 있을 때(궤도는 사진 더미를 보고 있지 않을 때)만 조용히 교체
     }).catch(() => {});
     return;
   }
@@ -2885,8 +3001,11 @@ function paintHome({ posts, owners, groups }) {
   if (PERF) console.log(`[candid] paint home +${Math.round(performance.now())}ms`);
   HOME.posts = posts; HOME.owners = owners; HOME.groups = groups || new Map();
   if (me) setTimeout(refreshNotiDot, 0); // 상단 종 빨간 점
+  const vw = homeView();
   const top = `<header class="rtop"><button class="logo" onclick="logoTap()">${LOGO}</button><div class="sp"></div>
+    <div class="vseg" role="radiogroup" aria-label="${t('보기 방식')}"><button role="radio" aria-checked="${vw === 'reels'}" class="${vw === 'reels' ? 'on' : ''}" onclick="setHomeView('reels')">${t('넘기기')}</button><button role="radio" aria-checked="${vw === 'orbit'}" class="${vw === 'orbit' ? 'on' : ''}" onclick="setHomeView('orbit')">${t('궤도')}</button></div>
     ${topIcons()}</header>`;
+  if (posts.length && vw === 'orbit') return paintOrbit(posts, owners, top);
   if (!posts.length) {
     $app.innerHTML = `<div class="reels">${top}<section class="reel rempty"><div><div class="empty-dot">${DOT('sleepy', { size: 80, cls: 'float' })}</div>
       <h2>Quiet for now<i class="pd">.</i></h2><p>${t('친구들 피드에 새 사진이 올라오면 여기 떠요.<br>친구 피드에 사진을 먼저 보내 보는 건 어때요?')}</p>

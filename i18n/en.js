@@ -750,5 +750,15 @@
  "카메라로 찍기": "Take with camera",
  "사진첩 접근이 허용되지 않았어요. 설정 → candid. 에서 허용해 주세요": "Photo access isn't allowed. Allow it in Settings → candid.",
  "저장하지 못했어요": "Couldn't save",
- "+{n}장 더 올라왔어요": "+{n} more photos"
+ "+{n}장 더 올라왔어요": "+{n} more photos",
+ "새 사진 {n}장": "{n} new",
+ "새 사진": "New",
+ "다 봤어요": "All seen",
+ "빛나는 곳에 새 사진이 있어요": "Glowing ones have new photos",
+ "새 사진을 다 봤어요. 눌러서 다시 볼 수 있어요": "You've seen everything. Tap to look again",
+ "그룹으로 가기": "Go to group",
+ "피드로 가기": "Go to feed",
+ "보기 방식": "View",
+ "넘기기": "Swipe",
+ "궤도": "Orbit"
 };
