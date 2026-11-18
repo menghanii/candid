@@ -1416,12 +1416,14 @@ async function boot() {
       const prov = me?.app_metadata?.provider;
       if (prov === 'kakao' || prov === 'google') try { localStorage.setItem('candid_last_login', prov); } catch {}
       if (me) {
+        // 내 프로필과 친구·그룹·순서·차단 목록을 동시에(앞의 것을 기다리지 않게)
+        const extra = Promise.all([loadFollows(), loadMyGroups().catch(() => {}), loadOrder(), loadBlocks().catch(() => {})]);
         const r = await sb.from('profiles').select('*').eq('id', me.id).maybeSingle();
         if (r.error) throw r.error;
         myProf = r.data;
         // 푸시 알림을 내 언어로 받도록 프로필에 지금 언어 저장(17 SQL 전이면 조용히 무시)
         if (myProf && 'lang' in myProf && myProf.lang !== LANG && !DEMO) sb.from('profiles').update({ lang: LANG }).eq('id', me.id).then(() => {}, () => {});
-        await Promise.all([loadFollows(), loadMyGroups().catch(() => {}), loadOrder(), loadBlocks().catch(() => {})]);
+        await extra;
         if (myProf?.onboarded) await applyInvite();
       }
     })(), 10000);
@@ -2629,16 +2631,16 @@ async function fetchHome() {
   const ids = [...myFollows];
   await loadMyGroups().catch(() => {});
   const gids = [...MYG.fol.keys()]; // 팔로우한 그룹의 새 사진도 릴스에
-  const [r, gr] = await withTimeout(Promise.all([
+  // 게시물·친구 프로필을 동시에, 그다음 좋아요·댓글·투표·스티커를 동시에 (줄 세우지 않기)
+  const [r, gr, o] = await withTimeout(Promise.all([
     sb.from('posts').select(POST_COLS).in('owner_id', ids).eq('status', 'approved').order('approved_at', { ascending: false }).limit(40),
     gids.length ? sb.from('posts').select(GPOST_COLS).in('group_id', gids).eq('status', 'approved').eq('flagged', false).order('approved_at', { ascending: false }).limit(40) : Promise.resolve({ data: [] }),
+    ids.length ? sb.from('profiles').select('*').in('id', ids) : Promise.resolve({ data: [] }),
   ]), 10000);
   if (r.error) throw r.error;
   const posts = [...r.data, ...(gr.data || [])].sort((a, b) => new Date(b.approved_at) - new Date(a.approved_at)).slice(0, 40);
-  const o = await sb.from('profiles').select('*').in('id', ids);
-  await loadSocial(posts.map(p => p.id));
-  await loadPolls(posts).catch(() => {});
-  await loadStickers(posts.map(p => p.id)).catch(() => {});
+  const pids = posts.map(p => p.id);
+  await Promise.all([loadSocial(pids).catch(() => {}), loadPolls(posts).catch(() => {}), loadStickers(pids).catch(() => {})]);
   return { posts, owners: new Map((o.data || []).map(p => [p.id, p])), groups: new Map(MYG.groups) };
 }
 // 홈: 저장해 둔 릴스를 바로 보여주고 뒤에서 갱신. fresh=true(당겨서 새로고침)면 새로 받아 다시 그림
