@@ -2639,9 +2639,17 @@ async function fetchHome() {
   ]), 10000);
   if (r.error) throw r.error;
   const posts = [...r.data, ...(gr.data || [])].sort((a, b) => new Date(b.approved_at) - new Date(a.approved_at)).slice(0, 40);
+  // 화면은 게시물·보낸 사람만 오면 바로 그림. 좋아요·댓글 수·투표·스티커는 뒤에서 받아 그 자리에 채움
   const pids = posts.map(p => p.id);
-  await Promise.all([loadSocial(pids).catch(() => {}), loadPolls(posts).catch(() => {}), loadStickers(pids).catch(() => {})]);
+  Promise.all([loadSocial(pids).catch(() => {}), loadPolls(posts).catch(() => {}), loadStickers(pids).catch(() => {})])
+    .then(() => { if (document.querySelector('.reels')) fillHomeExtras(posts); });
   return { posts, owners: new Map((o.data || []).map(p => [p.id, p])), groups: new Map(MYG.groups) };
+}
+function fillHomeExtras(posts) {
+  posts.forEach(p => {
+    paintSoc(p.id); refreshStickerLayers(p.id);
+    if (p.media_type === 'poll') document.querySelectorAll(`[data-poll="${p.id}"]`).forEach(el => { el.outerHTML = pollHTML(p); });
+  });
 }
 // 홈: 저장해 둔 릴스를 바로 보여주고 뒤에서 갱신. fresh=true(당겨서 새로고침)면 새로 받아 다시 그림
 async function renderHome(fresh) {
@@ -2698,6 +2706,7 @@ async function pickFriendToSend() {
   $q.oninput = paint; paint();
 }
 function paintHome({ posts, owners, groups }) {
+  if (PERF) console.log(`[candid] paint home +${Math.round(performance.now())}ms`);
   HOME.posts = posts; HOME.owners = owners; HOME.groups = groups || new Map();
   if (me) setTimeout(refreshNotiDot, 0); // 상단 종 빨간 점
   const top = `<header class="rtop"><button class="logo" onclick="logoTap()">${LOGO}</button><div class="sp"></div>
