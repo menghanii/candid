@@ -760,5 +760,6 @@
  "피드로 가기": "Go to feed",
  "보기 방식": "View",
  "넘기기": "Swipe",
- "궤도": "Orbit"
+ "궤도": "Orbit",
+ "옆으로 밀면 다음 장 · 누르면 크게": "Swipe for next · tap to open"
 };

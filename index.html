@@ -1225,6 +1225,8 @@
   .ofoot { display:flex; align-items:center; gap:14px; margin-top:26px; }
   .ofoot .ocount { color:#8e8e93; font-size:13px; min-width:44px; text-align:right; }
   .ofoot .btn { width:auto; padding:9px 18px; text-decoration:none; background:#fff; color:#000; }
+  .ostack ~ .overlay { z-index:40; } /* 사진 더미 위로 사진 페이지 */
+  .ofoot small { color:#8e8e93; font-size:12px; }
 </style>
 </head>
 <body>
@@ -2014,11 +2016,12 @@ const DOT_KINDS = [
   ['purple', '퍼플', 4], ['ink', '잉크', 1.5], ['gold', '골드', .8], ['rainbow', '무지개', .2],
 ];
 const DOT_NAME = Object.fromEntries(DOT_KINDS.map(([k, n]) => [k, n]));
-const DOTS = new Map(); // user id → [{kind, created_at}] (잡은 순서)
+const DOTS = new Map(), DOTS_AT = new Map(); // user id → [{kind, created_at}] (잡은 순서), 마지막으로 불러온 시각
 const rollDot = () => { let r = Math.random() * 100; for (const [k, , w] of DOT_KINDS) { if ((r -= w) < 0) return k; } return 'blue'; };
 async function loadDots(uid) {
   const { data, error } = await sb.from('dot_catches').select('kind, created_at').eq('user_id', uid).order('created_at', { ascending: true }).limit(500);
-  DOTS.set(uid, error ? [] : data || []); paintDotShelf(uid);
+  if (error) { DOTS.delete(uid); return; } // 불러오기 실패(네트워크·앱 복귀 직후 등)를 '0마리'로 기억하지 않음 → 다음에 다시
+  DOTS.set(uid, data || []); DOTS_AT.set(uid, Date.now()); paintDotShelf(uid);
 }
 function dotShelfHTML(uid) {
   const list = DOTS.get(uid) || []; if (!list.length) return '';
@@ -2050,7 +2053,8 @@ function spawnDot(kind = rollDot(), force = false) { // force: 숨은 소환(열
     setTimeout(() => { w.remove(); if (HUNT === w) HUNT = null; }, 700);
     const { error } = await sb.rpc('catch_dot', { p_kind: kind });
     if (error) return toast(/daily_limit/.test(error.message) ? t('오늘은 닷을 충분히 잡았어요. 내일 또 만나요') : /catch_dot|does not exist|42883|PGRST20/.test(error.message) ? t('닷 잡기 준비 중이에요(관리자: 27 SQL 실행 필요)') : kerr(error));
-    const list = DOTS.get(me.id) || []; list.push({ kind, created_at: new Date().toISOString() }); DOTS.set(me.id, list); paintDotShelf(me.id);
+    if (DOTS.has(me.id)) { DOTS.get(me.id).push({ kind, created_at: new Date().toISOString() }); paintDotShelf(me.id); }
+    else loadDots(me.id); // 아직 내 닷을 안 불러왔으면 방금 잡은 것만 남지 않게 전부 불러옴
     const name = t(DOT_NAME[kind]);
     toast(kind === 'rainbow' ? t('무지개 닷을 잡았어요! 0.2% 확률이에요') : kind === 'gold' ? t('골드 닷을 잡았어요! 아주 희귀해요')
       : kind === 'blue' ? t('닷을 잡았어요! 내 프로필에 전시돼요') : t('{name} 닷을 잡았어요! 내 프로필에 전시돼요', { name }));
@@ -2274,7 +2278,7 @@ function paintProfile() {
   renderBody();
   scrollTo(0, y);
   if (me) refreshNotiDot();
-  if (!DOTS.has(uid)) loadDots(uid);
+  if (!DOTS.has(uid) || Date.now() - (DOTS_AT.get(uid) || 0) > 60000) loadDots(uid); // 1분 지나면 새로
   if (isOwner && GACHA_ON) refreshTickets();
 }
 
@@ -2908,31 +2912,36 @@ function openOrbitStack(x) {
   const img = p => isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" draggable="false">${isVideo(p) ? `<span class="vplay">${I.play}</span>` : mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : ''}`;
   const ov = document.createElement('div'); ov.className = 'ostack';
   const face = x.g ? gAv(x.g, 'xs') : avatar(x.o || { name: x.name }, 'xs');
-  const link = p => p.group_id ? `${gUrl(x.g)}&p=${p.id}` : `${feedUrl(p.owner_id)}&p=${p.id}`;
   ov.innerHTML = `<div class="osh">${face}<b>${esc(x.name)}</b><button class="icon-btn" data-x aria-label="${t('닫기')}">${I.close}</button></div>
     <div class="opile">${list.map((p, i) => `<div class="oprint" data-id="${p.id}" style="--r:${(i % 2 ? 1 : -1) * (1.5 + (i % 4) * 1.2)}deg;z-index:${list.length - i}">
       <div class="oph">${img(p)}</div><span class="ocap">from<i class="pd">.</i> ${esc(p.group_id ? p.author_name : aname(p.author_name))}${p.text && !isText(p) ? ` · “${esc(p.text)}”` : ''}</span></div>`).join('')}
-      <div class="oend">${DOT('happy', { size: 56 })}<b>${t('다 봤어요')}</b><a class="btn" href="${x.g ? gUrl(x.g) : feedUrl(x.o?.id || x.posts[0].owner_id)}">${x.g ? t('그룹으로 가기') : t('피드로 가기')}</a></div></div>
-    <div class="ofoot"><span class="ocount"></span><a class="btn" data-open>${t('크게 보기')}</a></div>`;
+</div>
+    <div class="ofoot"><span class="ocount"></span><small>${t('옆으로 밀면 다음 장 · 누르면 크게')}</small></div>`;
   document.body.appendChild(ov);
   const prints = [...ov.querySelectorAll('.oprint')]; let i = 0;
   const paint = () => {
     ov.querySelector('.ocount').textContent = i < prints.length ? `${i + 1} / ${prints.length}` : '';
-    const op = ov.querySelector('[data-open]'); op.hidden = i >= prints.length; if (i < prints.length) op.href = link(list[i]);
     if (i < prints.length) markSeen(list[i].id);
   };
-  const next = dir => { if (i >= prints.length) return; const el = prints[i]; el.style.transition = 'transform .35s ease-in, opacity .35s'; el.style.transform = `translateX(${dir * 130}%) rotate(${dir * 24}deg)`; el.style.opacity = '0'; i++; navigator.vibrate?.(5); paint(); };
+  const next = dir => {
+    if (i >= prints.length) return; const el = prints[i]; el.style.transition = 'transform .35s ease-in, opacity .35s'; el.style.transform = `translateX(${dir * 130}%) rotate(${dir * 24}deg)`; el.style.opacity = '0'; i++; navigator.vibrate?.(5); paint();
+    if (i >= prints.length) setTimeout(close, 320); // 다 넘기면 바로 궤도로
+  };
   // 끌어서 던지기 / 그냥 누르면 다음 장
   let x0 = null, dx = 0;
   ov.querySelector('.opile').addEventListener('pointerdown', e => { if (i >= prints.length || !e.target.closest('.oprint')) return; x0 = e.clientX; dx = 0; prints[i].style.transition = 'none'; });
   const mv = e => { if (x0 == null) return; dx = e.clientX - x0; prints[i].style.transform = `translateX(${dx}px) rotate(${dx / 14}deg)`; };
-  const up = () => { if (x0 == null) return; x0 = null; if (Math.abs(dx) > 70 || Math.abs(dx) < 6) next(dx < 0 ? -1 : 1); else { prints[i].style.transition = 'transform .25s'; prints[i].style.transform = ''; } };
+  const up = () => {
+    if (x0 == null) return; x0 = null;
+    if (Math.abs(dx) > 70) return next(dx < 0 ? -1 : 1);
+    prints[i].style.transition = 'transform .25s'; prints[i].style.transform = '';
+    if (Math.abs(dx) < 6) openPost(list[i].id); // 그냥 누르면 친구 피드에서 누른 것과 같은 사진 페이지(뒤로 가면 다시 더미)
+  };
   addEventListener('pointermove', mv); addEventListener('pointerup', up);
   new MutationObserver((_, ob) => { if (!ov.isConnected) { ob.disconnect(); removeEventListener('pointermove', mv); removeEventListener('pointerup', up); } }).observe(document.body, { childList: true });
-  const close = () => { ov.classList.add('out'); setTimeout(() => ov.remove(), 200); if (homeView() === 'orbit' && CACHE.home && document.getElementById('orbitv')) paintHome(CACHE.home); };
+  function close() { if (!ov.isConnected || ov.classList.contains('out')) return; ov.classList.add('out'); setTimeout(() => ov.remove(), 200); if (homeView() === 'orbit' && CACHE.home && document.getElementById('orbitv')) paintHome(CACHE.home); }
   ov.querySelector('[data-x]').onclick = close;
   ov.addEventListener('click', e => { if (e.target === ov) close(); });
-  ov.querySelectorAll('a').forEach(a => a.addEventListener('click', () => ov.remove()));
   paint();
 }
 function fillHomeExtras(posts) {
@@ -3233,8 +3242,9 @@ const findAny = id => findPost(id) || HOME.posts.find(x => x.id === id);
 const findPost = id => [...(G.g && !document.querySelector('.reels') ? G.posts : []), ...(S.approved || []), ...(S.pending || []), ...(S.hidden || [])].find(x => x.id === id);
 
 function openPost(id) {
-  const p = findPost(id); if (!p) return;
-  const gp = !!p.group_id, gg = gp ? groupOf(p.group_id) : null, own = !gp && S.isOwner; // 그룹 게시물: 주인 대신 방장·올린 사람
+  const fromHome = !findPost(id);
+  const p = findPost(id) || HOME.posts?.find(x => x.id === id); if (!p) return; // 궤도의 사진 더미에서 연 게시물
+  const gp = !!p.group_id, gg = gp ? groupOf(p.group_id) : null, own = !gp && (fromHome ? p.owner_id === me?.id : S.isOwner); // 그룹 게시물: 주인 대신 방장·올린 사람
   const ov = document.createElement('div');
   ov.className = 'overlay page';
   ov.innerHTML = `
