@@ -1143,6 +1143,24 @@
   .overlay.page .post-h { position:sticky; top:0; z-index:6; background:var(--bg); padding-top:calc(var(--st) + 6px); padding-left:4px; }
   @keyframes pagein { from { transform:translateX(35%); opacity:.4; } }
   @media (prefers-reduced-motion: reduce) { .overlay.page { animation:none; } }
+  .chead { display:flex; align-items:center; justify-content:space-between; margin:8px 0 2px; }
+  .chead .label { margin:0; }
+  .chbtn { border:0; background:var(--soft); color:var(--fg); font:inherit; font-size:12.5px; font-weight:700; padding:6px 11px; border-radius:999px; }
+  .sinv { display:flex; align-items:center; gap:12px; width:100%; margin:4px 0 10px; padding:10px 12px; border:1px solid var(--line); border-radius:14px; background:var(--card); color:inherit; font:inherit; text-align:left; }
+  .sinv > svg:first-child { width:22px; height:22px; flex:none; }
+  .sinv span { flex:1; display:flex; flex-direction:column; gap:1px; } .sinv b { font-size:14px; } .sinv small { color:var(--sub); font-size:12px; }
+  .sinv > svg:last-child { color:var(--sub); flex:none; }
+  /* 설정: 작고 촘촘하게 */
+  .setx h3 { font-size:23px; }
+  .setx .hint { font-size:12.5px; margin-bottom:10px; }
+  .setx .clist2 { border-radius:14px; }
+  .setx .crow2 { gap:10px; padding:9px 12px; }
+  .setx .crow2 .cic { width:30px; height:30px; border-radius:9px; }
+  .setx .crow2 .cic svg { width:17px; height:17px; }
+  .setx .crow2 .ctx b { font-size:14px; font-weight:600; }
+  .setx .crow2 > svg:last-child { width:16px; height:16px; }
+  .setx .legal-links { margin-top:12px; font-size:11.5px; }
+  .setx .del-acc { margin-top:12px; font-size:12px; }
 </style>
 </head>
 <body>
@@ -2415,12 +2433,7 @@ function openCreate() {
   const row = (icon, title, sub, fn) => `<button class="crow2" onclick="${fn}"><span class="cic">${icon}</span><span class="ctx"><b>${title}</b><small>${sub}</small></span>${I.chevron}</button>`;
   sheet(`<h3>Create<i class="pd">.</i></h3><p class="hint">${t('무엇을 할까요?')}</p>
     ${ctx ? `<div class="cctx">${ctx}</div>` : ''}
-    <div id="cmine"><p class="hint">${t('불러오는 중…')}</p></div>
-    <div class="clist2">
-      ${row(I.albumPlus, t('새 그룹 만들기'), t('결혼식·여행·동아리 앨범'), 'closeSheet();setTimeout(openCreateGroup,250)')}
-      ${row(I.share, t('내 피드 부탁하기'), t('친구에게 내 사진을 부탁하는 링크 보내기'), 'closeSheet();withMyFeed(shareFeed)')}
-      ${row(I.userPlus, t('앱에 친구 초대하기'), t('가입하면 자동으로 친구가 돼요'), 'closeSheet();setTimeout(openInvite,250)')}
-    </div>`);
+    <div id="cmine"><p class="hint">${t('불러오는 중…')}</p></div>`);
   fillCreateTargets(document.querySelector('.sheet-wrap:not(.closing) #cmine'));
 }
 // Create 안: 보낼 곳(내 친구 피드 / 내 그룹)을 바로 목록으로
@@ -2431,11 +2444,15 @@ async function fillCreateTargets($c) {
   if (!document.body.contains($c)) return;
   const friends = (fr.data || []).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
   const groups = MYG.ok === false ? [] : myGroupList().filter(canPostTo);
-  const sec = (title, arr, rowFn) => `<div class="label" style="margin-top:6px">${title} · ${arr.length}</div><div class="flist pflist cpick">${arr.map(rowFn).join('')}</div>`;
-  $c.innerHTML = (friends.length ? sec(t('내 친구'), friends, p => `<button class="frow pfrow" data-id="${p.id}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b><small>${t('피드 채워주기')}</small></span><i class="pf-go">${t('보내기')}</i></button>`)
-      : `<p class="hint" style="margin:6px 0">${t('아직 친구가 없어요. 위 돋보기에서 친구를 찾아 추가해 보세요.')}</p>`)
-    + (groups.length ? sec(t('내 그룹'), groups, g => `<button class="frow pfrow" data-g="${g.id}">${gAv(g, 'xs')}<span><b>${esc(g.name)}</b><small>${gBadge(g)}</small></span><i class="pf-go">${t('올리기')}</i></button>`) : '')
-    + `<div style="height:10px"></div>`;
+  const head = (title, n, btn, fn) => `<div class="chead"><span class="label">${title} · ${n}</span><button class="chbtn" onclick="closeSheet();setTimeout(${fn},250)">${btn}</button></div>`;
+  const list = (arr, rowFn) => `<div class="flist pflist cpick">${arr.map(rowFn).join('')}</div>`;
+  $c.innerHTML = head(t('내 친구'), friends.length, t('+ 초대'), 'openInvite')
+    + (friends.length ? list(friends, p => `<button class="frow pfrow" data-id="${p.id}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b><small>${t('피드 채워주기')}</small></span><i class="pf-go">${t('보내기')}</i></button>`)
+      : `<p class="hint" style="margin:2px 0 8px">${t('아직 친구가 없어요. 위 돋보기에서 친구를 찾아 추가해 보세요.')}</p>`)
+    + head(t('내 그룹'), groups.length, t('+ 새 그룹'), 'openCreateGroup')
+    + (groups.length ? list(groups, g => `<button class="frow pfrow" data-g="${g.id}">${gAv(g, 'xs')}<span><b>${esc(g.name)}</b><small>${gBadge(g)}</small></span><i class="pf-go">${t('올리기')}</i></button>`)
+      : `<p class="hint" style="margin:2px 0 8px">${t('결혼식·여행·동아리처럼 여러 명이 같이 채우는 앨범을 만들어 보세요.')}</p>`)
+    + `<div style="height:6px"></div>`;
   $c.querySelectorAll('[data-id]').forEach(b => b.onclick = () => { const p = friends.find(x => x.id === b.dataset.id); closeSheet(); setTimeout(() => composeTo(p), 200); });
   $c.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { closeSheet(); setTimeout(() => composeToGroup(MYG.groups.get(b.dataset.g)), 200); });
 }
@@ -2487,6 +2504,7 @@ async function renderFriendsTab($b) {
 async function openSearch() {
   const w = sheet(`<div class="shead"><h3>Friends &amp; groups<i class="pd">.</i></h3><button class="icon-btn" aria-label="${t('닫기')}" onclick="closeSheet()">${I.close}</button></div>
     <div class="sbox">${I.search}<input class="field" id="sq" type="search"  placeholder="${t('이름·@아이디로 친구나 공개 그룹 찾기')}" autocomplete="off" autocapitalize="off" enterkeyhint="search"></div>
+    ${me ? `<button class="sinv" onclick="closeSheet();setTimeout(openInvite,250)">${I.userPlus}<span><b>${t('앱에 친구 초대하기')}</b><small>${t('가입하면 자동으로 친구가 돼요')}</small></span>${I.chevron}</button>` : ''}
     <div id="sr"><p class="hint">${t('불러오는 중…')}</p></div>`, null, { top: true });
   const $q = w.querySelector('#sq'), $r = w.querySelector('#sr');
   const row = p => `<div class="frow"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b><small>${p.handle ? `@${esc(p.handle)}` : ''}${p.handle && p.bio ? ' · ' : ''}${esc(p.bio || '')}</small></span></a>
@@ -3106,7 +3124,7 @@ const menu = items => sheet(`<div class="menu">${items}</div><div class="menu"><
 
 function openMenu() {
   const row = (icon, label, fn, cls = '') => `<button class="crow2 ${cls}" onclick="${fn}"><span class="cic">${icon}</span><span class="ctx"><b>${label}</b></span>${cls ? '' : I.chevron}</button>`;
-  sheet(`<h3>Settings<i class="pd">.</i></h3><p class="hint">${esc(myProf?.name || '')}${myProf?.handle ? ' · @' + esc(myProf.handle) : ''}</p>
+  sheet(`<div class="setx"><h3>Settings<i class="pd">.</i></h3><p class="hint">${esc(myProf?.name || '')}${myProf?.handle ? ' · @' + esc(myProf.handle) : ''}</p>
     <div class="clist2">
       ${row(I.user, t('프로필 편집'), 'closeSheet();renderSetup(false)')}
       ${row(myProf?.is_private ? II.lock : I.globe, `${t('피드 공개 범위')} · ${t(myProf?.is_private ? '비공개' : '전체 공개')}`, 'closeSheet();setTimeout(openPrivacy,250)')}
@@ -3119,7 +3137,7 @@ function openMenu() {
     </div>
     <div class="clist2" style="margin-top:12px">${row(I.logout, t('로그아웃'), 'logout()', 'danger')}</div>
     <p class="legal-links"><a href="${SITE}/terms.html" target="_blank" rel="noopener">${t('이용약관')}</a> · <a href="${SITE}/privacy.html" target="_blank" rel="noopener">${t('개인정보처리방침')}</a></p>
-    ${DEMO ? '' : `<button class="linkish del-acc" onclick="closeSheet();setTimeout(openDeleteAccount,250)">${t('계정 삭제')}</button>`}`);
+    ${DEMO ? '' : `<button class="linkish del-acc" onclick="closeSheet();setTimeout(openDeleteAccount,250)">${t('계정 삭제')}</button>`}</div>`);
 }
 // 개인 피드 공개 범위: 전체 공개 / 비공개(내가 친구로 추가한 사람만). 19 SQL
 function openPrivacy() {

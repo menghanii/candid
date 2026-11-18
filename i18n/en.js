@@ -743,5 +743,8 @@
  "피드 채워주기": "Fill their feed",
  "아직 친구가 없어요. 위 돋보기에서 친구를 찾아 추가해 보세요.": "No friends yet. Find and add friends with the search icon at the top.",
  "내 친구·그룹": "My friends & groups",
- "아직 친구·그룹이 없어요. 위에서 이름으로 찾아보세요.": "No friends or groups yet. Search by name above."
+ "아직 친구·그룹이 없어요. 위에서 이름으로 찾아보세요.": "No friends or groups yet. Search by name above.",
+ "+ 초대": "+ Invite",
+ "+ 새 그룹": "+ New group",
+ "결혼식·여행·동아리처럼 여러 명이 같이 채우는 앨범을 만들어 보세요.": "Make an album everyone fills together — weddings, trips, clubs."
 };
