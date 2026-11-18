@@ -1178,6 +1178,7 @@
   /* 하단 메뉴: 안의 사진·아이콘은 누르기를 받지 않고 버튼이 받게(iPhone 에서 이미지 탭이 버튼까지 안 가는 문제), 두 번 탭 확대 대기 없음 */
   .bnav button { touch-action:manipulation; -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
   .bnav button * { pointer-events:none; -webkit-user-drag:none; }
+  .rmore { display:inline-block; margin:0 0 6px 6px; padding:3px 9px; border-radius:999px; background:rgba(255,255,255,.18); color:#fff; font-size:11.5px; font-weight:700; text-decoration:none; }
 </style>
 </head>
 <body>
@@ -1247,7 +1248,7 @@ const I = {
   iosShare: sv('<path d="M12 3v12M8 7l4-4 4 4"/><path d="M7 10H5.5A1.5 1.5 0 0 0 4 11.5v8A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5v-8a1.5 1.5 0 0 0-1.5-1.5H17"/>', 18, 1.9),
   reelsNav: sv('<rect x="4" y="2.5" width="16" height="19" rx="4"/><path d="M10 9v6l5-3z" fill="currentColor"/>', 26, 1.9),
   // 선택된 하단 탭: 같은 모양을 면으로 채움(Instagram·Threads 방식)
-  reelsOn: '<svg width="26" height="26" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M8 2.5h8a4 4 0 0 1 4 4v11a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-11a4 4 0 0 1 4-4zM10 9v6l5-3z"/></svg>',
+  reelsOn: '<svg width="26" height="26" viewBox="0 0 24 24"><path fill="currentColor" d="M8 2.5h8a4 4 0 0 1 4 4v11a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-11a4 4 0 0 1 4-4z"/><path fill="var(--accent)" d="M10 8.6v6.8l5.6-3.4z"/></svg>', // 켜졌을 때 재생 버튼은 블루닷 색
   usersOn: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="9" cy="8" r="3.6" fill="currentColor"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5z" fill="currentColor"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M18.5 14.8c1.7.8 2.8 2.5 3 5.2"/></svg>',
   createOn: '<svg width="28" height="28" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M12 2.5a9.5 9.5 0 1 1 0 19 9.5 9.5 0 0 1 0-19zM11.05 7.5v3.55H7.5v1.9h3.55v3.55h1.9v-3.55h3.55v-1.9h-3.55V7.5z"/></svg>',
   groupsOn: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h10.5A3.5 3.5 0 0 1 21 7v10.5"/><path fill="currentColor" fill-rule="evenodd" stroke="none" d="M6.5 6h7A4.5 4.5 0 0 1 18 10.5v7a4.5 4.5 0 0 1-4.5 4.5h-7A4.5 4.5 0 0 1 2 17.5v-7A4.5 4.5 0 0 1 6.5 6zM3.8 17.6l3.2-2.8 3.5 3 2.5-2 3.2 2.8v-.1l-3.2-3.6-2.5 2-3.5-3-3.2 2.8z"/></svg>',
@@ -2281,7 +2282,7 @@ function onResume() {
     if (document.querySelector('.reels')) {
       if (Date.now() - (S.homeAt || 0) < 60000) return; S.homeAt = Date.now();
       fetchHome().then(d => {
-        const same = CACHE.home && d.posts.map(p => p.id).join() === CACHE.home.posts.map(p => p.id).join();
+        const same = CACHE.home && sameSet(d.posts, CACHE.home.posts);
         CACHE.home = d; const r = document.querySelector('.reels');
         if (!same && pageKey() === myKey && r && r.scrollTop < 10 && !document.querySelector('.sheet-wrap, .overlay')) paintHome(d);
       }).catch(() => {});
@@ -2451,7 +2452,7 @@ function navBar(active) {
   const item = (key, label, icon, onclick, iconOn) =>
     `<button class="${active === key ? 'on' : ''}" onclick="${onclick}" aria-label="${label}"${active === key ? ' aria-current="page"' : ''}>${active === key && iconOn ? iconOn : icon}<span class="bl">${label}</span></button>`;
   return `<nav class="bnav ${active === 'reels' ? 'dark' : ''}">
-    ${item('reels', t('릴스'), I.reelsNav, "go(location.pathname+'?home=1')", I.reelsOn)}
+    ${item('reels', t('Candids'), I.reelsNav, "go(location.pathname+'?home=1')", I.reelsOn)}
     ${item('create', t('만들기'), I.create, 'openCreate()', I.createOn)}
     ${item('feed', t('나'), `<span class="bav">${avatar(myProf, 'xs')}<i class="dot red" id="navdot" hidden></i></span>`, `go('${feedUrl(me.id)}')`)}
   </nav>`;
@@ -2526,11 +2527,11 @@ async function renderFriendsTab($b) {
       <button class="btn${on ? '' : ' add'}" onclick="toggleFollow('${p.id}', this)">${on ? folLabel(true) : t('맞친구')}</button>${on ? dragHandle() : ''}</div>`;
   const backList = back.map(id => byId.get(id)).filter(Boolean);
   const backHTML = backList.length ? `<div class="fhead"><b>${t('나를 추가한 친구 {n}', { n: backList.length })}</b></div>
-    <p class="hint" style="padding:0 20px 8px">${myProf?.is_private ? t('내 피드는 비공개라, 나도 추가해야 이 친구가 내 피드를 볼 수 있어요.') : t('나도 추가하면 이 친구의 새 사진이 릴스에 떠요.')}</p>
+    <p class="hint" style="padding:0 20px 8px">${myProf?.is_private ? t('내 피드는 비공개라, 나도 추가해야 이 친구가 내 피드를 볼 수 있어요.') : t('나도 추가하면 이 친구의 새 사진이 Candids에 떠요.')}</p>
     <div class="flist">${backList.map(p => row(p, false)).join('')}</div><div style="height:12px"></div>` : '';
   const mine = byOrder(ids.map(id => byId.get(id)).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name, 'ko')), 'friends');
   if (!mine.length) {
-    $b.innerHTML = backHTML + `<div class="empty"><div class="empty-dot">${DOT('look', { cls: 'blink' })}</div><h2>No friends, <em>yet.</em></h2><p>${t('오른쪽 위 {i}에서 이름으로 친구를 찾아 추가해 보세요.<br>추가한 친구의 새 사진이 릴스에 떠요.', { i: II.search })}</p>
+    $b.innerHTML = backHTML + `<div class="empty"><div class="empty-dot">${DOT('look', { cls: 'blink' })}</div><h2>No friends, <em>yet.</em></h2><p>${t('오른쪽 위 {i}에서 이름으로 친구를 찾아 추가해 보세요.<br>추가한 친구의 새 사진이 Candids에 떠요.', { i: II.search })}</p>
       <button class="btn primary block" onclick="openSearch()">${t('친구 찾기')}</button><div style="height:8px"></div><button class="btn block" onclick="openInvite()">${t('앱에 친구 초대하기')}</button></div>`;
     return;
   }
@@ -2633,7 +2634,7 @@ async function toggleLike(id, only) {
   if (!me) return toast(t('로그인하면 좋아요를 남길 수 있어요'));
   const s = SOC.get(id); if (!s || (only && s.liked)) return;
   s.liked = !s.liked; s.likes += s.liked ? 1 : -1; paintSoc(id);
-  if (s.liked) navigator.vibrate?.(8);
+  if (s.liked) { navigator.vibrate?.(8); const fp = findAny?.(id); if (fp) bumpAff(srcOf(fp)); }
   const { error } = s.liked
     ? await sb.from('likes').insert({ post_id: id, user_id: me.id })
     : await sb.from('likes').delete().eq('post_id', id).eq('user_id', me.id);
@@ -2713,18 +2714,63 @@ function mountComments(w, id, ownerId) {
 
 // ---------- 홈: 친구 피드의 최신 사진을 릴스로 ----------
 let muted = true, HIDE_STK = false; // HIDE_STK: 릴스에서 스티커 숨김(세션 동안 유지)
+// ---------- Candids 정렬: 안 본 것 먼저 · 최신 · 친한 친구 · 반응 · 약간의 무작위, 같은 곳 연속 2개까지, 그룹 몰아 올리기는 묶음 ----------
+const SEEN_KEY = 'candid_seen_v1', AFF_KEY = 'candid_aff_v1';
+const lsGet = k => { try { return JSON.parse(localStorage.getItem(k) || '{}') || {}; } catch { return {}; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+const srcOf = p => p.group_id ? 'g:' + p.group_id : 'u:' + p.owner_id;
+function markSeen(id) { const m = lsGet(SEEN_KEY); if (m[id]) return; m[id] = Date.now(); const e = Object.entries(m); if (e.length > 800) e.sort((a, b) => b[1] - a[1]).slice(800).forEach(([k]) => delete m[k]); lsSet(SEEN_KEY, m); }
+function bumpAff(src) { const m = lsGet(AFF_KEY); m[src] = Math.min(50, (m[src] || 0) + 1); lsSet(AFF_KEY, m); }
+// 앱을 켤 때마다 바뀌는 섞기 값(같은 실행 안에서는 그대로 → 새로고침해도 순서가 흔들리지 않음)
+const FEED_SEED = (() => { try { let v = sessionStorage.getItem('candid_seed'); if (!v) { v = String(Math.random()).slice(2, 10); sessionStorage.setItem('candid_seed', v); } return v; } catch { return '1'; } })();
+const jitter = id => { let h = 2166136261; for (const c of FEED_SEED + id) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return ((h >>> 0) % 1000) / 1000; };
+function rankFeed(all) {
+  const seen = lsGet(SEEN_KEY), aff = lsGet(AFF_KEY), now = Date.now();
+  // 1) 그룹에 30분 안에 몰아 올린 사진은 2장만 보여 주고 나머지는 '+N장'
+  const byTime = [...all].sort((a, b) => new Date(b.approved_at) - new Date(a.approved_at)), burst = new Map(), keep = [];
+  for (const p of byTime) {
+    if (!p.group_id) { keep.push(p); continue; }
+    const b = burst.get(p.group_id), t = new Date(p.approved_at).getTime();
+    if (b && b.last - t < 30 * 60e3) { b.last = t; if (b.shown.length < 2) { b.shown.push(p); keep.push(p); } else b.shown[1]._more = (b.shown[1]._more || 0) + 1; }
+    else { burst.set(p.group_id, { last: t, shown: [p] }); keep.push(p); }
+  }
+  // 2) 점수: 최신(하루마다 절반) + 안 봤으면 크게 + 자주 반응한 친구·그룹 + 좋아요·댓글 + 섞기
+  const score = p => {
+    const ageH = (now - new Date(p.approved_at).getTime()) / 36e5, so = SOC.get(p.id);
+    return 100 * Math.pow(0.5, ageH / 24) + (seen[p.id] ? 0 : 70) + Math.min(aff[srcOf(p)] || 0, 10) * 3
+      + Math.min((so?.likes || 0) + (so?.comments || 0), 10) * 1.5 + jitter(p.id) * 25;
+  };
+  const pool = keep.map(p => ({ p, s: score(p) })).sort((a, b) => b.s - a.s), out = [];
+  // 3) 같은 친구·그룹이 3개 연속으로 오지 않게
+  while (pool.length && out.length < 40) {
+    const l1 = out.length > 0 ? srcOf(out[out.length - 1]) : null, l2 = out.length > 1 ? srcOf(out[out.length - 2]) : null;
+    let i = pool.findIndex(x => !(l1 && l1 === l2 && srcOf(x.p) === l1));
+    if (i < 0) i = 0;
+    out.push(pool.splice(i, 1)[0].p);
+  }
+  return out;
+}
+const sameSet = (a, b) => a.length === b.length && a.every(p => b.some(q => q.id === p.id));
 async function fetchHome() {
   const ids = [...myFollows];
   await loadMyGroups().catch(() => {});
   const gids = [...MYG.fol.keys()]; // 팔로우한 그룹의 새 사진도 릴스에
   // 게시물·친구 프로필을 동시에, 그다음 좋아요·댓글·투표·스티커를 동시에 (줄 세우지 않기)
+  const since = new Date(Date.now() - 14 * 864e5).toISOString(); // 최근 2주 안에서 넉넉히 받아 골라 보여 줌
   const [r, gr, o] = await withTimeout(Promise.all([
-    sb.from('posts').select(POST_COLS).in('owner_id', ids).eq('status', 'approved').order('approved_at', { ascending: false }).limit(40),
-    gids.length ? sb.from('posts').select(GPOST_COLS).in('group_id', gids).eq('status', 'approved').eq('flagged', false).order('approved_at', { ascending: false }).limit(40) : Promise.resolve({ data: [] }),
+    sb.from('posts').select(POST_COLS).in('owner_id', ids).eq('status', 'approved').gte('approved_at', since).order('approved_at', { ascending: false }).limit(100),
+    gids.length ? sb.from('posts').select(GPOST_COLS).in('group_id', gids).eq('status', 'approved').eq('flagged', false).gte('approved_at', since).order('approved_at', { ascending: false }).limit(100) : Promise.resolve({ data: [] }),
     ids.length ? sb.from('profiles').select('*').in('id', ids) : Promise.resolve({ data: [] }),
   ]), 10000);
   if (r.error) throw r.error;
-  const posts = [...r.data, ...(gr.data || [])].sort((a, b) => new Date(b.approved_at) - new Date(a.approved_at)).slice(0, 40);
+  let all = [...r.data, ...(gr.data || [])];
+  if (all.length < 10) { // 2주 안에 너무 적으면 기간 없이 최신 40개
+    const [r2, g2] = await Promise.all([
+      sb.from('posts').select(POST_COLS).in('owner_id', ids).eq('status', 'approved').order('approved_at', { ascending: false }).limit(40),
+      gids.length ? sb.from('posts').select(GPOST_COLS).in('group_id', gids).eq('status', 'approved').eq('flagged', false).order('approved_at', { ascending: false }).limit(40) : Promise.resolve({ data: [] })]);
+    if (!r2.error) all = [...r2.data, ...(g2.data || [])];
+  }
+  const posts = rankFeed(all);
   // 화면은 게시물·보낸 사람만 오면 바로 그림. 좋아요·댓글 수·투표·스티커는 뒤에서 받아 그 자리에 채움
   const pids = posts.map(p => p.id);
   Promise.all([loadSocial(pids).catch(() => {}), loadPolls(posts).catch(() => {}), loadStickers(pids).catch(() => {})])
@@ -2779,7 +2825,7 @@ async function renderHome(fresh) {
     if (PREPAINTED && document.querySelector('.reels')) PREPAINTED = false; // 이미 저장본으로 그려져 있음 → 다시 그리지 않고 새로 받기만
     else paintHome(CACHE.home);
     fetchHome().then(d => {
-      const same = d.posts.map(p => p.id).join() === CACHE.home.posts.map(p => p.id).join();
+      const same = sameSet(d.posts, CACHE.home.posts);
       CACHE.home = d;
       const r = document.querySelector('.reels');
       if (!same && pageKey() === myKey && r && r.scrollTop < 10) paintHome(d); // 맨 위에 있을 때만 조용히 교체
@@ -2849,7 +2895,7 @@ function paintHome({ posts, owners, groups }) {
       <div class="rburst">${I.heartOn}</div>
       <div class="rinfo">
 
-        ${gg ? `<a class="rgroup" href="${gUrl(gg)}">${gAv(gg, 'xs')}<span>${esc(gg.name)}</span></a>` : ''}
+        ${gg ? `<a class="rgroup" href="${gUrl(gg)}">${gAv(gg, 'xs')}<span>${esc(gg.name)}</span></a>${p._more ? `<a class="rmore" href="${gUrl(gg)}">${t('+{n}장 더 올라왔어요', { n: p._more })}</a>` : ''}` : ''}
         <div class="rfrom">from ${p.author_id ? `<a class="rname" href="${feedUrl(p.author_id)}"><b>${gg ? esc(p.author_name) : aname(p.author_name)}</b></a>` : `<b>${gg ? esc(p.author_name) : aname(p.author_name)}</b>`} ${p.mission ? `<span class="mchip">${mname(p.mission)}</span>` : ''}</div>
         ${p.text && !isText(p) ? `<div class="rtext">“${esc(p.text)}”</div>` : ''}
         <small>${ago(p.approved_at)}</small>
@@ -2886,6 +2932,8 @@ function paintHome({ posts, owners, groups }) {
   // 화면에 보이는 영상만 재생
   const io = new IntersectionObserver(es => es.forEach(e => {
     if (e.isIntersecting) { try { sessionStorage.setItem('candid_reel', e.target.dataset.id); } catch {} } // 이번 세션에서 마지막으로 본 릴스
+    clearTimeout(e.target._seenT);
+    if (e.isIntersecting) e.target._seenT = setTimeout(() => markSeen(e.target.dataset.id), 1000); // 1초 이상 보면 '본 것'
     if (!e.isIntersecting) return e.target.querySelectorAll('video').forEach(v => v.pause());
     const v = currentVideo(e.target); if (!v) return; // 여러 장이면 지금 보이는 장의 영상만
     v.preload = 'auto'; v.muted = muted; v.play().catch(() => {});
@@ -4794,7 +4842,7 @@ async function toggleGroupFollow() {
   closeSheet();
   const { error } = on ? await sb.from('group_follows').delete().eq('group_id', g.id).eq('user_id', me.id) : await sb.rpc('follow_group', { p_group: g.id });
   if (error) return toast(gErr(error));
-  toast(t(on ? '팔로우를 끊었어요. 릴스에 더 이상 안 떠요' : '팔로우했어요. 새 사진이 릴스에 떠요'));
+  toast(t(on ? '팔로우를 끊었어요. Candids에 더 이상 안 떠요' : '팔로우했어요. 새 사진이 Candids에 떠요'));
   MYG.at = 0; CACHE.home = null; renderGroup(g.handle, true);
 }
 async function toggleGroupNotify() {
@@ -4820,7 +4868,7 @@ function groupMenu() {
         <button class="menu-item" onclick="toggleGroupClosed()">${t(g.closed ? '업로드 다시 열기' : '업로드 마감하기')}</button>` : ''}
       ${isOwner || isMember ? `<button class="menu-item" onclick="closeSheet();setTimeout(openGroupInvite,250)">${t('멤버 초대하기')}</button>` : ''}
       ${G.fol ? `<button class="menu-item" onclick="toggleGroupNotify()">${t(G.fol.notify ? '새 사진 알림 끄기' : '새 사진 알림 켜기')}</button>` : ''}
-      ${me && (isMember || g.visibility === 'public') && !isOwner ? `<button class="menu-item" onclick="toggleGroupFollow()">${t(G.fol ? '팔로우 끊기 (릴스에 안 뜸)' : '팔로우 (릴스에 새 사진)')}</button>` : ''}
+      ${me && (isMember || g.visibility === 'public') && !isOwner ? `<button class="menu-item" onclick="toggleGroupFollow()">${t(G.fol ? '팔로우 끊기 (Candids에 안 뜸)' : '팔로우 (Candids에 새 사진)')}</button>` : ''}
       <button class="menu-item" onclick="closeSheet();shareGroupLink()">${t('그룹 링크 공유')}</button>
       ${isMember && !isOwner ? `<button class="menu-item danger" onclick="leaveGroup()">${t('그룹 나가기')}</button>` : ''}
       ${isOwner ? `<button class="menu-item danger" onclick="deleteGroup()">${t('그룹 삭제')}</button>` : ''}`);
