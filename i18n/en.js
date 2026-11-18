@@ -774,5 +774,14 @@
  "가입": "joined",
  "친구 {a} · 나를 추가 {b} · 받은 {c} · 보낸 {d} · 그룹 {e}": "Friends {a} · Followers {b} · Received {c} · Sent {d} · Groups {e}",
  "마지막 보냄 {d}": "last sent {d}",
- "친구 초대": "Invite friends"
+ "친구 초대": "Invite friends",
+ "조용해요": "Quiet",
+ "{n}번째 은하": "Galaxy {n}",
+ "다른 은하에 새 사진이 있어요 · 옆으로 밀어 보세요": "New photos in another galaxy · swipe sideways",
+ "블루 은하": "Blue galaxy",
+ "민트 은하": "Mint galaxy",
+ "핑크 은하": "Pink galaxy",
+ "레몬 은하": "Lemon galaxy",
+ "퍼플 은하": "Purple galaxy",
+ "코랄 은하": "Coral galaxy"
 };

@@ -1204,7 +1204,7 @@
   .orb.new .oface::after { content:""; position:absolute; inset:-9px; border-radius:inherit; border:2px solid var(--accent); opacity:0; animation:opulse 2.4s ease-out infinite; }
   .orb.seen { opacity:.55; }
   .orb .on { position:absolute; right:-5px; top:-5px; min-width:22px; height:22px; padding:0 6px; border-radius:11px; background:var(--accent); color:#fff; font-size:12px; font-weight:800; font-style:normal; display:flex; align-items:center; justify-content:center; border:2px solid #000; }
-  .orb b { display:block; margin-top:7px; font-size:12px; max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .orb b { display:block; margin-top:5px; font-size:11.5px; max-width:84px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .orb em { display:block; font-style:normal; font-size:10.5px; color:#8e8e93; margin-top:1px; }
   .orb:active { scale:.94; }
   @keyframes ofloat { 0%,100% { translate:0 0; } 33% { translate:6px -8px; } 66% { translate:-5px 5px; } }
@@ -1242,6 +1242,31 @@
   .frow.adm small { white-space:normal; }
   .adm-new { font-style:normal; font-size:11px; color:var(--accent); }
   .btn.btn-dot { width:auto; height:auto; border-radius:999px; padding:7px 14px; font-size:13px; font-weight:700; background:var(--accent); border-color:var(--accent); color:#fff; }
+  /* 은하 */
+  .orbitv { --gc:#5c7cff; touch-action:pan-y; }
+  .orbitv .ogal { position:absolute; inset:0; }
+  .olines { position:absolute; left:0; top:0; pointer-events:none; }
+  .olines ellipse, .olines path { fill:none; stroke:rgba(255,255,255,.09); stroke-width:1; stroke-dasharray:4 5; }
+  .orbitv.allseen .olines ellipse, .orbitv.allseen .olines path { stroke:rgba(255,255,255,.16); }
+  .orbitv .ome::before { background:radial-gradient(circle, color-mix(in srgb, var(--gc) 40%, transparent), transparent 65%); }
+  .orb.new .oface { box-shadow:0 0 0 3px #000, 0 0 0 6px var(--gc), 0 0 26px 6px color-mix(in srgb, var(--gc) 50%, transparent); }
+  .orb.new .oface::after { border-color:var(--gc); }
+  .orb .on { background:var(--gc); }
+  .ostars { position:absolute; inset:-20%; pointer-events:none; opacity:.55; background:
+    radial-gradient(1px 1px at 12% 22%, #fff, transparent), radial-gradient(1px 1px at 78% 14%, #fff, transparent), radial-gradient(1.5px 1.5px at 33% 68%, #fff, transparent),
+    radial-gradient(1px 1px at 62% 48%, #fff, transparent), radial-gradient(1px 1px at 88% 76%, #fff, transparent), radial-gradient(1.5px 1.5px at 22% 88%, #fff, transparent),
+    radial-gradient(1px 1px at 50% 8%, #fff, transparent), radial-gradient(1px 1px at 6% 52%, #fff, transparent), radial-gradient(1px 1px at 94% 40%, #fff, transparent); }
+  .orbitv.warping .ogal { transition:transform .3s cubic-bezier(.5,0,.9,.4), opacity .3s; transform:translateX(calc(var(--wd) * -30%)) scale(.35); opacity:0; }
+  .orbitv.warping .ostars { transition:transform .3s ease-in, opacity .3s; transform:scale(2.6, 1.15); opacity:1; filter:blur(.4px); }
+  .orbitv.warpin .ogal { animation:galIn .5s cubic-bezier(.2,.9,.3,1) both; }
+  .orbitv.warpin .ostars { animation:starIn .5s ease-out both; }
+  @keyframes galIn { from { transform:scale(1.8); opacity:0; } }
+  @keyframes starIn { from { transform:scale(2.2, 1.1); opacity:1; } }
+  .gdots { position:absolute; left:0; right:0; bottom:calc(env(safe-area-inset-bottom) + 92px); display:flex; justify-content:center; gap:9px; z-index:3; }
+  .gdots button { width:8px; height:8px; padding:0; border:0; border-radius:50%; background:var(--gc); opacity:.35; transition:all .2s; }
+  .gdots button.on { width:22px; border-radius:4px; opacity:1; }
+  .gdots button.f:not(.on) { opacity:.9; box-shadow:0 0 0 3px color-mix(in srgb, var(--gc) 30%, transparent); }
+  @media (prefers-reduced-motion: reduce) { .orbitv.warping .ogal, .orbitv.warping .ostars, .orbitv.warpin .ogal, .orbitv.warpin .ostars { transition:none; animation:none; } }
 </style>
 </head>
 <body>
@@ -2854,7 +2879,7 @@ async function fetchHome() {
   const pids = posts.map(p => p.id);
   Promise.all([loadSocial(pids).catch(() => {}), loadPolls(posts).catch(() => {}), loadStickers(pids).catch(() => {})])
     .then(() => { if (document.querySelector('.reels')) fillHomeExtras(posts); saveHomeCache({ posts, owners: o.data ? new Map(o.data.map(p => [p.id, p])) : new Map(), groups: new Map(MYG.groups) }); });
-  return { posts, owners: new Map((o.data || []).map(p => [p.id, p])), groups: new Map(MYG.groups) };
+  return { posts, all, owners: new Map((o.data || []).map(p => [p.id, p])), groups: new Map(MYG.groups) };
 }
 // 릴스를 기기에 저장(다음에 앱을 켜면 바로 보여 주려고). 이 기기의 내 계정 것만, 로그아웃하면 지움
 function saveHomeCache(d) {
@@ -2900,32 +2925,104 @@ function orbitSources(posts, owners) {
     const k = srcOf(p);
     if (!m.has(k)) {
       const g = p.group_id && HOME.groups.get(p.group_id), o = !p.group_id && owners.get(p.owner_id);
+      if (p.group_id && !g) continue;
       m.set(k, { k, g, o, name: g ? g.name : o?.name || t('친구'), posts: [], fresh: 0, at: 0 });
     }
     const x = m.get(k); x.posts.push(p); if (!seen[p.id]) x.fresh++; x.at = Math.max(x.at, new Date(p.approved_at).getTime());
   }
-  return [...m.values()].sort((a, b) => (b.fresh > 0) - (a.fresh > 0) || b.fresh - a.fresh || b.at - a.at).slice(0, 12);
+  // 노출 순서: ① 안 본 사진이 있는 곳 ② 안 본 사진이 많은 곳 ③ 내가 자주 반응한 곳(좋아요 등) ④ 최근에 올라온 곳 → 그다음 조용한 곳(가나다순)
+  const aff = lsGet(AFF_KEY);
+  const active = [...m.values()].sort((a, b) => (b.fresh > 0) - (a.fresh > 0) || b.fresh - a.fresh || Math.min(aff[b.k] || 0, 10) - Math.min(aff[a.k] || 0, 10) || b.at - a.at);
+  // 최근 사진이 없는 친구·그룹도 뒤쪽 은하에(조용한 곳)
+  const quiet = [];
+  owners.forEach(o => { if (o.id !== me?.id && !m.has('u:' + o.id)) quiet.push({ k: 'u:' + o.id, o, name: o.name, posts: [], fresh: 0, at: 0 }); });
+  HOME.groups.forEach(g => { if (!m.has('g:' + g.id) && (MYG.fol.has(g.id) || gRole(g.id))) quiet.push({ k: 'g:' + g.id, g, name: g.name, posts: [], fresh: 0, at: 0 }); });
+  return [...active, ...quiet.sort(byKoName)];
+}
+// 은하: 18곳씩. 은하마다 궤도 모양·가운데 닷 색·표정이 다름
+const GALAXIES = [
+  { kind: 'blue', c: '#5c7cff', shape: 'rings', moods: ['look', 'happy'] },
+  { kind: 'mint', c: '#2fd3a6', shape: 'tilt', moods: ['wink', 'happy'] },
+  { kind: 'pink', c: '#ff6fb1', shape: 'spiral', moods: ['wow', 'happy'] },
+  { kind: 'lemon', c: '#ffd23f', shape: 'eight', moods: ['look', 'wink'] },
+  { kind: 'purple', c: '#a374ff', shape: 'rings', moods: ['down', 'happy'] },
+  { kind: 'coral', c: '#ff8a5c', shape: 'tilt', moods: ['sleepy', 'happy'] },
+];
+const PER_GALAXY = 18;
+let ORBIT_G = 0;
+// 궤도 위 자리(화면 크기 기준): 은하 모양마다 다르게. 반환: [{X, Y}], 그리고 궤도선 SVG
+function galaxyLayout(shape, n, W, H) {
+  const top = 112, bottom = H - 128, cx = W / 2, cy = (top + bottom) / 2;
+  const RX = W / 2 - 46, RY = Math.min((bottom - top) / 2 - 34, RX * 2.1);
+  const pts = [], lines = [];
+  const ring = (count, f, rot, off) => { for (let i = 0; i < count; i++) { const a = off + i * 2 * Math.PI / count, x = RX * f * Math.cos(a), y = RY * f * Math.sin(a); pts.push({ X: cx + x * Math.cos(rot) - y * Math.sin(rot), Y: cy + x * Math.sin(rot) + y * Math.cos(rot) }); } lines.push(`<ellipse cx="${cx}" cy="${cy}" rx="${RX * f}" ry="${RY * f}" transform="rotate(${rot * 180 / Math.PI} ${cx} ${cy})"/>`); };
+  const split = [Math.min(n, 4), Math.min(Math.max(n - 4, 0), 6), Math.max(n - 10, 0)];
+  if (shape === 'rings' || shape === 'tilt') {
+    const rot = shape === 'tilt' ? -0.38 : 0, fs = shape === 'tilt' ? [0.46, 0.72, 0.96] : [0.46, 0.74, 1];
+    if (split[0]) ring(split[0], fs[0], rot, -Math.PI / 2 + 0.4);
+    if (split[1]) ring(split[1], fs[1], rot, -Math.PI / 2 + 0.15);
+    if (split[2]) ring(split[2], fs[2], rot, -Math.PI / 2 + 0.05);
+  } else if (shape === 'spiral') { // 나선 팔 2개
+    const turn = 1.25 * Math.PI;
+    for (let i = 0; i < n; i++) { const arm = i % 2, k = (Math.floor(i / 2) + 1) / Math.ceil(n / 2), a = arm * Math.PI + k * turn - Math.PI / 2, r = 0.34 + 0.66 * k; pts.push({ X: cx + RX * r * Math.cos(a), Y: cy + RY * r * Math.sin(a) }); }
+    for (const arm of [0, 1]) { let d = ''; for (let k = 0.05; k <= 1.001; k += 0.05) { const a = arm * Math.PI + k * turn - Math.PI / 2, r = 0.34 + 0.66 * k; d += `${d ? 'L' : 'M'}${(cx + RX * r * Math.cos(a)).toFixed(1)} ${(cy + RY * r * Math.sin(a)).toFixed(1)}`; } lines.push(`<path d="${d}"/>`); }
+  } else { // 8자(쌍둥이 별): 위·아래 고리
+    const ry = RY * 0.48, top2 = cy - RY * 0.5, bot2 = cy + RY * 0.5, a2 = Math.ceil(n / 2);
+    [[top2, a2], [bot2, n - a2]].forEach(([yc, c]) => { for (let i = 0; i < c; i++) { const a = -Math.PI / 2 + i * 2 * Math.PI / c; pts.push({ X: cx + RX * 0.92 * Math.cos(a), Y: yc + ry * Math.sin(a) }); } lines.push(`<ellipse cx="${cx}" cy="${yc}" rx="${RX * 0.92}" ry="${ry}"/>`); });
+  }
+  return { pts, lines, cx, cy };
 }
 function paintOrbit(posts, owners, top) {
   const src = orbitSources(posts, owners);
-  const W = Math.min(innerWidth, 480), H = innerHeight, cx = W / 2, cy = H * 0.5;
-  const inner = src.slice(0, Math.min(4, src.length)), outer = src.slice(inner.length);
-  const R1 = Math.min(W * 0.29, 118), R2 = Math.min(W * 0.41, 172);
-  const place = (arr, R, off) => arr.map((x, i) => { const a = off + i * 2 * Math.PI / arr.length; return { x, X: cx + R * Math.cos(a), Y: cy + R * Math.sin(a) * 1.08 }; });
-  const all = [...place(inner, R1, -Math.PI / 2 + 0.35), ...place(outer, R2, -Math.PI / 2 + 0.1)];
-  const freshTotal = src.reduce((n, x) => n + x.fresh, 0), allSeen = !freshTotal; // 새 사진을 다 봤으면 모두 밝게(차례로 나타남)
-  const orb = ({ x, X, Y }, i) => {
-    const s = x.fresh ? Math.min(74, 52 + x.fresh * 4) : allSeen ? 54 : 44, px = Math.max(s / 2 + 8, Math.min(W - s / 2 - 8, X));
+  const gal = []; for (let i = 0; i < src.length; i += PER_GALAXY) gal.push(src.slice(i, i + PER_GALAXY));
+  if (!gal.length) gal.push([]);
+  ORBIT_G = Math.min(ORBIT_G, gal.length - 1);
+  const gi = ORBIT_G, here = gal[gi], G = GALAXIES[gi % GALAXIES.length];
+  const W = Math.min(innerWidth, 480), H = innerHeight;
+  const { pts, lines, cx, cy } = galaxyLayout(G.shape, here.length, W, H);
+  const freshHere = here.reduce((n, x) => n + x.fresh, 0), freshAll = src.reduce((n, x) => n + x.fresh, 0), allSeen = !freshAll;
+  const orb = (x, i) => {
+    const dense = here.length > 10; // 꽉 찬 은하는 조금 작게(겹치지 않게)
+    const P = pts[i] || { X: cx, Y: cy }, s = x.fresh ? Math.min(dense ? 54 : 70, (dense ? 44 : 50) + x.fresh * 3) : allSeen ? (dense ? 42 : 50) : (dense ? 36 : 42);
+    const px = Math.max(s / 2 + 6, Math.min(W - s / 2 - 6, P.X));
     const face = x.g ? gAv(x.g, 'xs') : avatar(x.o || { name: x.name }, 'xs');
-    return `<button class="orb${x.g ? ' grp' : ''}${x.fresh ? ' new' : ' seen'}" style="left:${px}px;top:${Y}px;--s:${s}px;--d:${5 + i % 4}s;--dl:-${(i * .7).toFixed(1)}s;--fi:${(i * .09).toFixed(2)}s" data-k="${x.k}">
-      <span class="oface">${face}${x.fresh ? `<i class="on">${x.fresh}</i>` : ''}</span><b>${esc(x.name)}</b><em>${x.fresh ? (x.g ? t('새 사진 {n}장', { n: x.fresh }) : t('새 사진')) : t('다 봤어요')}</em></button>`;
+    const sub = x.fresh ? (x.g ? t('새 사진 {n}장', { n: x.fresh }) : t('새 사진')) : x.posts.length ? t('다 봤어요') : t('조용해요');
+    return `<button class="orb${x.g ? ' grp' : ''}${x.fresh ? ' new' : ' seen'}" style="left:${px}px;top:${P.Y}px;--s:${s}px;--d:${5 + i % 4}s;--dl:-${(i * .7).toFixed(1)}s;--fi:${(i * .06).toFixed(2)}s" data-k="${x.k}">
+      <span class="oface">${face}${x.fresh ? `<i class="on">${x.fresh}</i>` : ''}</span><b>${esc(x.name)}</b><em>${sub}</em></button>`;
   };
-  $app.innerHTML = `<div class="orbitv${allSeen ? ' allseen' : ''}" id="orbitv">${top}
-    <p class="ohint">${freshTotal ? t('빛나는 곳에 새 사진이 있어요') : t('새 사진을 다 봤어요. 눌러서 다시 볼 수 있어요')}</p>
-    <i class="oring" style="width:${R1 * 2}px;height:${R1 * 2.16}px;left:${cx}px;top:${cy}px"></i><i class="oring" style="width:${R2 * 2}px;height:${R2 * 2.16}px;left:${cx}px;top:${cy}px"></i>
-    <div class="ome" style="left:${cx}px;top:${cy}px">${DOT(freshTotal ? 'look' : 'happy', { size: 58, cls: 'float' })}</div>
-    ${all.map(orb).join('')}</div>${navBar('reels')}`;
-  $app.querySelectorAll('.orb').forEach(b => b.onclick = () => openOrbitStack(src.find(x => x.k === b.dataset.k)));
+  const gdots = gal.length > 1 ? `<div class="gdots">${gal.map((g, i) => { const GG = GALAXIES[i % GALAXIES.length], f = g.some(x => x.fresh); return `<button class="${i === gi ? 'on' : ''}${f ? ' f' : ''}" style="--gc:${GG.c}" data-g="${i}" aria-label="${t('{n}번째 은하', { n: i + 1 })}"></button>`; }).join('')}</div>` : '';
+  $app.innerHTML = `<div class="orbitv${allSeen ? ' allseen' : ''}" id="orbitv" style="--gc:${G.c}">${top}
+    <i class="ostars"></i>
+    <p class="ohint">${gal.length > 1 ? `<b style="color:${G.c}">${t(G.kind === 'blue' ? '블루 은하' : G.kind === 'mint' ? '민트 은하' : G.kind === 'pink' ? '핑크 은하' : G.kind === 'lemon' ? '레몬 은하' : G.kind === 'purple' ? '퍼플 은하' : '코랄 은하')}</b> · ` : ''}${freshHere ? t('빛나는 곳에 새 사진이 있어요') : freshAll ? t('다른 은하에 새 사진이 있어요 · 옆으로 밀어 보세요') : t('새 사진을 다 봤어요. 눌러서 다시 볼 수 있어요')}</p>
+    <div class="ogal" id="ogal"><svg class="olines" width="${W}" height="${H}" aria-hidden="true">${lines.join('')}</svg>
+    <div class="ome" style="left:${cx}px;top:${cy}px;--accent:${G.c}">${DOT(freshHere ? G.moods[0] : G.moods[1], { size: 58, cls: 'float' })}</div>
+    ${here.map(orb).join('')}</div>${gdots}</div>${navBar('reels')}`;
+  const v = document.getElementById('orbitv');
+  v.querySelectorAll('.gdots button').forEach(b => b.onclick = () => warpTo(+b.dataset.g, +b.dataset.g > gi ? 1 : -1));
+  // 누르기·옆으로 밀기: iPhone 이 움직이는 화면에서 click 을 안 줄 때가 있어 손을 뗄 때 직접 처리
+  let d0 = null;
+  v.addEventListener('pointerdown', e => { if (e.target.closest('.rtop, .gdots, .bnav')) return; d0 = { x: e.clientX, y: e.clientY, t: Date.now(), orb: e.target.closest('.orb') }; });
+  v.addEventListener('pointerup', e => {
+    const d = d0; d0 = null; if (!d) return;
+    const dx = e.clientX - d.x, dy = e.clientY - d.y;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.3) { const ng = gi + (dx < 0 ? 1 : -1); if (ng >= 0 && ng < gal.length) warpTo(ng, dx < 0 ? 1 : -1); else { navigator.vibrate?.(4); v.querySelector('.ogal').animate([{ translate: '0 0' }, { translate: `${dx < 0 ? -14 : 14}px 0` }, { translate: '0 0' }], { duration: 260, easing: 'ease-out' }); } return; }
+    if (d.orb && Math.hypot(dx, dy) < 12 && Date.now() - d.t < 700) {
+      const x = src.find(z => z.k === d.orb.dataset.k); if (!x) return;
+      if (!x.posts.length) return go(x.g ? gUrl(x.g) : feedUrl(x.o.id)); // 조용한 곳: 피드·그룹으로
+      openOrbitStack(x);
+    }
+  });
+  v.addEventListener('pointercancel', () => { d0 = null; });
+}
+// 다음 은하로 워프: 지금 은하가 빨려 들어가듯 작아지고 별빛이 늘어난 뒤, 새 은하가 멀리서 다가옴
+function warpTo(ng, dir) {
+  const v = document.getElementById('orbitv'); if (!v || v.classList.contains('warping')) return;
+  v.classList.add('warping'); navigator.vibrate?.(8);
+  v.style.setProperty('--wd', dir);
+  setTimeout(() => {
+    ORBIT_G = ng; if (CACHE.home) paintHome(CACHE.home);
+    const n = document.getElementById('orbitv'); n?.classList.add('warpin'); setTimeout(() => n?.classList.remove('warpin'), 520);
+  }, 300);
 }
 // 궤도에서 누르면: 그 친구·그룹 사진을 인화 사진 더미로. 맨 위 장을 옆으로 밀거나 눌러 다음 장
 function openOrbitStack(x) {
@@ -3035,7 +3132,7 @@ function paintHome({ posts, owners, groups }) {
   const top = `<header class="rtop"><button class="logo" onclick="logoTap()">${LOGO}</button><div class="sp"></div>
     <div class="vseg" role="radiogroup" aria-label="${t('보기 방식')}"><button role="radio" aria-checked="${vw === 'reels'}" class="${vw === 'reels' ? 'on' : ''}" onclick="setHomeView('reels')">${t('넘기기')}</button><button role="radio" aria-checked="${vw === 'orbit'}" class="${vw === 'orbit' ? 'on' : ''}" onclick="setHomeView('orbit')">${t('궤도')}</button></div>
     ${topIcons()}</header>`;
-  if (posts.length && vw === 'orbit') return paintOrbit(posts, owners, top);
+  if (posts.length && vw === 'orbit') return paintOrbit(arguments[0].all || posts, owners, top);
   if (!posts.length) {
     $app.innerHTML = `<div class="reels">${top}<section class="reel rempty"><div><div class="empty-dot">${DOT('sleepy', { size: 80, cls: 'float' })}</div>
       <h2>Quiet for now<i class="pd">.</i></h2><p>${t('친구들 피드에 새 사진이 올라오면 여기 떠요.<br>친구 피드에 사진을 먼저 보내 보는 건 어때요?')}</p>
