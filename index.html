@@ -3235,7 +3235,7 @@ const findAny = id => findPost(id) || HOME.posts.find(x => x.id === id);
   let buzzed = false;
   document.body.appendChild(ind);
   const scroller = () => document.querySelector('.reels') || document.scrollingElement;
-  const blocked = () => busy || document.querySelector('.sheet-wrap:not(.closing), .overlay');
+  const blocked = () => busy || document.querySelector('.sheet-wrap:not(.closing), .overlay, #orbitv, .ostack'); // 궤도 화면에서는 당겨서 새로고침 없음
   addEventListener('touchstart', e => { y0 = !blocked() && scroller().scrollTop <= 0 ? e.touches[0].clientY : null; dy = 0; }, { passive: true });
   addEventListener('touchmove', e => {
     if (y0 == null) return;
