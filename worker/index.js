@@ -12,7 +12,7 @@ const PATH_OK = /^[0-9a-zA-Z_-]{1,64}\/[0-9a-zA-Z_-]{1,80}\.(webp|jpe?g|png|mp4|
 // 사진 중계(/p/), 이미지·번역 파일, 약관 페이지는 제외
 const AASA = { applinks: { details: [{ appIDs: ['92KNXMVFG4.com.candidfeed.app'], components: [
   { '/': '/p/*', exclude: true }, { '/': '/brand/*', exclude: true }, { '/': '/i18n/*', exclude: true },
-  { '/': '/terms*', exclude: true }, { '/': '/privacy*', exclude: true }, { '/': '/legal.css', exclude: true }, { '/': '/*' },
+  { '/': '/terms*', exclude: true }, { '/': '/privacy*', exclude: true }, { '/': '/legal.css', exclude: true }, { '/': '/' }, { '/': '/*' },
 ] }] } };
 
 export default {
