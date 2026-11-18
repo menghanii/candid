@@ -10,6 +10,7 @@ create table if not exists public.device_tokens (
 create index if not exists device_tokens_user_idx on public.device_tokens (user_id);
 alter table public.device_tokens enable row level security;
 revoke all on public.device_tokens from anon, authenticated;   -- 앱에서는 아래 함수로만
+grant select, insert, update, delete on public.device_tokens to service_role; -- 알림 함수(notify-owner)가 읽고 정리할 수 있게
 
 -- 토큰 등록: 같은 기기에서 다른 계정으로 로그인하면 토큰 주인이 바뀜
 create or replace function public.register_device(p_token text) returns void
