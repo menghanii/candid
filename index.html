@@ -1345,7 +1345,7 @@ function DOT(mood = 'base', { size = 72, tail = true, cls = '', label = '' } = {
 const LOGO_DOT = `candid<span class="wm-dot">${DOT('base', { size: 22, tail: false, cls: 'hop' })}</span>`;
 // 시작 화면: 닷이 두 번 통통 튀다가 눈을 감고 작아지며 파란 마침표로 변신 → 앱 화면으로
 // (로그인에서 돌아오는 중이면 변신 없이 계속 튐 — 곧 '로그인하는 중' 화면이 같은 자리에 이어짐)
-// 지난번 릴스를 기기에 저장해 뒀고 지금 같은 사람으로 로그인돼 있으면: 시작 화면 애니메이션 없이 바로 그 릴스부터
+// 지난번 릴스를 기기에 저장해 뒀고 지금 같은 사람으로 로그인돼 있으면: 시작 애니메이션 뒤에 바로 그 릴스(서버를 기다리지 않음)
 const HOME_KEY = 'candid_home_v1';
 const HOME_SNAP = (() => {
   try {
@@ -1355,7 +1355,7 @@ const HOME_SNAP = (() => {
     return sess?.user?.id === c.uid ? c : null;
   } catch { return null; }
 })();
-const SPLASH_MORPH = !HOME_SNAP && !/[#&?](access_token|code|error_description)=/.test(location.href) && (() => { try { return sessionStorage.getItem('candid_oauth') !== '1'; } catch { return true; } })()
+const SPLASH_MORPH = !/[#&?](access_token|code|error_description)=/.test(location.href) && (() => { try { return sessionStorage.getItem('candid_oauth') !== '1'; } catch { return true; } })()
   && !matchMedia('(prefers-reduced-motion: reduce)').matches;
 (() => {
   const sp = document.querySelector('#splash .logo'); if (!sp) return;
