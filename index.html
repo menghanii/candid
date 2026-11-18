@@ -1231,6 +1231,11 @@
   .tabs button svg { display:block; }
   .tabs .tico { position:relative; display:inline-flex; }
   .tabs .tico .n { position:absolute; right:-12px; top:-7px; margin:0; min-width:17px; height:17px; padding:0 4px; border-radius:9px; background:var(--accent); color:#fff; font-size:10.5px; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid var(--bg); line-height:1; }
+  /* 새 사진을 다 봤을 때: 흐리게 두지 않고 모두 밝게, 하나씩 페이드인 */
+  .orbitv.allseen .orb.seen { opacity:1; animation:ofadein .7s ease both, ofloat var(--d,6s) ease-in-out infinite; animation-delay:var(--fi,0s), var(--dl,0s); }
+  .orbitv.allseen .orb .oface { box-shadow:0 0 0 2px rgba(255,255,255,.85), 0 0 18px 2px rgba(255,255,255,.12); }
+  .orbitv.allseen .oring { border-color:rgba(255,255,255,.14); }
+  @keyframes ofadein { from { opacity:0; scale:.7; } to { opacity:1; scale:1; } }
 </style>
 </head>
 <body>
@@ -2898,14 +2903,14 @@ function paintOrbit(posts, owners, top) {
   const R1 = Math.min(W * 0.29, 118), R2 = Math.min(W * 0.41, 172);
   const place = (arr, R, off) => arr.map((x, i) => { const a = off + i * 2 * Math.PI / arr.length; return { x, X: cx + R * Math.cos(a), Y: cy + R * Math.sin(a) * 1.08 }; });
   const all = [...place(inner, R1, -Math.PI / 2 + 0.35), ...place(outer, R2, -Math.PI / 2 + 0.1)];
+  const freshTotal = src.reduce((n, x) => n + x.fresh, 0), allSeen = !freshTotal; // 새 사진을 다 봤으면 모두 밝게(차례로 나타남)
   const orb = ({ x, X, Y }, i) => {
-    const s = x.fresh ? Math.min(74, 52 + x.fresh * 4) : 44, px = Math.max(s / 2 + 8, Math.min(W - s / 2 - 8, X));
+    const s = x.fresh ? Math.min(74, 52 + x.fresh * 4) : allSeen ? 54 : 44, px = Math.max(s / 2 + 8, Math.min(W - s / 2 - 8, X));
     const face = x.g ? gAv(x.g, 'xs') : avatar(x.o || { name: x.name }, 'xs');
-    return `<button class="orb${x.g ? ' grp' : ''}${x.fresh ? ' new' : ' seen'}" style="left:${px}px;top:${Y}px;--s:${s}px;--d:${5 + i % 4}s;--dl:-${(i * .7).toFixed(1)}s" data-k="${x.k}">
+    return `<button class="orb${x.g ? ' grp' : ''}${x.fresh ? ' new' : ' seen'}" style="left:${px}px;top:${Y}px;--s:${s}px;--d:${5 + i % 4}s;--dl:-${(i * .7).toFixed(1)}s;--fi:${(i * .09).toFixed(2)}s" data-k="${x.k}">
       <span class="oface">${face}${x.fresh ? `<i class="on">${x.fresh}</i>` : ''}</span><b>${esc(x.name)}</b><em>${x.fresh ? (x.g ? t('새 사진 {n}장', { n: x.fresh }) : t('새 사진')) : t('다 봤어요')}</em></button>`;
   };
-  const freshTotal = src.reduce((n, x) => n + x.fresh, 0);
-  $app.innerHTML = `<div class="orbitv" id="orbitv">${top}
+  $app.innerHTML = `<div class="orbitv${allSeen ? ' allseen' : ''}" id="orbitv">${top}
     <p class="ohint">${freshTotal ? t('빛나는 곳에 새 사진이 있어요') : t('새 사진을 다 봤어요. 눌러서 다시 볼 수 있어요')}</p>
     <i class="oring" style="width:${R1 * 2}px;height:${R1 * 2.16}px;left:${cx}px;top:${cy}px"></i><i class="oring" style="width:${R2 * 2}px;height:${R2 * 2.16}px;left:${cx}px;top:${cy}px"></i>
     <div class="ome" style="left:${cx}px;top:${cy}px">${DOT(freshTotal ? 'look' : 'happy', { size: 58, cls: 'float' })}</div>
