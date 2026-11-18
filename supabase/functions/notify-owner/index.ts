@@ -138,6 +138,7 @@ Deno.serve(async (req) => {
   await purgeTrash().catch((e) => console.error('purge failed', e)); // 18 SQL 전이면 테이블이 없어 조용히 실패
   const body = await req.json().catch(() => null);
   const rec = body?.record;
+  console.log('hook', body?.table, body?.type, 'v2026-11-19'); // 배포된 코드 버전 확인용
   if (body?.type !== 'INSERT' || !rec) return new Response('ignored');
   const id = rec.id;
   const fresh = (iso: string) => Date.now() - new Date(iso).getTime() <= 5 * 60_000;
@@ -177,7 +178,7 @@ Deno.serve(async (req) => {
   if (body.table === 'posts') {
     // 페이로드를 믿지 않고 DB에서 다시 확인: 존재하고, 방금 들어온 것만
     const { data: post } = await sb!.from('posts').select('*').eq('id', id).maybeSingle();
-    if (!post || !fresh(post.created_at)) return new Response('skip');
+    if (!post || !fresh(post.created_at)) { console.log('skip: post', post ? 'old' : 'not found'); return new Response('skip'); }
     if (post.group_id) {
       // 그룹 새 사진: 10분에 한 번만 알림(그 사이 올라온 건 다음 알림에 'N장'으로)
       const { data: g } = await sb!.from('groups').select('id, handle, name, last_notified_at').eq('id', post.group_id).maybeSingle();
@@ -203,7 +204,7 @@ Deno.serve(async (req) => {
       }
       return Response.json({ sent });
     }
-    if (post.status !== 'pending') return new Response('skip');
+    if (post.status !== 'pending') { console.log('skip: status', post.status); return new Response('skip'); }
     ownerId = post.owner_id;
     const L = MSG[await langOf(post.owner_id)], lang = Object.keys(MSG).find(k => MSG[k] === L)!;
     const name = post.author_name === '익명의 친구' ? L.anon : post.author_name;
