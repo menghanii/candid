@@ -1136,6 +1136,13 @@
   .who-ic .ii, .capav .ii { width:20px; height:20px; }
   .grid .gpin { width:24px; height:24px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:rgba(0,0,0,.45); color:#fff; font-size:13px; filter:none; }
   .lk-ok { color:#34c759; font-size:20px; }
+  /* 사진 상세: 팝업이 아니라 새 페이지(인스타처럼) */
+  .overlay.page { background:var(--bg); backdrop-filter:none; -webkit-backdrop-filter:none; padding:0; align-items:stretch; animation:pagein .24s cubic-bezier(.32,.72,0,1); }
+  .overlay.page.leaving { transition:transform .18s ease-in, opacity .18s; transform:translateX(40%); opacity:0; }
+  .overlay.page .post { width:100%; max-width:600px; max-height:none; height:100dvh; border-radius:0; background:var(--bg); padding:0 0 calc(var(--sb) + 12px); overscroll-behavior:contain; }
+  .overlay.page .post-h { position:sticky; top:0; z-index:6; background:var(--bg); padding-top:calc(var(--st) + 6px); padding-left:4px; }
+  @keyframes pagein { from { transform:translateX(35%); opacity:.4; } }
+  @media (prefers-reduced-motion: reduce) { .overlay.page { animation:none; } }
 </style>
 </head>
 <body>
@@ -1360,11 +1367,16 @@ const SPLASH_MORPH = !/[#&?](access_token|code|error_description)=/.test(locatio
 })();
 // 다른 앱에 갔다 돌아오면 휴대폰 네트워크가 깨어나는 동안 요청이 끝없이 매달릴 수 있음 → 시간 제한(파일 올리기는 넉넉히)
 // 로그인 토큰 갱신 잠금은 이 화면 안에서만(브라우저 공용 잠금이 돌아온 직후 오래 붙잡혀 모든 버튼이 멈추던 문제)
+const PERF = location.protocol === 'capacitor:' || !!window.Capacitor?.isNativePlatform?.(); // 앱: 서버 요청마다 걸린 시간을 콘솔에(속도 점검용)
 const fetchT = (url, opts = {}) => {
   if (opts.signal) return fetch(url, opts);
   const c = new AbortController(), ms = /\/storage\/v1\/object\//.test(String(url)) && opts.method && opts.method !== 'GET' ? 120000 : 15000;
   const tm = setTimeout(() => c.abort(), ms);
-  return fetch(url, { ...opts, signal: c.signal }).finally(() => clearTimeout(tm));
+  const t0 = performance.now();
+  return fetch(url, { ...opts, signal: c.signal }).finally(() => {
+    clearTimeout(tm);
+    if (PERF) { const u = new URL(String(url)); console.log(`[candid] net +${Math.round(t0)}ms ${Math.round(performance.now() - t0)}ms ${(opts.method || 'GET')} ${u.pathname.replace('/rest/v1/', '').replace('/auth/v1/', 'auth/')}${u.search.slice(0, 60)}`); }
+  });
 };
 const sb = DEMO ? demoClient() : (window.supabase ? supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, {
   global: { fetch: fetchT },
@@ -1524,6 +1536,8 @@ let CUR = '';
 const pageKey = () => location.pathname + location.search;
 function go(url, replace) {
   const u = new URL(url, location.href);
+  if (PERF) console.log(`[candid] go +${Math.round(performance.now())}ms ${u.search}`);
+  if (history.state?.post) replace = true; // 사진 페이지에서 다른 화면으로: 사진 페이지 기록은 새 화면으로 바꿈
   if (u.pathname + u.search === pageKey() && !replace) return;
   const d = history.state?.d || 0;
   history[replace ? 'replaceState' : 'pushState']({ d: replace ? d : d + 1 }, '', u.pathname + u.search);
@@ -1532,6 +1546,23 @@ function go(url, replace) {
   S.tab = tabOf(u.searchParams.get('tab'));
   scrollTo(0, 0);
   CUR = pageKey(); route();
+}
+// 사진 페이지: 뒤로가기가 오면 닫기
+addEventListener('popstate', () => { const ov = document.querySelector('.overlay.page'); if (ov && !history.state?.post) { ov.classList.add('leaving'); setTimeout(() => ov.remove(), 180); } });
+function closePostPage(ov) { if (history.state?.post) history.back(); else ov.remove(); }
+// 화면 왼쪽 끝에서 오른쪽으로 밀면 뒤로(iPhone 처럼)
+function edgeSwipeBack(el, back) {
+  let x0 = null, y0 = 0;
+  el.addEventListener('touchstart', e => { const t = e.touches[0]; x0 = t.clientX < 24 && e.touches.length === 1 ? t.clientX : null; y0 = t.clientY; }, { passive: true });
+  el.addEventListener('touchmove', e => {
+    if (x0 == null) return; const t = e.touches[0], dx = t.clientX - x0;
+    if (Math.abs(t.clientY - y0) > 40 && Math.abs(t.clientY - y0) > dx) return x0 = null;
+    el.style.transform = `translateX(${Math.max(0, dx)}px)`;
+  }, { passive: true });
+  el.addEventListener('touchend', e => {
+    if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null;
+    if (dx > 90) back(); else { el.style.transition = 'transform .2s'; el.style.transform = ''; setTimeout(() => el.style.transition = '', 220); }
+  });
 }
 // 뒤로가기/앞으로가기: 주소가 바뀐 경우에만 화면 다시 그림(시트 닫기용 히스토리는 무시)
 addEventListener('popstate', () => {
@@ -2899,14 +2930,14 @@ function openPost(id) {
   const p = findPost(id); if (!p) return;
   const gp = !!p.group_id, gg = gp ? groupOf(p.group_id) : null, own = !gp && S.isOwner; // 그룹 게시물: 주인 대신 방장·올린 사람
   const ov = document.createElement('div');
-  ov.className = 'overlay';
+  ov.className = 'overlay page';
   ov.innerHTML = `
     <article class="post">
       <div class="post-h">
+        <button class="icon-btn" data-close aria-label="${t('뒤로')}">${I.back}</button>
         ${p.author_id ? `<a class="ph-av" href="${feedUrl(p.author_id)}" aria-label="${t('{name} 피드로 가기', { name: esc(p.author_name) })}"><div class="av sm" data-pav>${esc(p.author_name.slice(0, 1))}</div></a>` : `<div class="av sm">${esc(p.author_name.slice(0, 1))}</div>`}
         <div class="who"><b>${(() => { const nm = gp ? esc(p.author_name) : aname(p.author_name), n = p.author_id ? `<a class="ph-name" href="${feedUrl(p.author_id)}">${nm}</a>` : nm;
           return gp ? t('{name}<span style="font-weight:400;color:var(--sub)">님이 올림</span>', { name: n }) : t('{name}<span style="font-weight:400;color:var(--sub)">님이 보냄</span>', { name: n }); })()}</b>${gp && p.pinned_at ? `<span class="mchip">${II.pin} ${t('고정됨')}</span>` : ''}${p.mission ? `<span class="mchip">${mname(p.mission)}</span>` : ''}</div>
-        <button class="icon-btn" data-close aria-label="${t('닫기')}">${I.close}</button>
       </div>
       ${gp && p.flagged ? `<div class="gflagnote">${t('신고가 3건 이상 들어와 다른 사람에게는 가려져 있어요.')}${gg?.owner_id === me?.id ? ` <button class="linkish" onclick="unflagPost('${p.id}')">${t('다시 보이게')}</button>` : ''}</div>` : ''}
       ${isText(p) ? textStage(p) : `<div class="post-media">${mediaCarousel(p, 'post')}</div>`}
@@ -2932,8 +2963,13 @@ function openPost(id) {
         <button class="btn primary" onclick="restorePost('${p.id}')">${t('다시 올리기')}</button></div>` : ''}
       ${p.status === 'approved' ? `<section class="pcmts" aria-label="${t('댓글')}">${commentsHtml()}</section>` : ''}
     </article>`;
-  ov.onclick = e => { if (e.target === ov || e.target.closest('[data-close]')) ov.remove(); };
+  ov.onclick = e => { if (e.target.closest('[data-close]')) closePostPage(ov); };
   document.body.appendChild(ov);
+  // 새 페이지처럼: 뒤로가기(제스처·버튼)로 닫힘. 다른 이유로 사라지면 기록도 하나 되돌림
+  if (!history.state?.post) history.pushState({ ...(history.state || {}), post: 1 }, ''); // 사진 페이지 안에서 다시 열 때는 기록을 늘리지 않음
+  const ob = new MutationObserver(() => { if (!ov.isConnected) { ob.disconnect(); if (history.state?.post && !document.querySelector('.overlay.page')) history.back(); } });
+  ob.observe(document.body, { childList: true });
+  edgeSwipeBack(ov, () => closePostPage(ov));
   if (p.status === 'approved') { loadSocial([p.id]).then(() => paintSoc(p.id)).catch(() => {}); mountComments(ov.querySelector('.pcmts'), p.id, gp ? gg?.owner_id : p.owner_id); }
   if (p.status === 'approved') loadStickers([p.id]).then(() => refreshStickerLayers(p.id)).catch(() => {});
   ov.querySelectorAll('.post-media .stage').forEach(watchReelRatio); // 잘리지 않게 원본 비율로
