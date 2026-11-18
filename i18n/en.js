@@ -761,5 +761,17 @@
  "보기 방식": "View",
  "넘기기": "Swipe",
  "궤도": "Orbit",
- "옆으로 밀면 다음 장 · 누르면 크게": "Swipe for next · tap to open"
+ "옆으로 밀면 다음 장 · 누르면 크게": "Swipe for next · tap to open",
+ "이름이나 @아이디로 친구·그룹을 찾아요": "Search friends and groups by name or @ID",
+ "관리자 · 전체 사용자": "Admin · All users",
+ "이름·@아이디·이메일로 거르기": "Filter by name, @ID or email",
+ "관리자만 볼 수 있어요": "Admins only",
+ "관리자 기능 준비 중이에요(관리자: 33 SQL 실행 필요)": "Admin tools not ready (admin: run SQL 33)",
+ "전체 {n}명": "{n} users",
+ "오늘 가입 {n}": "{n} joined today",
+ "프로필 미완성 {n}": "{n} not set up",
+ "미완성": "not set up",
+ "가입": "joined",
+ "친구 {a} · 나를 추가 {b} · 받은 {c} · 보낸 {d} · 그룹 {e}": "Friends {a} · Followers {b} · Received {c} · Sent {d} · Groups {e}",
+ "마지막 보냄 {d}": "last sent {d}"
 };
