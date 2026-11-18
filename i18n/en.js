@@ -738,5 +738,10 @@
  "이용약관": "Terms of Service",
  "개인정보처리방침": "Privacy Policy",
  "계속하면 {a}과 {b}에 동의하는 것으로 봐요": "By continuing, you agree to the {a} and {b}",
- "Apple로 계속하기": "Continue with Apple"
+ "Apple로 계속하기": "Continue with Apple",
+ "내 친구": "My friends",
+ "피드 채워주기": "Fill their feed",
+ "아직 친구가 없어요. 위 돋보기에서 친구를 찾아 추가해 보세요.": "No friends yet. Find and add friends with the search icon at the top.",
+ "내 친구·그룹": "My friends & groups",
+ "아직 친구·그룹이 없어요. 위에서 이름으로 찾아보세요.": "No friends or groups yet. Search by name above."
 };
