@@ -1175,6 +1175,9 @@
   .srx .label { font-size:11px; }
   .camb { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin:8px 0 0; padding:11px; border:1px solid var(--line); border-radius:14px; background:var(--card); color:var(--fg); font:inherit; font-size:14px; font-weight:600; }
   .camb svg { width:20px; height:20px; }
+  /* 하단 메뉴: 안의 사진·아이콘은 누르기를 받지 않고 버튼이 받게(iPhone 에서 이미지 탭이 버튼까지 안 가는 문제), 두 번 탭 확대 대기 없음 */
+  .bnav button { touch-action:manipulation; -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
+  .bnav button * { pointer-events:none; -webkit-user-drag:none; }
 </style>
 </head>
 <body>
@@ -1794,6 +1797,10 @@ async function finishNativeOAuth(url) {
   if (r.error) { cancelAuthWait(); return toast(kerr(r.error)); }
   try { sessionStorage.removeItem('candid_oauth'); } catch {}
   location.reload();
+}
+if (IN_APP && PERF) { // 점검: 하단 메뉴를 누른 위치·대상과 실제 눌림(click) 기록
+  document.addEventListener('touchstart', e => { const b = e.target.closest?.('.bnav'); if (b) { const t0 = e.touches[0]; console.log(`[candid] tap start ${Math.round(t0.clientX)},${Math.round(t0.clientY)} ${e.target.tagName}.${e.target.className?.baseVal ?? e.target.className}`); } }, { passive: true, capture: true });
+  document.addEventListener('click', e => { const b = e.target.closest?.('.bnav button'); if (b) console.log('[candid] tap click ' + b.getAttribute('aria-label')); }, true);
 }
 if (IN_APP) {
   console.log('[candid] native plugins', ['AuthSession', 'MediaPicker', 'App', 'Browser'].map(n => n + ':' + !!window.Capacitor?.isPluginAvailable?.(n) + '/' + typeof capPlugin(n)?.addListener).join(' '));
