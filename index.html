@@ -1179,13 +1179,12 @@
   .bnav button { touch-action:manipulation; -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
   .bnav button * { pointer-events:none; -webkit-user-drag:none; }
   .rmore { display:inline-block; margin:0 0 6px 6px; padding:3px 9px; border-radius:999px; background:rgba(255,255,255,.18); color:#fff; font-size:11.5px; font-weight:700; text-decoration:none; }
-  /* Candids: from 위 프로필(피드 주인·그룹) 이름표 — 크게, 누르기 쉽게 */
-  .rinfo .rgroup { margin-bottom:10px; min-height:44px; gap:9px; padding:5px 14px 5px 5px; font-size:14.5px; background:rgba(255,255,255,.2); }
-  .rinfo .rgroup .av.xs, .rinfo .rgroup .gav.xs { width:34px; height:34px; font-size:14px; }
-  .rinfo .rgroup .gav.xs { border-radius:11px; }
-  .rinfo .rgroup::after { content:"›"; margin-left:2px; font-size:18px; line-height:1; opacity:.7; }
+  /* Candids: from 위 프로필(피드 주인·그룹) — 배경 없이 사진 + 이름. 사진만 크게 */
+  .rinfo .rgroup { margin:0 0 8px -2px; padding:2px 8px 2px 2px; gap:10px; background:none; backdrop-filter:none; -webkit-backdrop-filter:none; border-radius:999px; font-size:14px; }
+  .rinfo .rgroup .av.xs, .rinfo .rgroup .gav.xs { width:40px; height:40px; font-size:16px; box-shadow:0 0 0 1.5px rgba(255,255,255,.9); }
+  .rinfo .rgroup .gav.xs { border-radius:13px; }
+  .rinfo .rgroup span, .rinfo .rgroup.rowner span { color:#fff; font-weight:700; opacity:1; text-shadow:0 1px 6px rgba(0,0,0,.35); }
   .rinfo .rgroup:active { transform:scale(.96); }
-  .rinfo .rgroup span { color:#fff; font-weight:700; }
   /* 보기 방식 스위치 */
   .vseg { display:flex; padding:3px; border-radius:999px; background:rgba(255,255,255,.14); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); margin-right:2px; }
   .vseg button { border:0; background:none; color:rgba(255,255,255,.75); font:inherit; font-size:11.5px; font-weight:700; padding:5px 10px; border-radius:999px; }
