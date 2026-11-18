@@ -88,6 +88,7 @@ async function apnsSend(row: { token: string; sandbox: boolean | null }, p: { ti
       method: 'POST', body,
       headers: { authorization: `bearer ${await apnsAuth()}`, 'apns-topic': env('APNS_TOPIC') || 'com.candidfeed.app', 'apns-push-type': 'alert', 'apns-priority': '10' },
     });
+    console.log('apns', sandbox ? 'sandbox' : 'production', r.status);
     if (r.ok) { if (row.sandbox !== sandbox) await sb!.from('device_tokens').update({ sandbox }).eq('token', row.token); return true; }
     const reason = ((await r.json().catch(() => ({}))) as { reason?: string }).reason ?? '';
     if (r.status === 410 || reason === 'Unregistered') { await sb!.from('device_tokens').delete().eq('token', row.token); return false; }
@@ -99,9 +100,11 @@ async function apnsSend(row: { token: string; sandbox: boolean | null }, p: { ti
   return false;
 }
 async function sendApns(uid: string, payload: string) {
-  if (!env('APNS_KEY_P8') || !env('APNS_KEY_ID') || !env('APNS_TEAM_ID')) return 0;
+  const missing = ['APNS_KEY_P8', 'APNS_KEY_ID', 'APNS_TEAM_ID'].filter((k) => !env(k));
+  if (missing.length) { console.log('apns skip: missing secrets', missing.join(',')); return 0; }
   const { data, error } = await sb!.from('device_tokens').select('token, sandbox').eq('user_id', uid);
-  if (error) return 0; // 32 SQL 전이면 테이블이 없음
+  if (error) { console.log('apns skip: device_tokens', error.message); return 0; } // 32 SQL 전이면 테이블이 없음
+  console.log('apns devices', (data ?? []).length);
   let p = {}; try { p = JSON.parse(payload); } catch { /* 그대로 */ }
   const ok = await Promise.all((data ?? []).map((row) => apnsSend(row as { token: string; sandbox: boolean | null }, p).catch((e) => { console.error('apns error', e); return false; })));
   return ok.filter(Boolean).length;
@@ -236,5 +239,7 @@ Deno.serve(async (req) => {
     return new Response('ignored');
   }
 
-  return Response.json({ sent: await sendTo(ownerId, payload) });
+  const sent = await sendTo(ownerId, payload);
+  console.log('notify', body.table, 'sent', sent);
+  return Response.json({ sent });
 });
