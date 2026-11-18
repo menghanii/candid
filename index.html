@@ -1161,6 +1161,18 @@
   .setx .crow2 > svg:last-child { width:16px; height:16px; }
   .setx .legal-links { margin-top:12px; font-size:11.5px; }
   .setx .del-acc { margin-top:12px; font-size:12px; }
+  /* 돋보기(친구·그룹): 조금 작게 */
+  .srx h3 { font-size:23px; }
+  .srx .sbox .field { height:42px; } /* 글자는 16px 유지(iPhone 이 입력할 때 화면을 확대하지 않게) */
+  .srx .frow { gap:10px; padding:7px 0; }
+  .srx .frow a { gap:10px; }
+  .srx .frow .av.xs, .srx .frow .gav.xs { width:36px; height:36px; font-size:15px; }
+  .srx .frow b { font-size:14px; }
+  .srx .frow small { font-size:11.5px; }
+  .srx .frow .btn { padding:6px 11px; font-size:12px; }
+  .srx .sinv { padding:8px 11px; margin:2px 0 6px; }
+  .srx .sinv b { font-size:13.5px; } .srx .sinv small { font-size:11.5px; }
+  .srx .label { font-size:11px; }
 </style>
 </head>
 <body>
@@ -2502,10 +2514,10 @@ async function renderFriendsTab($b) {
 
 // ---------- 친구 검색 (검색어가 없으면 내 친구 목록) ----------
 async function openSearch() {
-  const w = sheet(`<div class="shead"><h3>Friends &amp; groups<i class="pd">.</i></h3><button class="icon-btn" aria-label="${t('닫기')}" onclick="closeSheet()">${I.close}</button></div>
+  const w = sheet(`<div class="srx"><div class="shead"><h3>Friends &amp; groups<i class="pd">.</i></h3><button class="icon-btn" aria-label="${t('닫기')}" onclick="closeSheet()">${I.close}</button></div>
     <div class="sbox">${I.search}<input class="field" id="sq" type="search"  placeholder="${t('이름·@아이디로 친구나 공개 그룹 찾기')}" autocomplete="off" autocapitalize="off" enterkeyhint="search"></div>
     ${me ? `<button class="sinv" onclick="closeSheet();setTimeout(openInvite,250)">${I.userPlus}<span><b>${t('앱에 친구 초대하기')}</b><small>${t('가입하면 자동으로 친구가 돼요')}</small></span>${I.chevron}</button>` : ''}
-    <div id="sr"><p class="hint">${t('불러오는 중…')}</p></div>`, null, { top: true });
+    <div id="sr"><p class="hint">${t('불러오는 중…')}</p></div></div>`, null, { top: true });
   const $q = w.querySelector('#sq'), $r = w.querySelector('#sr');
   const row = p => `<div class="frow"><a href="${feedUrl(p.id)}">${avatar(p, 'xs')}<span><b>${esc(p.name)}</b><small>${p.handle ? `@${esc(p.handle)}` : ''}${p.handle && p.bio ? ' · ' : ''}${esc(p.bio || '')}</small></span></a>
     ${p.id === me?.id ? `<small style="color:var(--sub)">${t('나')}</small>` : `<button class="btn ${myFollows.has(p.id) ? '' : 'add'}" onclick="toggleFollow('${p.id}', this)">${folLabel(myFollows.has(p.id))}</button>`}</div>`;
@@ -2513,11 +2525,13 @@ async function openSearch() {
   const grow = g => `<div class="frow"><a href="${gUrl(g)}">${gAv(g, 'xs')}<span><b>${esc(g.name)}</b><small>@${esc(g.handle)} · ${t('멤버 {n}명', { n: g.member_count })}${g.bio ? ' · ' + esc(g.bio) : ''}</small></span></a>
     <a class="btn" style="text-decoration:none;text-align:center;flex:none" href="${gUrl(g)}">${t(gRole(g.id) ? '열기' : '구경')}</a></div>`;
   const findGroups = async q => { const b = sb.from('groups').select(GCOLS).eq('visibility', 'public'); const { data, error } = await (q ? b.or(q) : b.order('member_count', { ascending: false })).limit(q ? 10 : 6); return error ? [] : data || []; };
-  // 친구와 그룹을 구분하지 않고 이름순으로 한 목록에
-  const mixHTML = (people, groups, bare) => {
-    const items = [...people.filter(p => p.id !== me?.id).map(p => ({ n: p.name || '', h: row(p) })), ...groups.map(g => ({ n: g.name || '', h: grow(g) }))]
-      .sort((a, b) => a.n.localeCompare(b.n, 'ko'));
-    return items.length ? items.map(x => x.h).join('') : bare ? '' : `<p class="hint" style="padding:16px 0">${t('아직 가입한 사람이 없어요.')}</p>`;
+  // 친구(사람)와 그룹을 나눠서, 각각 이름순
+  const mixHTML = (people, groups, bare, mine) => {
+    const byName = (a, b) => (a.name || '').localeCompare(b.name || '', 'ko');
+    const ps = people.filter(p => p.id !== me?.id).sort(byName), gs = [...groups].sort(byName);
+    const sec = (title, arr, fn) => arr.length ? `<div class="label" style="margin-top:8px">${title} · ${arr.length}</div>${arr.map(fn).join('')}<div style="height:6px"></div>` : '';
+    const out = sec(t(mine ? '내 친구' : '친구'), ps, row) + sec(t(mine ? '내 그룹' : '그룹'), gs, grow);
+    return out || (bare ? '' : `<p class="hint" style="padding:16px 0">${t('아직 가입한 사람이 없어요.')}</p>`);
   };
   const showAll = async () => {
     if (!me) { // 로그인 전: 공개 그룹과 가입한 사람 둘러보기
@@ -2541,7 +2555,7 @@ async function openSearch() {
         <button class="btn primary" onclick="answerInvite('${v.group.id}', true, '${v.group.handle}')">${t('수락')}</button><button class="btn" onclick="answerInvite('${v.group.id}', false)">${t('거절')}</button></div>`).join('')}<div style="height:10px"></div>` : '';
     const backHTML = backList.length ? `<div class="label" style="margin-top:8px">${t('나를 추가한 친구 {n}', { n: backList.length })}</div>${backList.map(row).join('')}` : '';
     $r.innerHTML = invHTML + (mine.length || gl.length
-      ? `<div class="label" style="margin-top:8px">${t('내 친구·그룹')} · ${mine.length + gl.length}</div>${mixHTML(mine, gl, true)}<div style="height:10px"></div>`
+      ? mixHTML(mine, gl, true, true)
       : `<p class="hint" style="padding:16px 0">${t('아직 친구·그룹이 없어요. 위에서 이름으로 찾아보세요.')}</p>`) + backHTML;
   };
   w._refresh = () => { INVITES.at = 0; if (!$q.value.trim()) showAll(); };
