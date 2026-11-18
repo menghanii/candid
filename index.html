@@ -2916,7 +2916,8 @@ function prePaintHome() {
   } catch { PREPAINTED = false; CACHE.home = null; }
 }
 // ---------- Candids 보기 방식: 넘기기(기본) / 궤도 ----------
-const homeView = () => { try { return localStorage.getItem('candid_view') === 'orbit' ? 'orbit' : 'reels'; } catch { return 'reels'; } };
+const HOME_VIEWS = false; // 넘기기 보기는 잠시 끔: Candids 는 궤도만(true 로 바꾸면 위 선택 스위치와 함께 되살아남)
+const homeView = () => { if (!HOME_VIEWS) return 'orbit'; try { return localStorage.getItem('candid_view') === 'orbit' ? 'orbit' : 'reels'; } catch { return 'reels'; } };
 function setHomeView(v) { if (v === homeView()) return; try { localStorage.setItem('candid_view', v); } catch {} navigator.vibrate?.(6); if (CACHE.home) paintHome(CACHE.home); }
 // 궤도: 가운데 나(블루닷), 둘레에 친구·그룹. 새 사진이 있으면 크고 파랗게 빛남(숫자 = 안 본 사진 수)
 function orbitSources(posts, owners) {
@@ -3130,9 +3131,9 @@ function paintHome({ posts, owners, groups }) {
   if (me) setTimeout(refreshNotiDot, 0); // 상단 종 빨간 점
   const vw = homeView();
   const top = `<header class="rtop"><button class="logo" onclick="logoTap()">${LOGO}</button><div class="sp"></div>
-    <div class="vseg" role="radiogroup" aria-label="${t('보기 방식')}"><button role="radio" aria-checked="${vw === 'reels'}" class="${vw === 'reels' ? 'on' : ''}" onclick="setHomeView('reels')">${t('넘기기')}</button><button role="radio" aria-checked="${vw === 'orbit'}" class="${vw === 'orbit' ? 'on' : ''}" onclick="setHomeView('orbit')">${t('궤도')}</button></div>
+    ${HOME_VIEWS ? '' : '<!--'}<div class="vseg" role="radiogroup" aria-label="${t('보기 방식')}"><button role="radio" aria-checked="${vw === 'reels'}" class="${vw === 'reels' ? 'on' : ''}" onclick="setHomeView('reels')">${t('넘기기')}</button><button role="radio" aria-checked="${vw === 'orbit'}" class="${vw === 'orbit' ? 'on' : ''}" onclick="setHomeView('orbit')">${t('궤도')}</button></div>${HOME_VIEWS ? '' : '-->'}
     ${topIcons()}</header>`;
-  if (posts.length && vw === 'orbit') return paintOrbit(arguments[0].all || posts, owners, top);
+  if (vw === 'orbit' && (posts.length || owners?.size || HOME.groups.size)) return paintOrbit(arguments[0].all || posts, owners, top); // 새 사진이 없어도 친구·그룹이 있으면 궤도
   if (!posts.length) {
     $app.innerHTML = `<div class="reels">${top}<section class="reel rempty"><div><div class="empty-dot">${DOT('sleepy', { size: 80, cls: 'float' })}</div>
       <h2>Quiet for now<i class="pd">.</i></h2><p>${t('친구들 피드에 새 사진이 올라오면 여기 떠요.<br>친구 피드에 사진을 먼저 보내 보는 건 어때요?')}</p>
