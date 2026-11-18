@@ -1179,6 +1179,8 @@
   .bnav button { touch-action:manipulation; -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
   .bnav button * { pointer-events:none; -webkit-user-drag:none; }
   .rmore { display:inline-block; margin:0 0 6px 6px; padding:3px 9px; border-radius:999px; background:rgba(255,255,255,.18); color:#fff; font-size:11.5px; font-weight:700; text-decoration:none; }
+  .rowner .av.xs { width:24px; height:24px; }
+  .rinfo .rgroup { margin-bottom:8px; }
 </style>
 </head>
 <body>
@@ -2902,14 +2904,13 @@ function paintHome({ posts, owners, groups }) {
       <div class="rburst">${I.heartOn}</div>
       <div class="rinfo">
 
+        ${gg ? '' : `<a class="rgroup rowner" href="${feedUrl(p.owner_id)}" aria-label="${t('{name} 피드로 가기', { name: esc(o.name) })}">${avatar(o, 'xs')}<span>${esc(o.name)}</span></a>`}
         ${gg ? `<a class="rgroup" href="${gUrl(gg)}">${gAv(gg, 'xs')}<span>${esc(gg.name)}</span></a>${p._more ? `<a class="rmore" href="${gUrl(gg)}">${t('+{n}장 더 올라왔어요', { n: p._more })}</a>` : ''}` : ''}
-        <div class="rfrom">from ${p.author_id ? `<a class="rname" href="${feedUrl(p.author_id)}"><b>${gg ? esc(p.author_name) : aname(p.author_name)}</b></a>` : `<b>${gg ? esc(p.author_name) : aname(p.author_name)}</b>`} ${p.mission ? `<span class="mchip">${mname(p.mission)}</span>` : ''}</div>
+        <div class="rfrom">from<i class="pd">.</i> ${p.author_id ? `<a class="rname" href="${feedUrl(p.author_id)}"><b>${gg ? esc(p.author_name) : aname(p.author_name)}</b></a>` : `<b>${gg ? esc(p.author_name) : aname(p.author_name)}</b>`} ${p.mission ? `<span class="mchip">${mname(p.mission)}</span>` : ''}</div>
         ${p.text && !isText(p) ? `<div class="rtext">“${esc(p.text)}”</div>` : ''}
         <small>${ago(p.approved_at)}</small>
       </div>
       <div class="rside">
-        ${gg ? `<a class="rav" href="${gUrl(gg)}" aria-label="${t('{name} 그룹으로 가기', { name: esc(gg.name) })}">${gAv(gg, 'xs')}<b>${esc(gg.name)}</b></a>`
-          : `<a class="rav" href="${feedUrl(p.owner_id)}" aria-label="${t('{name} 피드로 가기', { name: esc(o.name) })}">${avatar(o, 'xs')}<b>${esc(o.name)}</b></a>`}
         <button class="rbtn" data-like="${p.id}" aria-label="${t('좋아요')}" aria-pressed="${s.liked}" onclick="toggleLike('${p.id}')"><span>${s.liked ? I.heartOn : I.heart}</span><b>${s.likes || t('좋아요')}</b></button>
         <button class="rbtn" data-cmt="${p.id}" aria-label="${t('댓글')}" onclick="openComments('${p.id}','${gg ? gg.owner_id : p.owner_id}')"><span>${I.comment}</span><b>${s.comments || t('댓글')}</b></button>
         ${me ? `<button class="rbtn" aria-label="${t('스티커로 꾸며주기')}" onclick="decorateFromReel('${p.id}', this)"><span>${I.sparkle}</span><b>${t('꾸며주기')}</b></button>` : ''}
@@ -4797,7 +4798,7 @@ function paintGroup() {
   const tile = p => `<button onclick="openPost('${p.id}')" class="${p.flagged ? 'gflagged' : ''}" aria-label="${t('{name}님이 올린 사진', { name: esc(p.author_name) })}">
       <img src="${thumbUrl(p)}" alt="" loading="lazy">${gridStickers(p)}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}
       ${p.pinned_at ? `<span class="gpin" aria-label="${t('고정됨')}">${II.pin}</span>` : ''}${p.flagged ? `<span class="gflag">${t('신고로 가려짐')}</span>` : ''}
-      <span class="from">${p.text ? `<q>“${esc(p.text)}”</q>` : ''}by<i class="pd">.</i> ${esc(p.author_name)}</span></button>`;
+      <span class="from">${p.text ? `<q>“${esc(p.text)}”</q>` : ''}from<i class="pd">.</i> ${esc(p.author_name)}</span></button>`;
   const body = !canSee
     ? `<div class="empty"><div class="empty-dot">${DOT('look', { cls: 'blink' })}</div><h2>Members <em>only.</em></h2><p>${t(isPending ? '방장이 승인하면 사진을 볼 수 있어요.' : '비공개 그룹이에요. 멤버만 사진을 볼 수 있어요.')}</p></div>`
     : posts.length ? `<div class="grid">${posts.map(tile).join('')}</div>`
