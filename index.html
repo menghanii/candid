@@ -1173,6 +1173,8 @@
   .srx .sinv { padding:8px 11px; margin:2px 0 6px; }
   .srx .sinv b { font-size:13.5px; } .srx .sinv small { font-size:11.5px; }
   .srx .label { font-size:11px; }
+  .camb { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin:8px 0 0; padding:11px; border:1px solid var(--line); border-radius:14px; background:var(--card); color:var(--fg); font:inherit; font-size:14px; font-weight:600; }
+  .camb svg { width:20px; height:20px; }
 </style>
 </head>
 <body>
@@ -1434,7 +1436,7 @@ const photoUrl = path => /^(https?|data|blob):/.test(path) ? path : MEDIA_PROXY 
 const OGV = '6';
 const SITE = IN_APP || location.hostname === 'candid.candidcrew.workers.dev' ? 'https://candid-feed.com' : location.origin;
 const feedUrl = id => `${location.origin}${location.pathname}?u=${id}`;
-let me = null, myProf = null;
+let me = null, myProf = null, BOOTED = false;
 
 async function boot() {
   if (!sb) return renderError(() => location.reload()); // 라이브러리 로드 실패(오프라인 등)
@@ -1472,7 +1474,7 @@ async function boot() {
   // 카톡에서 '홈 화면에 추가하기'로 넘어온 경우(?install=1): 주소에서 지우고 설치 안내를 바로
   const wantInstall = new URLSearchParams(location.search).has('install');
   if (wantInstall) { const u = new URL(location.href); u.searchParams.delete('install'); history.replaceState(history.state, '', u.pathname + u.search); }
-  route();
+  route(); BOOTED = true;
   listenPushOpen();
   if (wantInstall && !inApp) setTimeout(showInstallGuide, 400);
   else if (window.__OLD_HOME_APP) setTimeout(() => { // 예전 주소로 설치한 홈 화면 앱: 하루 한 번 새 주소 안내
@@ -1795,8 +1797,20 @@ async function finishNativeOAuth(url) {
 }
 if (IN_APP) {
   console.log('[candid] native plugins', ['AuthSession', 'MediaPicker', 'App', 'Browser'].map(n => n + ':' + !!window.Capacitor?.isPluginAvailable?.(n) + '/' + typeof capPlugin(n)?.addListener).join(' '));
-  capPlugin('App')?.addListener('appUrlOpen', ({ url }) => { if (url?.startsWith(APP_CB)) finishNativeOAuth(url); });
+  capPlugin('App')?.addListener('appUrlOpen', ({ url }) => { if (url?.startsWith(APP_CB)) finishNativeOAuth(url); else openAppLink(url); });
+  capPlugin('App')?.getLaunchUrl?.().then(r => { if (r?.url && !r.url.startsWith(APP_CB)) openAppLink(r.url); }).catch(() => {}); // 링크를 눌러 앱이 새로 켜진 경우
+  capPlugin('PushNotifications')?.addListener('pushNotificationActionPerformed', a => { const u = a?.notification?.data?.url; if (u) openAppLink(u); });
+  capPlugin('PushNotifications')?.addListener('registration', t => nativePushToken(t.value));
+  capPlugin('PushNotifications')?.addListener('registrationError', e => console.error('[candid] push reg', JSON.stringify(e)));
   capPlugin('Browser')?.addListener('browserFinished', () => setTimeout(() => { if (document.querySelector('.authwait') && !me) cancelAuthWait(); }, 600)); // 로그인 창을 그냥 닫음
+}
+// candid-feed.com 링크(유니버설 링크)·앱 푸시로 앱이 열렸을 때: 앱 안의 그 화면으로(앱 준비가 끝난 뒤)
+function openAppLink(url) {
+  let u; try { u = new URL(url, SITE); } catch { return; }
+  if (!/candid-feed\.com$|candidcrew\.workers\.dev$/.test(u.hostname) && u.protocol !== 'capacitor:') return;
+  u.searchParams.delete('v'); // 링크 미리보기용 꼬리표
+  const target = location.pathname + (u.search === '?' ? '' : u.search);
+  const t0 = Date.now(), iv = setInterval(() => { if (!BOOTED && Date.now() - t0 < 10000) return; clearInterval(iv); openFromPush(target); }, 100);
 }
 // 로그인 중 화면: 버튼을 누른 뒤·로그인에서 돌아오는 동안 첫 화면(로그인 버튼)이 다시 비치지 않게
 function showAuthWait(msg = t('로그인하는 중…')) {
@@ -3231,6 +3245,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
       ${asked ? `<div class="asked">${t("{name}님이 <b>'{mission}'</b>을(를) 부탁했어요", { name, mission: esc(t(MISSIONS[mi])) })}</div>` : ''}
       <section data-sec="media">
         <label class="cmp-media" id="pick"><span class="cmp-empty">${I.camera}<b>${t('사진·영상 선택')}</b><small>${t('여러 장 가능(최대 10장) · 영상은 10초까지')}</small></span><input type="file" accept="image/*,video/*" id="file" multiple hidden></label>
+        ${IN_APP && window.Capacitor?.isPluginAvailable?.('MediaPicker') ? `<button type="button" class="camb" id="camb">${I.camera}<span>${t('카메라로 찍기')}</span></button>` : ''}
         <div class="trim" id="trim" hidden></div>
         <div class="caprow"><span class="capav" id="capav"></span>
           <textarea id="text" maxlength="80" rows="1" placeholder="${GT ? t('한마디 (선택)') : t('{name}에게 한마디…', { name })}" enterkeyhint="done"></textarea></div>
@@ -3369,6 +3384,9 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
     e.preventDefault();
     const items = await nativePick(); if (items?.length) handlePick(items);
   });
+  // iOS 앱: 카메라로 바로 찍기(사진 또는 10초 영상)
+  const $cam = $('#camb');
+  if ($cam) $cam.onclick = async e => { e.preventDefault(); e.stopPropagation(); const items = await nativePick(true); if (items?.length) handlePick(items); };
   // 보내는 사람 선택 버튼
   let who = 'name';
   const setWho = w => {
@@ -3478,7 +3496,21 @@ const isStandalone = matchMedia('(display-mode: standalone)').matches || navigat
 const pushSupported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
+// iOS 앱: iPhone 푸시(APNs). 기기 토큰을 서버(device_tokens, 32 SQL)에 저장하면 notify-owner 가 iPhone 으로도 보냄
+const NPUSH = () => IN_APP && window.Capacitor?.isPluginAvailable?.('PushNotifications') ? capPlugin('PushNotifications') : null;
+let NPUSH_WAIT = null;
+async function nativePushToken(tok) {
+  try { localStorage.setItem('candid_apns', tok); } catch {}
+  if (me && !DEMO) { const { error } = await sb.rpc('register_device', { p_token: tok }); if (error) console.error('[candid] register_device', error.message); }
+  NPUSH_WAIT?.(tok); NPUSH_WAIT = null;
+}
 async function pushState() {
+  if (NPUSH()) {
+    const p = (await NPUSH().checkPermissions()).receive;
+    if (p === 'denied') return 'denied';
+    let on = false; try { on = !!localStorage.getItem('candid_apns') && localStorage.getItem('candid_apns_off') !== '1'; } catch {}
+    return p === 'granted' && on ? 'on' : 'off';
+  }
   if (inApp) return 'in-app';
   if (isIOS && !isStandalone) return 'ios-install';
   if (!pushSupported || !cfg.VAPID_PUBLIC_KEY) return 'unsupported';
@@ -3519,6 +3551,11 @@ async function openPush() {
     updateBell();
   };
   if (off) off.onclick = async () => {
+    if (NPUSH()) {
+      let tok = null; try { tok = localStorage.getItem('candid_apns'); localStorage.setItem('candid_apns_off', '1'); } catch {}
+      if (tok) await sb.rpc('unregister_device', { p_token: tok }).catch(() => {});
+      closeSheet(); toast(t('이 기기 알림을 껐어요')); return updateBell();
+    }
     const reg = await navigator.serviceWorker.getRegistration();
     const sub = reg && await reg.pushManager.getSubscription();
     if (sub) { await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint); await sub.unsubscribe(); }
@@ -3528,6 +3565,14 @@ async function openPush() {
 
 // 알림 구독(권한 요청 포함). 권한 요청은 버튼을 누른 순간에만 가능(브라우저 규칙)
 async function enablePush() {
+  if (NPUSH()) {
+    const p = (await NPUSH().requestPermissions()).receive;
+    if (p !== 'granted') throw new Error(t('알림 권한이 허용되지 않았어요'));
+    try { localStorage.removeItem('candid_apns_off'); } catch {}
+    const got = new Promise((res, rej) => { NPUSH_WAIT = res; setTimeout(() => rej(new Error(t('알림 설정 실패'))), 15000); });
+    await NPUSH().register();
+    await got; return;
+  }
   if (Notification.permission !== 'granted' && await Notification.requestPermission() !== 'granted') throw new Error(t('알림 권한이 허용되지 않았어요'));
   const reg = await navigator.serviceWorker.register('sw.js');
   await navigator.serviceWorker.ready;
@@ -3541,10 +3586,14 @@ async function enablePush() {
 //  - 아직 안 물어본 기기는 로그인 후 '알림 켜기' 창을 먼저 띄움 → 버튼 한 번이면 기기 허용 창
 //    (브라우저 규칙상 버튼 없이 자동으로 허용 창을 띄울 수는 없음). 닫으면 3일 뒤 다시
 async function autoPush() {
-  if (!me || DEMO || inApp || !pushSupported || !cfg.VAPID_PUBLIC_KEY) return;
+  if (!me || DEMO) return;
+  if (!NPUSH() && (inApp || !pushSupported || !cfg.VAPID_PUBLIC_KEY)) return;
   const st = await pushState().catch(() => 'unsupported');
+  if (st === 'on' && NPUSH()) { NPUSH().register().catch(() => {}); return; } // 켜져 있으면 토큰을 이 계정으로 다시 등록
   if (st !== 'off') return;
-  if (Notification.permission === 'granted') { try { await enablePush(); updateBell(); } catch {} return; }
+  if (NPUSH()) { try { if (localStorage.getItem('candid_apns_off') === '1') return; } catch {} }
+  const granted = NPUSH() ? (await NPUSH().checkPermissions()).receive === 'granted' : Notification.permission === 'granted';
+  if (granted) { try { await enablePush(); updateBell(); } catch {} return; }
   let until = 0; try { until = +localStorage.getItem('candid_push_ask') || 0; } catch {}
   if (Date.now() < until || document.querySelector('.sheet-wrap, .page-ov, .overlay, .iguide')) return;
   const w = sheet(`<div class="pask"><div class="pask-ic">${DOT('wow', { size: 64, cls: 'float' })}</div><h3>${t('알림을 켜 둘까요?')}</h3>
@@ -3556,7 +3605,7 @@ async function autoPush() {
   w.querySelector('#paskOn').onclick = async e => {
     e.target.disabled = true; e.target.textContent = t('설정 중…');
     try { await enablePush(); closeSheet(); toast(t('알림을 켰어요')); }
-    catch (err) { snooze(); closeSheet(); toast(Notification.permission === 'denied' ? t('알림이 차단됐어요. 나중에 설정에서 켤 수 있어요') : (err.message || t('알림 설정 실패'))); }
+    catch (err) { snooze(); closeSheet(); toast(!NPUSH() && Notification.permission === 'denied' ? t('알림이 차단됐어요. 나중에 설정에서 켤 수 있어요') : (err.message || t('알림 설정 실패'))); }
     updateBell();
   };
 }
@@ -5197,6 +5246,12 @@ function groupPostItems(id) {
     ${owner || mine ? `<button class="menu-item danger" onclick="deleteGroupPost('${id}')">${t('삭제')}</button>` : ''}`);
 }
 const curMediaIdx = id => +(document.querySelector(`.overlay .carwrap`)?.dataset.idx || document.querySelector(`.reel[data-id="${id}"] .carwrap`)?.dataset.idx || 0);
+// iOS 앱: iPhone 사진첩에 바로 저장
+async function saveNative(blob, okMsg) {
+  const data = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(String(fr.result).split(',')[1]); fr.readAsDataURL(blob); });
+  try { await capPlugin('MediaPicker').saveToPhotos({ data, type: blob.type }); toast(okMsg); }
+  catch (e) { toast(/denied/.test(e?.message || e?.code || '') ? t('사진첩 접근이 허용되지 않았어요. 설정 → candid. 에서 허용해 주세요') : t('저장하지 못했어요')); }
+}
 async function savePhoto(id) {
   closeSheet();
   const p = findAny(id); if (!p) return;
@@ -5206,6 +5261,7 @@ async function savePhoto(id) {
     const blob = await (await fetch(url)).blob();
     const ext = (blob.type.split('/')[1] || 'jpg').replace('quicktime', 'mov').replace('jpeg', 'jpg');
     const file = new File([blob], `candid-${String(id).slice(0, 8)}-${i + 1}.${ext}`, { type: blob.type });
+    if (IN_APP) return await saveNative(blob, t('사진을 저장했어요'));
     if (navigator.canShare?.({ files: [file] })) { try { return await navigator.share({ files: [file] }); } catch (e) { if (e.name === 'AbortError') return; } }
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
@@ -5679,8 +5735,8 @@ function unlockMedia(list) {
 
 // iOS 앱: iPhone 사진 선택창(MediaPicker 플러그인)으로 고르고, iPhone 이 줄여 둔 파일을 읽어 웹의 미디어 목록 모양으로
 const capFile = async (path, type) => new Blob([await (await fetch(window.Capacitor.convertFileSrc(path))).arrayBuffer()], { type });
-async function nativePick() {
-  let r; try { r = await capPlugin('MediaPicker').pick({ max: 10 }); }
+async function nativePick(useCamera) {
+  let r; try { r = await (useCamera ? capPlugin('MediaPicker').camera() : capPlugin('MediaPicker').pick({ max: 10 })); }
   catch (e) { if (!/canceled/.test(e?.message || e?.code || '')) toast(kerr(e)); return null; }
   if (r.skipped) toast(t('{n}개는 열 수 없어서 뺐어요', { n: r.skipped }));
   return Promise.all(r.items.map(async it => {
@@ -5866,6 +5922,7 @@ async function makeStory(id) {
 
   const blob = await new Promise(res => c.toBlob(res, 'image/png'));
   const file = new File([blob], 'candid-story.png', { type: 'image/png' });
+  if (IN_APP) return saveNative(blob, t('이미지를 저장했어요. 스토리에 올리고 링크 스티커로 내 피드 링크를 붙여 보세요'));
   if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file] }); return; } catch {} }
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; a.click();
   toast(t('이미지를 저장했어요. 스토리에 올리고 링크 스티커로 내 피드 링크를 붙여 보세요'));

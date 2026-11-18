@@ -5,6 +5,7 @@
 //  - group_members INSERT: 그룹 참여 신청 → 방장에게 (웹훅 notify-group-join 필요)
 //  - 호출될 때마다: 지워진 그룹 사진·영상 파일 정리(storage_trash)
 // 필요한 Secrets: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, WEBHOOK_SECRET, SITE_URL
+// iPhone 앱 푸시(선택, 32 SQL): APNS_KEY_P8(키 파일 내용), APNS_KEY_ID, APNS_TEAM_ID, APNS_TOPIC(앱 번들 ID). 없으면 웹 푸시만
 import webpush from 'npm:web-push@3.6.7';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
@@ -65,9 +66,51 @@ async function purgeTrash() {
   if (!error) await sb!.from('storage_trash').delete().in('path', paths);
 }
 
+// ---------- iPhone 앱 푸시(APNs) ----------
+const b64url = (b: Uint8Array | string) => btoa(typeof b === 'string' ? b : String.fromCharCode(...b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+let apnsJwt = { tok: '', at: 0 };
+async function apnsAuth() {
+  if (apnsJwt.tok && Date.now() - apnsJwt.at < 45 * 60_000) return apnsJwt.tok; // Apple 규칙: 20분~1시간마다 새로
+  const pem = env('APNS_KEY_P8').replace(/\\n/g, '\n');
+  const der = Uint8Array.from(atob(pem.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '')), (c) => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey('pkcs8', der, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+  const unsigned = `${b64url(JSON.stringify({ alg: 'ES256', kid: env('APNS_KEY_ID') }))}.${b64url(JSON.stringify({ iss: env('APNS_TEAM_ID'), iat: Math.floor(Date.now() / 1000) }))}`;
+  const sig = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, new TextEncoder().encode(unsigned)));
+  apnsJwt = { tok: `${unsigned}.${b64url(sig)}`, at: Date.now() };
+  return apnsJwt.tok;
+}
+// 한 기기에 보내기: 출시 서버 먼저, 개발용 토큰이면(BadDeviceToken) 개발 서버로. 만료된 토큰은 지움
+async function apnsSend(row: { token: string; sandbox: boolean | null }, p: { title?: string; body?: string; url?: string; tag?: string }) {
+  const body = JSON.stringify({ aps: { alert: { title: p.title ?? '', body: p.body ?? '' }, sound: 'default', 'thread-id': p.tag ?? 'candid' }, url: p.url ?? '' });
+  const hosts = row.sandbox === true ? [true] : row.sandbox === false ? [false] : [false, true];
+  for (const sandbox of hosts) {
+    const r = await fetch(`https://${sandbox ? 'api.sandbox.push.apple.com' : 'api.push.apple.com'}/3/device/${row.token}`, {
+      method: 'POST', body,
+      headers: { authorization: `bearer ${await apnsAuth()}`, 'apns-topic': env('APNS_TOPIC') || 'com.candidfeed.app', 'apns-push-type': 'alert', 'apns-priority': '10' },
+    });
+    if (r.ok) { if (row.sandbox !== sandbox) await sb!.from('device_tokens').update({ sandbox }).eq('token', row.token); return true; }
+    const reason = ((await r.json().catch(() => ({}))) as { reason?: string }).reason ?? '';
+    if (r.status === 410 || reason === 'Unregistered') { await sb!.from('device_tokens').delete().eq('token', row.token); return false; }
+    if ((reason === 'BadDeviceToken' || reason === 'BadEnvironmentKeyInToken') && hosts.length > 1 && !sandbox) continue; // 개발용 토큰(또는 개발 전용 키) → 개발 서버로
+    if (reason === 'BadDeviceToken') await sb!.from('device_tokens').delete().eq('token', row.token);
+    else console.error('apns failed', r.status, reason);
+    return false;
+  }
+  return false;
+}
+async function sendApns(uid: string, payload: string) {
+  if (!env('APNS_KEY_P8') || !env('APNS_KEY_ID') || !env('APNS_TEAM_ID')) return 0;
+  const { data, error } = await sb!.from('device_tokens').select('token, sandbox').eq('user_id', uid);
+  if (error) return 0; // 32 SQL 전이면 테이블이 없음
+  let p = {}; try { p = JSON.parse(payload); } catch { /* 그대로 */ }
+  const ok = await Promise.all((data ?? []).map((row) => apnsSend(row as { token: string; sandbox: boolean | null }, p).catch((e) => { console.error('apns error', e); return false; })));
+  return ok.filter(Boolean).length;
+}
+
 async function sendTo(uid: string, payload: string) {
+  const apns = sendApns(uid, payload);
   const { data: subs, error } = await sb!.from('push_subscriptions').select('*').eq('user_id', uid);
-  if (error) { console.error(error); return 0; }
+  if (error) { console.error(error); return await apns; }
   let sent = 0;
   await Promise.all((subs ?? []).map(async (s) => {
     try {
@@ -79,7 +122,7 @@ async function sendTo(uid: string, payload: string) {
       else console.error('push failed', code, e);
     }
   }));
-  return sent;
+  return sent + await apns;
 }
 
 Deno.serve(async (req) => {

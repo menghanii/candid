@@ -11,14 +11,17 @@ import UniformTypeIdentifiers
 //  · exportVideo: 영상의 고른 구간만 잘라 720p MP4 로(파일이 9MB 를 넘으면 540p 로 한 번 더)
 //  결과 파일은 앱 임시 폴더에 쓰고, 경로를 웹에 돌려줌 → 웹이 읽어서 Supabase 에 올림
 @objc(MediaPickerPlugin)
-public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControllerDelegate {
+public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControllerDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     public let identifier = "MediaPickerPlugin"
     public let jsName = "MediaPicker"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "pick", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "exportVideo", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "exportVideo", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "saveToPhotos", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "camera", returnType: CAPPluginReturnPromise)
     ]
     private var pending: CAPPluginCall?
+    private var camCall: CAPPluginCall?
 
     private lazy var dir: URL = {
         let d = FileManager.default.temporaryDirectory.appendingPathComponent("candid-media", isDirectory: true)
@@ -168,6 +171,58 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
                 writer.finishWriting { done(writer.status == .completed) }
             }
         } catch { done(false) }
+    }
+
+    // ---------- 사진첩에 저장 ----------
+    // 웹이 base64(사진·영상)로 넘기면 임시 파일로 쓰고 사진첩에 추가(추가 전용 권한만 물음)
+    @objc func saveToPhotos(_ call: CAPPluginCall) {
+        guard let b64 = call.getString("data"), let data = Data(base64Encoded: b64) else { call.reject("bad_args"); return }
+        let isVideo = (call.getString("type") ?? "").hasPrefix("video")
+        let url = newFile(isVideo ? "mp4" : "jpg")
+        do { try data.write(to: url) } catch { call.reject("write_failed"); return }
+        PHPhotoLibrary.requestAuthorization(for: .addOnly) { st in
+            guard st == .authorized || st == .limited else { call.reject("denied", "denied"); return }
+            PHPhotoLibrary.shared().performChanges({
+                if isVideo { PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url) }
+                else { PHAssetChangeRequest.creationRequestForAssetFromImage(atFileURL: url) }
+            }) { ok, err in ok ? call.resolve() : call.reject(err?.localizedDescription ?? "save_failed") }
+        }
+    }
+
+    // ---------- 카메라로 바로 찍기 ----------
+    // 사진 또는 영상(최대 10초)을 찍으면 고르기와 같은 모양(items)으로 돌려줌
+    @objc func camera(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            guard UIImagePickerController.isSourceTypeAvailable(.camera) else { call.reject("no_camera", "no_camera"); return }
+            let vc = UIImagePickerController()
+            vc.sourceType = .camera
+            vc.mediaTypes = [UTType.image.identifier, UTType.movie.identifier]
+            vc.videoMaximumDuration = 10
+            vc.videoQuality = .typeHigh
+            vc.delegate = self
+            self.camCall = call
+            self.bridge?.viewController?.present(vc, animated: true)
+        }
+    }
+    public func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        picker.dismiss(animated: true)
+        camCall?.reject("canceled", "canceled"); camCall = nil
+    }
+    public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+        picker.dismiss(animated: true)
+        guard let call = camCall else { return }
+        camCall = nil
+        DispatchQueue.global(qos: .userInitiated).async {
+            if let url = info[.mediaURL] as? URL {
+                let dst = self.newFile(url.pathExtension.isEmpty ? "mov" : url.pathExtension.lowercased())
+                try? FileManager.default.copyItem(at: url, to: dst)
+                if let v = self.videoInfo(dst) { call.resolve(["items": [v], "skipped": 0]) } else { call.reject("video_failed") }
+            } else if let img = info[.originalImage] as? UIImage {
+                let main = Self.resize(img, maxSide: 1080), thumb = Self.resize(main, maxSide: 480)
+                guard let mp = self.saveJPEG(main, 0.82), let tp = self.saveJPEG(thumb, 0.7) else { call.reject("image_failed"); return }
+                call.resolve(["items": [["kind": "image", "path": mp, "thumbPath": tp, "width": Int(main.size.width), "height": Int(main.size.height)]], "skipped": 0])
+            } else { call.reject("no_media") }
+        }
     }
 
     // ---------- 도구 ----------

@@ -8,10 +8,18 @@ const EDGE_TTL = 60 * 60 * 24 * 30;      // Cloudflare 에 30일 보관(지운 �
 const BROWSER_TTL = 60 * 60 * 24 * 365;  // 브라우저는 1년(파일 이름이 무작위라 내용이 안 바뀜)
 const PATH_OK = /^[0-9a-zA-Z_-]{1,64}\/[0-9a-zA-Z_-]{1,80}\.(webp|jpe?g|png|mp4|webm|mov)$/;
 
+// iPhone 앱 링크(유니버설 링크): candid-feed.com 링크를 누르면 앱이 설치돼 있으면 앱으로 열림
+// 사진 중계(/p/), 이미지·번역 파일, 약관 페이지는 제외
+const AASA = { applinks: { details: [{ appIDs: ['92KNXMVFG4.com.candidfeed.app'], components: [
+  { '/': '/p/*', exclude: true }, { '/': '/brand/*', exclude: true }, { '/': '/i18n/*', exclude: true },
+  { '/': '/terms*', exclude: true }, { '/': '/privacy*', exclude: true }, { '/': '/legal.css', exclude: true }, { '/': '/*' },
+] }] } };
+
 export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
     if (url.pathname.startsWith('/p/')) return media(req, url, env.MEDIA_ORIGIN || DEFAULT_ORIGIN); // MEDIA_ORIGIN: 로컬 시험용
+    if (url.pathname === '/.well-known/apple-app-site-association' || url.pathname === '/apple-app-site-association') return Response.json(AASA, { headers: { 'Cache-Control': 'public, max-age=3600' } });
     return env.ASSETS.fetch(req);
   },
 };

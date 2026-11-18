@@ -746,5 +746,8 @@
  "아직 친구·그룹이 없어요. 위에서 이름으로 찾아보세요.": "No friends or groups yet. Search by name above.",
  "+ 초대": "+ Invite",
  "+ 새 그룹": "+ New group",
- "결혼식·여행·동아리처럼 여러 명이 같이 채우는 앨범을 만들어 보세요.": "Make an album everyone fills together — weddings, trips, clubs."
+ "결혼식·여행·동아리처럼 여러 명이 같이 채우는 앨범을 만들어 보세요.": "Make an album everyone fills together — weddings, trips, clubs.",
+ "카메라로 찍기": "Take with camera",
+ "사진첩 접근이 허용되지 않았어요. 설정 → candid. 에서 허용해 주세요": "Photo access isn't allowed. Allow it in Settings → candid.",
+ "저장하지 못했어요": "Couldn't save"
 };
