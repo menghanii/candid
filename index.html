@@ -1824,7 +1824,7 @@ function cancelAuthWait() { try { sessionStorage.removeItem('candid_oauth'); } c
 addEventListener('pageshow', e => {
   if (e.persisted && document.querySelector('.authwait')) setTimeout(() => { if (document.querySelector('.authwait') && !me) cancelAuthWait(); }, 2500);
 });
-async function logout() { try { localStorage.removeItem(HOME_KEY); } catch {} await sb.auth.signOut(); location.href = location.pathname; }
+async function logout() { try { localStorage.removeItem(HOME_KEY); localStorage.removeItem(ME_KEY); } catch {} await sb.auth.signOut(); location.href = location.pathname; }
 
 function renderLanding(inviter) {
   try { if (sessionStorage.getItem('candid_deleted')) { sessionStorage.removeItem('candid_deleted'); setTimeout(() => toast(t('계정을 삭제했어요. 그동안 고마웠어요')), 600); } } catch {}
@@ -2115,6 +2115,8 @@ async function renderProfile(uid, fresh, quiet) { // quiet: 돌아왔을 때 뒤
   // 한 번 본 피드는 저장해 둔 화면을 바로 보여주고, 최신 데이터는 뒤에서 받아 갱신
   const cached = CACHE.prof.get(uid);
   if (cached && !fresh && !quiet) { Object.assign(S, cached, { uid }); if (!S.isOwner) S.tab = 'grid'; paintProfile(); }
+  // 처음 여는 피드: 서버 응답을 기다리는 동안에도 누른 게 바로 보이게(로딩 로고 + 아래 메뉴 표시)
+  else if (!cached && !quiet && !document.querySelector('#splash:not(.out)')) { $app.classList.remove('has-nav'); $app.innerHTML = `<div class="authwait"><span class="logo">${LOGO_DOT}</span></div>${navBar(me?.id === uid ? 'feed' : '')}`; }
   let res;
   try {
     res = await withTimeout(Promise.all([
@@ -2147,6 +2149,10 @@ async function renderProfile(uid, fresh, quiet) { // quiet: 돌아왔을 때 뒤
   await loadStickers(S.approved.map(p => p.id)).catch(() => {});
   if (!S.isOwner) S.tab = 'grid';
   CACHE.prof.set(uid, { prof, isOwner: S.isOwner, approved: S.approved, pending: S.pending, locked, sig });
+  if (me && uid === me.id && !DEMO) try { // 내 피드는 기기에도 저장 → 앱을 새로 켜도 '나'를 누르면 바로
+    const ids = new Set([...S.approved, ...S.pending].map(p => p.id));
+    localStorage.setItem(ME_KEY, JSON.stringify({ uid, at: Date.now(), data: CACHE.prof.get(uid), soc: [...SOC].filter(([id]) => ids.has(id)), stk: [...STK].filter(([id]) => ids.has(id)) }));
+  } catch {}
   paintProfile();
   // 공유 링크(?m=미션번호)로 들어온 친구: 사진 보내기 시트를 바로 열어줌 (한 번만)
   const m = new URLSearchParams(location.search).get('m');
@@ -2729,7 +2735,20 @@ function saveHomeCache(d) {
   } catch {}
 }
 let PREPAINTED = false;
+// 저장해 둔 내 피드를 불러 둠(같은 사람으로 로그인돼 있을 때만)
+const ME_KEY = 'candid_me_v1';
+function restoreMyFeed() {
+  try {
+    if (DEMO) return;
+    const c = JSON.parse(localStorage.getItem(ME_KEY) || 'null'); if (!c?.data || Date.now() - c.at > 7 * 864e5) return;
+    const ref = new URL(cfg.SUPABASE_URL).hostname.split('.')[0], sess = JSON.parse(localStorage.getItem(`sb-${ref}-auth-token`) || 'null');
+    if (sess?.user?.id !== c.uid || CACHE.prof.has(c.uid)) return;
+    c.soc.forEach(([id, v]) => { if (!SOC.has(id)) SOC.set(id, v); }); c.stk.forEach(([id, v]) => { if (!STK.has(id)) STK.set(id, v); });
+    CACHE.prof.set(c.uid, c.data);
+  } catch {}
+}
 function prePaintHome() {
+  restoreMyFeed();
   const c = HOME_SNAP; if (!c || DEMO || CACHE.home || $app.querySelector('.reels')) return;
   try {
     if (!me) me = { id: c.uid }; if (!myProf) myProf = c.prof; // boot 이 곧 진짜 값으로 바꿈
@@ -3211,7 +3230,7 @@ function openDeleteAccount() {
     const { error } = await sb.rpc('delete_my_account', { p_confirm: 'DELETE' });
     if (error) { b.disabled = false; b.textContent = t('계정 영구 삭제'); return toast(/delete_my_account|does not exist|42883|PGRST20/.test(error.message) ? t('계정 삭제 기능 준비 중이에요(관리자: 29 SQL 실행 필요)') : kerr(error)); }
     try { Object.keys(localStorage).filter(k => k.startsWith('candid_')).forEach(k => localStorage.removeItem(k)); } catch {}
-    try { localStorage.removeItem(HOME_KEY); } catch {}
+    try { localStorage.removeItem(HOME_KEY); localStorage.removeItem(ME_KEY); } catch {}
     await sb.auth.signOut().catch(() => {});
     try { sessionStorage.setItem('candid_deleted', '1'); } catch {}
     location.href = location.pathname;
@@ -3500,6 +3519,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.ser
 const NPUSH = () => IN_APP && window.Capacitor?.isPluginAvailable?.('PushNotifications') ? capPlugin('PushNotifications') : null;
 let NPUSH_WAIT = null;
 async function nativePushToken(tok) {
+  if (PERF) console.log('[candid] apns token ' + tok); // 개발용 앱 점검(시험 알림 보내기용)
   try { localStorage.setItem('candid_apns', tok); } catch {}
   if (me && !DEMO) { const { error } = await sb.rpc('register_device', { p_token: tok }); if (error) console.error('[candid] register_device', error.message); }
   NPUSH_WAIT?.(tok); NPUSH_WAIT = null;
