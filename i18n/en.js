@@ -773,5 +773,6 @@
  "미완성": "not set up",
  "가입": "joined",
  "친구 {a} · 나를 추가 {b} · 받은 {c} · 보낸 {d} · 그룹 {e}": "Friends {a} · Followers {b} · Received {c} · Sent {d} · Groups {e}",
- "마지막 보냄 {d}": "last sent {d}"
+ "마지막 보냄 {d}": "last sent {d}",
+ "친구 초대": "Invite friends"
 };

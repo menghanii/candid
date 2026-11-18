@@ -2620,7 +2620,7 @@ async function renderFriendsTab($b) {
       <button class="btn primary block" onclick="openSearch()">${t('친구 찾기')}</button><div style="height:8px"></div><button class="btn block" onclick="openInvite()">${t('앱에 친구 초대하기')}</button></div>`;
     return;
   }
-  const head = `<div class="fhead"><b>${t('내 친구 {n}', { n: mine.length })}</b><div style="flex:1"></div><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px" onclick="openSearch()">${t('+ 친구 찾기')}</button><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px;margin-left:6px" onclick="openInvite()">${t('초대')}</button></div>`;
+  const head = `<div class="fhead"><b>${t('내 친구 {n}', { n: mine.length })}</b><div style="flex:1"></div><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px" onclick="openInvite()">${t('친구 초대')}</button></div>`;
   $b.innerHTML = backHTML + head + `<div class="flist" id="myfr">${mine.map(p => row(p, true)).join('')}</div>`;
   sortable($b.querySelector('#myfr'), ids => saveOrder('friends', ids));
 }
@@ -5640,7 +5640,7 @@ async function renderGroupsTab($b) {
       ${canPostTo(g) ? `<button class="btn" onclick="composeToGroup(MYG.groups.get('${g.id}'))">${t('올리기')}</button>` : ''}${dragHandle()}</div>`;
   const pub = list.filter(g => g.visibility === 'public'), pri = list.filter(g => g.visibility !== 'public');
   const sec = (id, icon, title, arr) => arr.length ? `<div class="gsec">${icon}<b>${title}</b><span>${arr.length}</span></div><div class="flist" id="${id}">${arr.map(row).join('')}</div>` : '';
-  $b.innerHTML = invHTML + `<div class="fhead"><b>${t('내 그룹 {n}', { n: list.length })}</b><div style="flex:1"></div><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px" onclick="openCreateGroup()">${t('+ 만들기')}</button><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px;margin-left:6px" onclick="openSearch()">${t('찾기')}</button></div>
+  $b.innerHTML = invHTML + `<div class="fhead"><b>${t('내 그룹 {n}', { n: list.length })}</b><div style="flex:1"></div><button class="btn" style="width:auto;height:auto;border-radius:999px;padding:6px 12px;font-size:13px" onclick="openCreateGroup()">${t('그룹 만들기')}</button></div>
     ${sec('gpri', II.lock, t('비공개 그룹'), pri)}${sec('gpub', II.globe, t('공개 그룹'), pub)}`;
   // 순서는 비공개·공개 각각 끌어서 바꾸고, 저장은 한 목록으로(비공개 → 공개)
   const save = () => saveOrder('groups', [...$b.querySelectorAll('#gpri [data-key], #gpub [data-key]')].map(x => x.dataset.key));
