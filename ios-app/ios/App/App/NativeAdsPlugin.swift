@@ -62,7 +62,10 @@ public class NativeAdsPlugin: CAPPlugin, CAPBridgedPlugin, NativeAdLoaderDelegat
             let r = CGRect(x: call.getDouble("x") ?? 0, y: call.getDouble("y") ?? 0, width: call.getDouble("w") ?? Double(web.bounds.width), height: call.getDouble("h") ?? Double(web.bounds.height))
             if self.shownId == id, let v = self.adView, v.superview != nil { v.frame = r.offsetBy(dx: web.frame.minX, dy: web.frame.minY); call.resolve(); return }
             self.adView?.removeFromSuperview()
-            let v = self.buildView(ad, size: r.size, label: call.getString("label") ?? "광고")
+            // 아래쪽 홈 바(안전 영역)만큼 정보를 위로: 광고가 화면 아래 끝까지 닿을 때만
+            let reachesBottom = r.maxY + web.frame.minY >= host.bounds.height - 1
+            let inset = reachesBottom ? host.safeAreaInsets.bottom : 0
+            let v = self.buildView(ad, size: r.size, label: call.getString("label") ?? "광고", bottomInset: inset)
             v.frame = r.offsetBy(dx: web.frame.minX, dy: web.frame.minY)
             v.alpha = 0
             host.addSubview(v)
@@ -91,11 +94,11 @@ public class NativeAdsPlugin: CAPPlugin, CAPBridgedPlugin, NativeAdLoaderDelegat
     }
 
     // ---------- 광고 보기 만들기: Candids 한 칸과 같은 모양(가운데 사진, 아래에 광고주 사진·이름·광고 표시·제목·버튼) ----------
-    private func buildView(_ ad: NativeAd, size: CGSize, label: String) -> NativeAdView {
+    private func buildView(_ ad: NativeAd, size: CGSize, label: String, bottomInset: CGFloat) -> NativeAdView {
         let v = NativeAdView(frame: CGRect(origin: .zero, size: size))
         v.backgroundColor = .clear
         let W = size.width, H = size.height, pad: CGFloat = 16
-        let bottomPad: CGFloat = 26, ctaH: CGFloat = 38
+        let bottomPad: CGFloat = 24 + bottomInset, ctaH: CGFloat = 38
         let hasBody = !(ad.body ?? "").isEmpty
         let infoH: CGFloat = 46 + 26 + (hasBody ? 40 : 0) + (ad.callToAction != nil ? ctaH + 12 : 0)
         let mediaH = max(120, min(W * 1.25, H - infoH - bottomPad - 24))
