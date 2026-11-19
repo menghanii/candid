@@ -38,10 +38,8 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
     // ---------- 고르기 ----------
     @objc func pick(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
-            // 지난번 임시 파일 정리
-            if let old = try? FileManager.default.contentsOfDirectory(at: self.dir, includingPropertiesForKeys: nil) {
-                old.forEach { try? FileManager.default.removeItem(at: $0) }
-            }
+            self.cleanOld() // 지난번 임시 파일 정리(1시간 지난 것만 — 지금 올리는 중인 파일은 그대로)
+            self.pending?.reject("replaced", "replaced") // 앞 호출이 남아 있으면 끝내 줌(웹이 영원히 기다리지 않게)
             var cfg = PHPickerConfiguration()
             cfg.selectionLimit = max(1, min(10, call.getInt("max") ?? 10))
             cfg.filter = .any(of: [.images, .videos])
@@ -125,6 +123,7 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
         transcode(asset, range, to: out1) { ok in
             let size = (try? FileManager.default.attributesOfItem(atPath: out1.path)[.size] as? Int) ?? 0
             if ok && size <= 9 * 1024 * 1024 { call.resolve(["path": out1.path]); return }
+            try? FileManager.default.removeItem(at: out1) // 너무 커서 안 쓰는 첫 결과
             let out2 = self.newFile("mp4")
             self.transcode(asset, range, to: out2, maxSide: 960, bitrate: 1_500_000) { ok2 in
                 ok2 ? call.resolve(["path": out2.path]) : call.reject("export_failed")
@@ -190,7 +189,7 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
             PHPhotoLibrary.shared().performChanges({
                 if isVideo { PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url) }
                 else { PHAssetChangeRequest.creationRequestForAssetFromImage(atFileURL: url) }
-            }) { ok, err in ok ? call.resolve() : call.reject(err?.localizedDescription ?? "save_failed") }
+            }) { ok, err in try? FileManager.default.removeItem(at: url); ok ? call.resolve() : call.reject(err?.localizedDescription ?? "save_failed") }
         }
     }
 
@@ -199,6 +198,7 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
     @objc func camera(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
             guard UIImagePickerController.isSourceTypeAvailable(.camera) else { call.reject("no_camera", "no_camera"); return }
+            self.camCall?.reject("replaced", "replaced")
             let vc = UIImagePickerController()
             vc.sourceType = .camera
             vc.mediaTypes = [UTType.image.identifier, UTType.movie.identifier]
@@ -254,6 +254,7 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
         } else { call.resolve(["status": authName(s)]) }
     }
     @objc func libList(_ call: CAPPluginCall) {
+        DispatchQueue.global(qos: .utility).async { self.cleanOld(self.thumbDir, maxAge: 14 * 86400) }
         DispatchQueue.global(qos: .userInitiated).async {
             let o = PHFetchOptions()
             o.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
@@ -294,7 +295,7 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
     }
     private func libExportMain(_ call: CAPPluginCall) {
         let ids = call.getArray("ids", String.self) ?? []
-        if let old = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) { old.forEach { try? FileManager.default.removeItem(at: $0) } }
+        cleanOld()
         let g = DispatchGroup(), lock = NSLock(); var out = [Int: [String: Any]]()
         let put = { (i: Int, v: [String: Any]) in lock.lock(); out[i] = v; lock.unlock() }
         for (i, id) in ids.enumerated() {
@@ -337,6 +338,15 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
     }
 
     // ---------- 도구 ----------
+    private func cleanOld(_ d: URL? = nil, maxAge: TimeInterval = 3600) {
+        let folder = d ?? dir
+        guard let items = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.contentModificationDateKey]) else { return }
+        let limit = Date().addingTimeInterval(-maxAge)
+        for u in items {
+            let m = (try? u.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
+            if m < limit { try? FileManager.default.removeItem(at: u) }
+        }
+    }
     static func resize(_ img: UIImage, maxSide: CGFloat) -> UIImage {
         let s = img.size, k = min(1, maxSide / max(s.width, s.height))
         let size = CGSize(width: (s.width * k).rounded(), height: (s.height * k).rounded())
