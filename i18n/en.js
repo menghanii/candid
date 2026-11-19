@@ -794,5 +794,6 @@
  "트렌딩 은하": "Trending galaxy",
  "관심 은하": "Interest galaxy",
  "지금 뜨는 곳": "Trending now",
- "곧 열려요": "Opening soon"
+ "곧 열려요": "Opening soon",
+ "그룹 목록 보기": "View my groups"
 };

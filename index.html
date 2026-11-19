@@ -1320,6 +1320,7 @@
   .oempty { position:absolute; left:24px; right:24px; text-align:center; color:#fff; pointer-events:none; }
   .oempty b { display:block; font-size:15px; } .oempty span { display:block; margin-top:4px; color:#8e8e93; font-size:12.5px; }
   @media (prefers-reduced-motion: reduce) { .orbitv[data-th] .olines, .orbitv[data-th] .ostars, .orbitv[data-th] .olines * , .oghost { animation:none !important; } }
+  .stat-n { font-style:normal; display:inline-flex; min-width:15px; height:15px; padding:0 4px; border-radius:8px; background:var(--accent); color:#fff; font-size:10px; font-weight:800; align-items:center; justify-content:center; vertical-align:1px; }
 </style>
 </head>
 <body>
@@ -1661,8 +1662,10 @@ function route() {
   const qs = new URLSearchParams(location.search);
   if (qs.get('p') && (qs.get('u') || qs.get('g'))) openDeepPost(qs.get('p'));
   if (qs.get('gi')) return renderGroupInvite(qs.get('gi'));
-  // 예전 친구·그룹 화면 주소(?friends=1, ?groups=1) → 내 피드의 친구·그룹 탭
-  if (me && (qs.has('friends') || qs.has('groups'))) return go(`${feedUrl(me.id)}&tab=${qs.has('friends') ? 'friends' : 'groups'}`, true);
+  // 내 친구·내 그룹: 새 페이지(내 피드의 숫자를 눌러서)
+  if (me && qs.has('friends')) return renderTabPage('feed', 'Friends', renderFriendsTab, t('내 친구'));
+  if (me && qs.has('groups')) return renderTabPage('feed', 'Groups', renderGroupsTab, t('내 그룹'));
+  const oldTab = qs.get('tab'); if (me && (oldTab === 'friends' || oldTab === 'groups')) return go(`?${oldTab}=1`, true); // 예전 주소
   if (qs.get('g')) return renderGroup(qs.get('g'));
   const at = location.search.match(/^\?@([A-Za-z0-9_]{3,20})/); // 짧은 링크 ?@아이디
   if (at) return renderHandle(at[1].toLowerCase());
@@ -2287,7 +2290,7 @@ function wanderEngine(w, getBox, { tap = false, speed: SPEED = 34, start = true 
 }
 
 // ---------- 프로필 ----------
-function tabOf(t) { return ['inbox', 'friends', 'groups'].includes(t) ? t : 'grid'; } // 내 피드 탭: 피드 · 대기 · 친구 · 그룹
+function tabOf(t) { return t === 'inbox' ? t : 'grid'; } // 내 피드 탭: 피드 · 보관함(친구·그룹은 위 숫자를 눌러 새 페이지)
 const S = { tab: tabOf(new URLSearchParams(location.search).get('tab')) };
 
 async function renderProfile(uid, fresh, quiet) { // quiet: 돌아왔을 때 뒤에서만 갱신(저장된 화면을 다시 그리지 않음)
@@ -2367,7 +2370,8 @@ function paintProfile() {
       <div class="stats"${S.locked ? ' hidden' : ''}>
         <div><b>${approved.length}</b><span>${t('게시물')}</span></div>
         <div><b>${friends}</b><span>${t('참여한 친구')}</span></div>
-        ${isOwner ? `<button class="stat-btn" onclick="setTab('friends')" aria-label="${t('친구 목록 보기')}"><b>${myFollows.size}</b><span>${t('친구')}</span></button>` : ''}
+        ${isOwner ? `<button class="stat-btn" onclick="go('?friends=1')" aria-label="${t('친구 목록 보기')}"><b>${myFollows.size}</b><span>${t('친구')}</span></button>
+          <button class="stat-btn" onclick="go('?groups=1')" aria-label="${t('그룹 목록 보기')}"><b>${MYG.ok === false ? 0 : myGroupList().length}</b><span>${t('그룹')}${INVITES.list?.length ? ` <i class="stat-n">${INVITES.list.length}</i>` : ''}</span></button>` : ''}
       </div>
     </section>
     <div class="actions">
@@ -2386,8 +2390,7 @@ function paintProfile() {
     <nav class="tabs">
       <button class="${S.tab === 'grid' ? 'on' : ''}" onclick="setTab('grid')" aria-label="${t('피드')}">${I.gridTab}</button>
       ${isOwner ? `<button class="${S.tab === 'inbox' ? 'on' : ''}" onclick="setTab('inbox')" aria-label="${t('대기 피드')}${pending.length ? ' ' + pending.length : ''}"><span class="tico">${I.inboxTab}${pending.length ? `<span class="n">${pending.length}</span>` : ''}</span></button>
-        <button class="${S.tab === 'friends' ? 'on' : ''}" onclick="setTab('friends')" aria-label="${t('내 친구')}">${I.friendsTab}</button>
-        <button class="${S.tab === 'groups' ? 'on' : ''}" onclick="setTab('groups')" aria-label="${t('내 그룹')}"><span class="tico">${I.groupsTab}${INVITES.list?.length ? `<span class="n">${INVITES.list.length}</span>` : ''}</span></button>
+
 ` : ''}
     </nav>
     <main id="body"></main>
@@ -2474,8 +2477,6 @@ function renderBody() {
   const $b = document.getElementById('body');
   const { isOwner, approved, pending, prof, uid } = S;
 
-  if (isOwner && S.tab === 'friends') { $b.innerHTML = ''; return renderFriendsTab($b); }
-  if (isOwner && S.tab === 'groups') { $b.innerHTML = ''; return renderGroupsTab($b); }
   if (S.tab === 'inbox') {
     // 대기 피드 = ① 승인을 기다리는 피드 ② 되돌리기한 피드(내가 피드에서 내린 것, 나만 보임)
     const hidden = S.hidden || [];
@@ -2616,9 +2617,9 @@ async function toggleFollow(uid, btn) {
 }
 
 // 하단 탭 화면(친구·그룹): 공통 상단 바 + 큰 제목 + 내용
-function renderTabPage(active, title, fill) {
+function renderTabPage(active, title, fill, backTitle) {
   CUR = pageKey();
-  $app.innerHTML = `${appTop()}<section class="ptitle"><h1>${title}<i class="pd">.</i></h1></section><main id="body"></main>${navBar(active)}`;
+  $app.innerHTML = `${appTop(backTitle)}<section class="ptitle"><h1>${title}<i class="pd">.</i></h1></section><main id="body"></main>${navBar(active)}`;
   $app.classList.add('has-nav');
   fill(document.getElementById('body'));
   refreshNotiDot();
@@ -4401,7 +4402,7 @@ function openNoti(i) {
   if (i.k === 'follow') { closeSheet(); return go(feedUrl(i.uid)); }
   if (i.k === 'post') { closeSheet(); return i.post?.id ? go(`${location.pathname}?u=${me.id}&tab=inbox&p=${i.post.id}`) : openInbox(); }
   if (i.k === 'gjoin') { closeSheet(); return i.group && go(`${gUrl(i.group)}&manage=1`); }
-  if (i.k === 'ginvite') { closeSheet(); S.tab = 'groups'; return go(`${feedUrl(me.id)}&tab=groups`); } // 내 피드 → 그룹 탭 맨 위 '받은 초대'에서 수락·거절
+  if (i.k === 'ginvite') { closeSheet(); return go('?groups=1'); } // 내 그룹 페이지 맨 위 '받은 초대'에서 수락·거절
   if (!i.post) return toast(t('지금은 볼 수 없는 게시물이에요'));
   if (i.post.group_id) { // 그룹 사진: 그룹으로 가서 그 사진 열기
     const g = MYG.groups.get(i.post.group_id) || (i.post.ghandle ? { id: i.post.group_id, handle: i.post.ghandle } : null);
@@ -5590,7 +5591,7 @@ async function loadInvites() {
   const { data, error } = await sb.rpc('my_group_invites');
   INVITES.list = error ? [] : data || []; INVITES.at = Date.now(); return INVITES.list;
 }
-function refreshInvitesUI() { if (S.isOwner && S.tab === 'groups' && document.getElementById('body')) { INVITES.at = 0; paintProfile(); } document.querySelector('.sheet-wrap:not(.closing)')?._refresh?.(); if (new URLSearchParams(location.search).has('groups')) route(); }
+function refreshInvitesUI() { document.querySelector('.sheet-wrap:not(.closing)')?._refresh?.(); if (new URLSearchParams(location.search).has('groups')) route(); }
 async function openGroupInvite(justMade) {
   const g = G.g; if (!g) return;
   const isOwner = me?.id === g.owner_id;
