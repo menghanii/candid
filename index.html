@@ -1277,6 +1277,13 @@
   .oreel-who .av.xs, .oreel-who .gav.xs { width:32px; height:32px; }
   .oreel-who b { font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .oreel ~ .overlay { z-index:40; }
+  /* 하우스 광고 카드 */
+  .adcard { position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.82); display:flex; align-items:center; justify-content:center; padding:24px; animation:fade .2s; }
+  .adbox { position:relative; width:100%; max-width:380px; background:var(--card); color:var(--fg); border-radius:22px; padding:18px; text-align:center; }
+  .adbox img { width:100%; aspect-ratio:4/5; object-fit:cover; border-radius:14px; margin:8px 0 12px; }
+  .adbox b { display:block; font-size:18px; margin-bottom:4px; } .adbox p { color:var(--sub); font-size:14px; margin:0 0 14px; }
+  .adtag { position:absolute; left:16px; top:14px; font-size:11px; font-weight:700; color:var(--sub); border:1px solid var(--line); border-radius:6px; padding:1px 6px; }
+  .adx { position:absolute; right:8px; top:6px; } .adx:disabled { opacity:.25; }
 </style>
 </head>
 <body>
@@ -1581,6 +1588,7 @@ async function boot() {
         if (myProf && 'lang' in myProf && myProf.lang !== LANG && !DEMO) sb.from('profiles').update({ lang: LANG }).eq('id', me.id).then(() => {}, () => {});
         await extra;
         checkAdmin(); // 관리자 메뉴 표시용(기다리지 않음)
+        setTimeout(() => ADS.start(), 4000); // 광고: 첫 화면이 뜬 뒤 준비(추적 동의 창 포함)
         if (myProf?.onboarded) await applyInvite();
       }
     })(), 10000);
@@ -3193,7 +3201,7 @@ function wireReels($reels) {
   const io = new IntersectionObserver(es => es.forEach(e => {
     if (e.isIntersecting) { try { sessionStorage.setItem('candid_reel', e.target.dataset.id); } catch {} } // 이번 세션에서 마지막으로 본 릴스
     clearTimeout(e.target._seenT);
-    if (e.isIntersecting) e.target._seenT = setTimeout(() => markSeen(e.target.dataset.id), 1000); // 1초 이상 보면 '본 것'
+    if (e.isIntersecting) e.target._seenT = setTimeout(() => { markSeen(e.target.dataset.id); ADS.viewed(); }, 1000); // 1초 이상 보면 '본 것'(+ 광고 세기)
     if (!e.isIntersecting) return e.target.querySelectorAll('video').forEach(v => v.pause());
     const v = currentVideo(e.target); if (!v) return; // 여러 장이면 지금 보이는 장의 영상만
     v.preload = 'auto'; v.muted = muted; v.play().catch(() => {});
@@ -3503,6 +3511,80 @@ function openMenu() {
     <p class="legal-links"><a href="${SITE}/terms.html" target="_blank" rel="noopener">${t('이용약관')}</a> · <a href="${SITE}/privacy.html" target="_blank" rel="noopener">${t('개인정보처리방침')}</a></p>
     ${DEMO ? '' : `<button class="linkish del-acc" onclick="closeSheet();setTimeout(openDeleteAccount,250)">${t('계정 삭제')}</button>`}</div>`);
 }
+// ---------- 광고 ----------
+// 공급자(광고 회사)를 우선순위대로 꽂아 쓰는 구조: 앞 공급자가 광고를 못 주면 다음 공급자로.
+// 새 광고 회사(카카오 애드핏·Meta 등)는 ADS.register({ name, priority, available(), init?(), show(placement) → true/false }) 하나로 추가
+// 설정: config.js 의 ADS { enabled, every(몇 장마다), minGapSec(최소 간격), dailyCap(하루 최대), admob { iosInterstitial, testing } }
+const ADS = {
+  cfg: cfg.ADS || {}, providers: [], count: 0, lastAt: 0, started: false,
+  get on() { return !!this.cfg.enabled && !DEMO; },
+  register(p) { this.providers.push(p); this.providers.sort((a, b) => a.priority - b.priority); },
+  today() { const k = 'candid_ads_' + new Date().toISOString().slice(0, 10); try { return +localStorage.getItem(k) || 0; } catch { return 0; } },
+  bumpToday() { const k = 'candid_ads_' + new Date().toISOString().slice(0, 10); try { localStorage.setItem(k, this.today() + 1); } catch {} },
+  async start() { if (!this.on || !me || this.started) return; this.started = true; for (const p of this.providers) if (p.available()) await p.init?.().catch(e => console.log('[candid] ad init ' + p.name + ' ' + (e?.message || e))); },
+  // Candids 한 장을 봤을 때(1초 이상) 부름: N장마다, 최소 간격·하루 한도 안에서 광고
+  async viewed(placement = 'candids') {
+    if (!this.on || !me) return;
+    if (++this.count < (this.cfg.every || 8)) return;
+    if (Date.now() - this.lastAt < (this.cfg.minGapSec || 90) * 1000 || this.today() >= (this.cfg.dailyCap || 12)) return;
+    if (document.querySelector('.sheet-wrap:not(.closing), .composer, .overlay.page')) return; // 무언가 하는 중이면 미룸
+    this.count = 0; await this.show(placement);
+  },
+  async show(placement) {
+    for (const p of this.providers) {
+      if (!p.available()) continue;
+      try { if (await p.show(placement)) { this.lastAt = Date.now(); this.bumpToday(); this.log(p.name, 'impression', placement); return true; } }
+      catch (e) { console.log('[candid] ad fail ' + p.name + ' ' + (e?.message || e)); }
+    }
+    return false;
+  },
+  log(provider, kind, placement, adId = null) { if (PERF) console.log(`[candid] ad ${kind} ${provider} ${placement}`); sb.rpc('log_ad_event', { p_provider: provider, p_kind: kind, p_placement: placement, p_ad: adId }).then(() => {}, () => {}); },
+};
+// 1) Google AdMob 전면 광고(iOS 앱): 미리 받아 두었다가 보여 주고, 닫히면 다음 것을 미리 받음
+ADS.register({
+  name: 'admob', priority: 10, ready: false, npa: true,
+  available() { return IN_APP && !!window.Capacitor?.isPluginAvailable?.('AdMob') && !!ADS.cfg.admob?.iosInterstitial; },
+  async init() {
+    const A = capPlugin('AdMob');
+    await A.initialize({ initializeForTesting: !!ADS.cfg.admob.testing });
+    // 맞춤 광고 동의(앱 추적 투명성, iOS 14+): 아직 안 물어봤으면 한 번 물어봄. 거절해도 일반 광고는 나옴
+    let st = (await A.trackingAuthorizationStatus().catch(() => ({})))?.status;
+    if (st === 'notDetermined') { await A.requestTrackingAuthorization().catch(() => {}); st = (await A.trackingAuthorizationStatus().catch(() => ({})))?.status; }
+    this.npa = st !== 'authorized';
+    A.addListener('interstitialAdDismissed', () => { setTimeout(() => this.prepare(), 800); });
+    A.addListener('interstitialAdFailedToShow', () => { this.ready = false; this.prepare(); });
+    await this.prepare();
+  },
+  async prepare() {
+    try { await capPlugin('AdMob').prepareInterstitial({ adId: ADS.cfg.admob.iosInterstitial, isTesting: !!ADS.cfg.admob.testing, npa: this.npa }); this.ready = true; }
+    catch (e) { this.ready = false; console.log('[candid] admob load ' + (e?.message || e?.code || e)); }
+  },
+  async show() {
+    if (!this.ready) { this.prepare(); return false; } // 아직 못 받았으면 다음 공급자(하우스 광고)로
+    this.ready = false; document.querySelectorAll('video').forEach(v => v.pause());
+    await capPlugin('AdMob').showInterstitial(); return true;
+  },
+});
+// 2) 하우스 광고(직접 받는 광고, 웹·앱): Supabase house_ads 표(34 SQL)에서 가중치로 하나 골라 전면 카드로
+ADS.register({
+  name: 'house', priority: 50, list: null, at: 0,
+  available() { return !!ADS.cfg.house; },
+  async show(placement) {
+    if (!this.list || Date.now() - this.at > 10 * 60e3) { const { data, error } = await sb.from('house_ads').select('id, title, body, image_url, url, cta, weight').eq('active', true); this.list = error ? [] : data || []; this.at = Date.now(); }
+    const L = this.list.filter(a => a.weight > 0); if (!L.length) return false;
+    let r = Math.random() * L.reduce((n, a) => n + a.weight, 0), ad = L[0]; for (const a of L) { if ((r -= a.weight) < 0) { ad = a; break; } }
+    const ov = document.createElement('div'); ov.className = 'adcard';
+    ov.innerHTML = `<div class="adbox"><span class="adtag">${t('광고')}</span><button class="icon-btn adx" aria-label="${t('닫기')}" disabled>${I.close}</button>
+      ${ad.image_url ? `<img src="${esc(ad.image_url)}" alt="">` : ''}<b>${esc(ad.title)}</b>${ad.body ? `<p>${esc(ad.body)}</p>` : ''}
+      ${ad.url ? `<a class="btn primary block" href="${esc(ad.url)}" target="_blank" rel="noopener sponsored">${esc(ad.cta || t('자세히 보기'))}</a>` : ''}</div>`;
+    document.body.appendChild(ov);
+    const x = ov.querySelector('.adx'); setTimeout(() => { x.disabled = false; }, 1500); // 1.5초 뒤 닫기
+    x.onclick = () => ov.remove();
+    ov.querySelector('a')?.addEventListener('click', () => { ADS.log('house', 'click', placement, ad.id); setTimeout(() => ov.remove(), 300); });
+    ADS.log('house', 'view', placement, ad.id);
+    return true;
+  },
+});
 // ---------- 관리자: 전체 사용자(33 SQL) ----------
 let IS_ADMIN = false;
 async function checkAdmin() { if (!me || DEMO) return; const { data } = await sb.rpc('is_admin').catch(() => ({})); IS_ADMIN = data === true; }

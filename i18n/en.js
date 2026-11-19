@@ -783,5 +783,7 @@
  "핑크 은하": "Pink galaxy",
  "레몬 은하": "Lemon galaxy",
  "퍼플 은하": "Purple galaxy",
- "코랄 은하": "Coral galaxy"
+ "코랄 은하": "Coral galaxy",
+ "광고": "Ad",
+ "자세히 보기": "Learn more"
 };
