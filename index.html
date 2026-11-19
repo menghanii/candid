@@ -3653,8 +3653,11 @@ const FEED_ADS = {
     if (sec.dataset.kind === 'house') { if (!sec._logged) { sec._logged = 1; ADS.log('house', 'view', 'feed', sec._houseId); } return; }
     if (sec.dataset.kind !== 'native') return;
     // 맨 위 줄(뒤로·친구 이름)은 가리지 않게 그 아래부터
-    const R = sec.getBoundingClientRect(), hb = sec.closest('.oreel, .reels')?.querySelector('.rtop')?.getBoundingClientRect().bottom || 0, y = Math.max(R.top, hb);
-    capPlugin('NativeAds').show({ id: sec.dataset.ad, x: R.left, y, w: R.width, h: R.bottom - y, label: t('광고') }).catch(() => {});
+    // 화면 안에 보이는 부분만(넘기는 중이면 멈춘 뒤 다시 맞춤), 맨 위 줄은 가리지 않게
+    const R = sec.getBoundingClientRect(), hb = sec.closest('.oreel, .reels')?.querySelector('.rtop')?.getBoundingClientRect().bottom || 0;
+    const y = Math.max(R.top, hb, 0), bottom = Math.min(R.bottom, innerHeight);
+    if (bottom - y < 200) return;
+    capPlugin('NativeAds').show({ id: sec.dataset.ad, x: R.left, y, w: R.width, h: bottom - y, label: t('광고') }).catch(() => {});
     if (!sec._logged) { sec._logged = 1; ADS.log('admob', 'impression', 'feed'); }
     if (!this.swipeOn) { this.swipeOn = true; capPlugin('NativeAds').addListener('swipe', ({ dir }) => { const c = document.querySelector('.oreel .reels, #reels'); c?.scrollBy({ top: dir * c.clientHeight, behavior: 'smooth' }); }); }
   },
@@ -3666,11 +3669,15 @@ const FEED_ADS = {
     const gone = new Set(); let idle;
     const vis = new IntersectionObserver(es => es.forEach(e => {
       const sl = e.target;
-      if (e.intersectionRatio >= 0.9) { sl._seen = 1; return this.show(sl); }
+      if (e.intersectionRatio >= 0.9) { sl._seen = 1; this.show(sl); return later(); }
       if (sl.dataset.kind === 'native') this.hide();
       if (sl._seen && (!e.isIntersecting || e.intersectionRatio < 0.02)) { gone.add(sl); later(); } // 봤고 화면에서 벗어남 → 스크롤이 멈추면 없앰
     }), { root: $reels, threshold: [0, 0.02, 0.9] });
-    const later = () => { clearTimeout(idle); idle = setTimeout(() => { gone.forEach(sl => { const R = sl.getBoundingClientRect(), V = $reels.getBoundingClientRect(); if (R.bottom <= V.top + 2 || R.top >= V.bottom - 2) { vis.unobserve(sl); gone.delete(sl); this.drop(sl, $reels); } }); }, 220); };
+    const later = () => { clearTimeout(idle); idle = setTimeout(() => {
+      // 멈춘 뒤: 화면에 꽉 찬 광고 자리는 위치를 다시 맞춤(덜 맞춰진 채 그려져 아래가 잘리는 것 방지)
+      const V = $reels.getBoundingClientRect();
+      $reels.querySelectorAll('.adslot[data-kind="native"]').forEach(sl => { const R = sl.getBoundingClientRect(); if (Math.abs(R.top - V.top) < 4) this.show(sl); });
+      gone.forEach(sl => { const R = sl.getBoundingClientRect(), V = $reels.getBoundingClientRect(); if (R.bottom <= V.top + 2 || R.top >= V.bottom - 2) { vis.unobserve(sl); gone.delete(sl); this.drop(sl, $reels); } }); }, 220); };
     $reels.addEventListener('scroll', later, { passive: true });
     slots.forEach(sl => { near.observe(sl); vis.observe(sl); });
   },
