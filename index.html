@@ -57,7 +57,8 @@
   .top { position:sticky; top:0; z-index:5; display:flex; align-items:center; height:calc(56px + env(safe-area-inset-top)); padding:env(safe-area-inset-top) 20px 0; background:color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
   .top .sp { flex:1; }
   .icon-btn { position:relative; background:none; border:0; padding:8px; margin-left:4px; border-radius:50%; }
-  .icon-btn:hover { background:var(--soft); }
+  @media (hover:hover) and (pointer:fine) { .icon-btn:hover { background:var(--soft); } }
+  .icon-btn { -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
   .dot { position:absolute; top:4px; right:4px; width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 2px var(--bg); }
   .dot.red { top:8px; right:9px; width:6px; height:6px; background:#ff3b30; box-shadow:none; }
 
@@ -1505,6 +1506,11 @@
   .cfr.touched .chint { opacity:0; }
   .cfr .cgrid { position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .2s; background:linear-gradient(90deg, transparent calc(33.3% - .5px), rgba(255,255,255,.35) 33.3%, transparent calc(33.3% + .5px), transparent calc(66.6% - .5px), rgba(255,255,255,.35) 66.6%, transparent calc(66.6% + .5px)), linear-gradient(transparent calc(33.3% - .5px), rgba(255,255,255,.35) 33.3%, transparent calc(33.3% + .5px), transparent calc(66.6% - .5px), rgba(255,255,255,.35) 66.6%, transparent calc(66.6% + .5px)); }
   .cfr.moving .cgrid { opacity:1; }
+  /* 여러 장 표시: 9:16 칸 오른쪽 위 고정, 작고 얇게 */
+  .rcar .slide { position:relative; }
+  .rcar .rmulti { top:10px; right:10px; gap:4px; padding:3px 7px 3px 6px; background:rgba(0,0,0,.42); font-size:11px; font-weight:500; letter-spacing:.01em; }
+  .rcar .rmulti svg { width:11px; height:11px; }
+  .rcar .rmulti b { font-weight:500; }
 </style>
 </head>
 <body>
@@ -3582,18 +3588,17 @@ function openFeedViewer(id, btn) {
   if (!list.length) return openPost(id);
   const g = G.g && list[0].group_id === G.g.id ? G.g : null, prof = !g ? S.prof : null;
   if (g) HOME.groups.set(g.id, g);
-  openReelViewer({ list, startId: id, title: g ? g.name : prof?.name || '', face: g ? gAv(g, 'xs') : avatar(prof || {}, 'xs'), link: g ? gUrl(g) : feedUrl(list[0].owner_id), extraOwner: prof });
+  openReelViewer({ list, startId: id, withMenu: true, title: g ? g.name : prof?.name || '', face: g ? gAv(g, 'xs') : avatar(prof || {}, 'xs'), link: g ? gUrl(g) : feedUrl(list[0].owner_id), extraOwner: prof });
 }
 let VIEWER = []; // 지금 열린 Candids 보기의 게시물(⋯ 메뉴 등에서 찾기용)
-function openReelViewer({ list, title, face, link, extraOwner, startId, restore }) {
+function openReelViewer({ list, title, face, link, extraOwner, startId, restore, withMenu }) {
   VIEWER = list;
   const owners = new Map(CACHE.home?.owners || HOME.owners || []); if (extraOwner) owners.set(extraOwner.id, extraOwner);
   const ov = document.createElement('div'); ov.className = 'oreel';
   ov.innerHTML = `<div class="reels" id="sreels"><header class="rtop oreel-h"><button class="icon-btn" data-x aria-label="${t('뒤로')}">${I.back}</button>
-      <a class="oreel-who" href="${link}">${face}<b>${esc(title)}</b></a><div class="sp"></div>
-      <button class="icon-btn" data-more aria-label="${t('더보기')}">${I.more}</button></header>
+      <a class="oreel-who" href="${link}">${face}<b>${esc(title)}</b></a><div class="sp"></div>${withMenu ? `<button class="icon-btn" data-more aria-label="${t('더보기')}">${I.more}</button>` : ''}</header>
     ${FEED_ADS.weave(list, p => reelSection(p, owners))}</div>`;
-  ov._desc = { list, title, face, link, extraOwner, startId }; // 링크로 떠났다가 뒤로 오면 이걸로 다시 엶
+  ov._desc = { list, title, face, link, extraOwner, startId, withMenu }; // 링크로 떠났다가 뒤로 오면 이걸로 다시 엶
   document.body.appendChild(ov);
   const $r = ov.querySelector('#sreels');
   $r.classList.toggle('hide-stk', HIDE_STK);
@@ -3609,8 +3614,11 @@ function openReelViewer({ list, title, face, link, extraOwner, startId, restore 
   const onPop = () => { if (!history.state?.oreel && !document.querySelector('.overlay.page')) { removeEventListener('popstate', onPop); close(); } };
   addEventListener('popstate', onPop);
   ov._close = () => history.state?.oreel ? history.back() : close();
-  ov.querySelector('[data-x]').onclick = ov._close;
-  ov.querySelector('[data-more]').onclick = () => { const R = $r.getBoundingClientRect(); const cur = [...$r.querySelectorAll('.reel[data-id]')].find(e => Math.abs(e.getBoundingClientRect().top - R.top) < 40); if (cur) reelMore(cur.dataset.id); };
+  // 뒤로: 영상·움직이는 화면 위에서 iPhone 이 click 을 놓치는 경우가 있어 손을 뗄 때 바로 닫음
+  const bx = ov.querySelector('[data-x]'); let bxAt = 0;
+  bx.addEventListener('pointerup', () => { bxAt = Date.now(); ov._close(); });
+  bx.onclick = () => { if (Date.now() - bxAt > 600) ov._close(); };
+  ov.querySelector('[data-more]')?.addEventListener('click', () => { const R = $r.getBoundingClientRect(); const cur = [...$r.querySelectorAll('.reel[data-id]')].find(e => Math.abs(e.getBoundingClientRect().top - R.top) < 40); if (cur) postMenu(cur.dataset.id); });
   ov.querySelector('.oreel-who').addEventListener('click', () => { removeEventListener('popstate', onPop); FEED_ADS.hide(); ov.remove(); });
   edgeSwipeBack(ov, ov._close);
 }
@@ -3957,11 +3965,7 @@ function openPost(id) {
       <div class="post-f">
         ${gp ? t('{when} 올림', { when: ago(p.created_at) }) : p.status === 'pending' ? t('받은 지 {when} · 승인 대기 중', { when: ago(p.created_at) }) : p.status === 'hidden' ? t('{when} 피드에서 내림 · 나만 보여요', { when: ago(p.hidden_at || p.created_at) }) : t('{when} 피드에 올림', { when: ago(p.approved_at || p.created_at) })}
         <div class="sp"></div>
-        ${own && p.status === 'approved' ? `<button class="icon-btn" aria-label="${t('스토리 이미지 저장')}" onclick="makeStory('${p.id}')">${I.share}</button>` : ''}
-        ${own ? `<button class="icon-btn" aria-label="${t('더보기')}" onclick="postMenu('${p.id}')">${I.more}</button>` : ''}
-        ${!gp && !own && isMine(p) ? `<button class="icon-btn" aria-label="${t('더보기')}" onclick="myPostMenu('${p.id}')">${I.more}</button>` : ''}
-        ${!gp && !own && !isMine(p) && me && p.status === 'approved' ? `<button class="icon-btn" aria-label="${t('더보기')}" onclick="otherPostMenu('${p.id}')">${I.more}</button>` : ''}
-        ${gp ? `<button class="icon-btn" aria-label="${t('사진 저장')}" onclick="savePhoto('${p.id}')">${I.download}</button><button class="icon-btn" aria-label="${t('더보기')}" onclick="groupPostMenu('${p.id}')">${I.more}</button>` : ''}
+        ${postItems(p.id) ? `<button class="icon-btn" aria-label="${t('더보기')}" onclick="postMenu('${p.id}')">${I.more}</button>` : ''}
       </div>
       ${own && p.status === 'pending' ? `<div class="pending-acts">
         <button class="btn" onclick="removePost('${p.id}')">${t('거절')}</button>
@@ -4303,19 +4307,31 @@ function openDeleteAccount() {
     location.href = location.pathname;
   };
 }
-function postMenu(id) {
-  const p = findPost(id);
-  menu(`${p.media_type === 'question' ? `<button class="menu-item" onclick="openAnswer('${id}')">${t(p.answer ? '답 수정하기' : '답하기')}</button>` : ''}
-        ${p.status === 'pending'
-          ? (p.media_type === 'question' ? '' : `<button class="menu-item" onclick="approve('${id}')">${t('승인하기')}</button>`)
-          : p.status === 'hidden' ? `<button class="menu-item" onclick="restorePost('${id}')">${t('다시 올리기')}</button>`
-          : `<button class="menu-item" onclick="makeStory('${id}')">${t('스토리 이미지 저장')}</button>
-             <button class="menu-item" onclick="pinPost('${id}', ${!p.pinned_at})">${t(p.pinned_at ? '고정 해제' : '피드 맨 위에 고정')}</button>
-             ${!isText(p) ? `<button class="menu-item" onclick="closeSheet();setTimeout(() => editPostText('${id}'), 250)">${t('게시물 수정')}</button>` : ''}`}
-        ${p.status === 'approved'
-          ? `<button class="menu-item danger" onclick="hidePost('${id}')">${t('피드에서 내리기')}</button>`
-          : `<button class="menu-item danger" onclick="removePost('${id}')">${t(p.status === 'pending' ? '거절하기' : '완전히 삭제')}</button>`}`);
+// ---------- 게시물 ⋯ 메뉴: 어디서 열든 같은 순서·같은 말 ----------
+// 사진 저장 → (주인) 승인·답하기 → 맨 위에 고정 → 게시물 수정 → 다시 올리기 → 신고·차단 → (빨간) 내리기·삭제·거절
+function postItems(id) {
+  const p = findAny(id); if (!p || !me) return '';
+  const g = p.group_id ? groupOf(p.group_id) : null, st = p.status || 'approved';
+  const owner = p.group_id ? g?.owner_id === me.id : p.owner_id === me.id, author = !!p.author_id && p.author_id === me.id;
+  const it = (label, fn, danger) => `<button class="menu-item${danger ? ' danger' : ''}" onclick="${fn}">${label}</button>`;
+  const later = fn => `closeSheet();setTimeout(() => ${fn}, 250)`;
+  const name = esc(p.author_name || '').replace(/'/g, '&#39;');
+  return [
+    owner && !p.group_id && p.media_type === 'question' ? it(t(p.answer ? '답 수정하기' : '답하기'), `openAnswer('${id}')`) : '',
+    owner && st === 'pending' && p.media_type !== 'question' ? it(t('승인하기'), `approve('${id}')`) : '',
+    !isText(p) ? it(t('사진 저장'), `savePhoto('${id}')`) : '',
+    owner && st === 'approved' ? it(t(p.pinned_at ? '고정 해제' : '맨 위에 고정'), `pinPost('${id}', ${!p.pinned_at})`) : '',
+    owner && p.group_id && p.flagged ? it(t('다시 보이게 하기 (신고 기록 지우기)'), `unflagPost('${id}')`) : '',
+    !isText(p) && (author || (owner && st === 'approved')) ? it(t('게시물 수정'), later(`editPostText('${id}')`)) : '',
+    owner && st === 'hidden' ? it(t('다시 올리기'), `restorePost('${id}')`) : '',
+    !author && !owner && st === 'approved' ? it(t('신고하기'), later(p.group_id ? `reportPost('${id}')` : `reportContent('post', '${id}')`), true) : '',
+    !author && p.author_id ? it(t('{name}님 차단', { name: esc(p.author_name) }), `blockUser('${p.author_id}', '${name}')`, true) : '',
+    p.group_id ? (owner || author ? it(t('삭제'), `deleteGroupPost('${id}')`, true) : '')
+      : owner ? (st === 'approved' ? it(t('피드에서 내리기'), `closeSheet();closeViewer();setTimeout(() => hidePost('${id}'), 250)`, true) : it(t(st === 'pending' ? '거절하기' : '완전히 삭제'), `removePost('${id}')`, true))
+      : author ? it(t('보낸 사진 삭제'), `deleteMyPost('${id}')`, true) : '',
+  ].join('');
 }
+function postMenu(id) { const h = postItems(id); if (h) menu(h); }
 
 // 업로드: 인스타·유튜브처럼 누르면 바로 사진첩이 열리고, 고르면 전체 화면 작성 화면
 // mi/asked: 공유 링크(&m=)로 부탁받은 내용(안내 문구용), mode: media | poll | question, pick: 열자마자 사진첩 열기
@@ -5392,7 +5408,7 @@ function mediaCarousel(p, mode) {
   const items = mediaOf(p), alt = t('{name}가 보낸 사진', { name: aname(p.author_name) });
   if (items.length <= 1) return `<div class="carwrap" data-idx="0"><div class="stage">${items[0] ? mediaEl(items[0], mode, alt) : ''}${stickerLayer(p.id, 0)}</div></div>`;
   return `<div class="carwrap multi" data-idx="0">
-    <div class="car" data-car>${items.map((m, i) => `<div class="slide"><div class="stage">${mediaEl(m, mode, alt)}${stickerLayer(p.id, i)}${mode === 'reel' ? `<span class="rmulti" aria-label="${t('{n}장 중 {i}번째', { n: items.length, i: i + 1 })}">${I.multi}<b>${i + 1}/${items.length}</b></span>` : ''}</div></div>`).join('')}</div>
+    <div class="car" data-car>${items.map((m, i) => `<div class="slide"><div class="stage">${mediaEl(m, mode, alt)}${stickerLayer(p.id, i)}</div>${mode === 'reel' ? `<span class="rmulti" aria-label="${t('{n}장 중 {i}번째', { n: items.length, i: i + 1 })}">${I.multi}<b>${i + 1}/${items.length}</b></span>` : ''}</div>`).join('')}</div>
     <span class="car-n">1/${items.length}</span>
     <div class="car-dots">${items.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div></div>`;
 }
@@ -6247,17 +6263,7 @@ async function openGroupManage() {
 
 // ---------- 그룹 게시물: 메뉴 · 고정 · 신고 · 저장 · 삭제 ----------
 // 릴스 ⋯: 스티커 보이기/숨기기 + (그룹 사진이면) 그룹 게시물 메뉴
-function reelMore(id) {
-  const p = HOME.posts.find(x => x.id === id) || VIEWER.find(x => x.id === id); if (!p) return;
-  const o = HOME.owners?.get(p.owner_id) || (S.prof?.id === p.owner_id ? S.prof : null);
-  if (!p.group_id && p.owner_id === me?.id) return menu(`<button class="menu-item" onclick="closeSheet();toggleReelStickers()">${t(HIDE_STK ? '붙은 스티커 보이기' : '붙은 스티커 숨기기')}</button>
-    <button class="menu-item" onclick="closeSheet();makeStory('${id}')">${t('스토리 이미지 저장')}</button>
-    <button class="menu-item" onclick="closeViewer();pinPost('${id}', ${!p.pinned_at})">${t(p.pinned_at ? '고정 해제' : '피드 맨 위에 고정')}</button>
-    ${!isText(p) ? `<button class="menu-item" onclick="closeSheet();setTimeout(() => editPostText('${id}'), 250)">${t('게시물 수정')}</button>` : ''}
-    <button class="menu-item danger" onclick="closeSheet();closeViewer();setTimeout(() => hidePost('${id}'), 250)">${t('피드에서 내리기')}</button>`);
-  menu(`<button class="menu-item" onclick="closeSheet();toggleReelStickers()">${t(HIDE_STK ? '붙은 스티커 보이기' : '붙은 스티커 숨기기')}</button>
-    ${p.group_id ? groupPostItems(id) : `<button class="menu-item" onclick="closeSheet();go('${feedUrl(p.owner_id)}')">${t('{name} 피드로 가기', { name: esc(o?.name || t('친구')) })}</button>${isMine(p) ? myPostItems(id) : p.owner_id !== me?.id ? otherPostItems(id) : ''}`}`);
-}
+const reelMore = postMenu;
 // 작은 프로필(이름·사진) 한 번 받은 건 기억
 const PROF_LITE = new Map();
 async function loadProfLite(id) {
@@ -6270,9 +6276,7 @@ async function loadEdited(p) { // '수정됨' 표시용(23 SQL 전이면 조용�
   const { data, error } = await sb.from('posts').select('edited_at').eq('id', p.id).maybeSingle();
   p.edited_at = error ? null : data?.edited_at || null;
 }
-const myPostItems = id => `<button class="menu-item" onclick="closeSheet();setTimeout(() => editPostText('${id}'), 250)">${t('게시물 수정')}</button>
-    <button class="menu-item danger" onclick="deleteMyPost('${id}')">${t('보낸 사진 삭제')}</button>`;
-function myPostMenu(id) { menu(myPostItems(id)); }
+const myPostMenu = postMenu;
 const editErr = e => /edit_post_text|delete_my_post|edited_at/.test(e?.message || '') && /does not exist|not find|42883|PGRST20/.test(e?.message || '')
   ? t('수정 기능 준비 중이에요(관리자: 23 SQL 실행 필요)') : /not_allowed/.test(e?.message || '') ? t('내가 보낸 글만 고칠 수 있어요') : kerr(e);
 // 게시물 수정: 한마디 + 사진 빼기·더하기(24 SQL). 그룹은 더하기 가능(마감 전), 친구 피드는 이미 올라간 것이라 빼기만
@@ -6383,18 +6387,7 @@ async function deleteMyPost(id) {
   if (HOME.posts) { HOME.posts = HOME.posts.filter(x => x.id !== id); document.querySelector(`.reel[data-id="${id}"]`)?.remove(); }
   toast(t('보낸 사진을 지웠어요'));
 }
-function groupPostMenu(id) { const h = groupPostItems(id); if (h) menu(h); }
-function groupPostItems(id) {
-  const p = findAny(id); if (!p) return '';
-  const g = groupOf(p.group_id), owner = !!me && g?.owner_id === me.id, mine = !!me && p.author_id === me.id;
-  return (`<button class="menu-item" onclick="savePhoto('${id}')">${t('사진 저장')}</button>
-    ${owner ? `<button class="menu-item" onclick="pinPost('${id}', ${!p.pinned_at})">${t(p.pinned_at ? '고정 해제' : '맨 위에 고정')}</button>` : ''}
-    ${owner && p.flagged ? `<button class="menu-item" onclick="unflagPost('${id}')">${t('다시 보이게 하기 (신고 기록 지우기)')}</button>` : ''}
-    ${me && !mine ? `<button class="menu-item danger" onclick="closeSheet();setTimeout(() => reportPost('${id}'), 250)">${t('신고하기')}</button>` : ''}
-    ${me && !mine && p.author_id ? `<button class="menu-item danger" onclick="blockUser('${p.author_id}', '${esc(p.author_name).replace(/'/g, '&#39;')}')">${t('{name}님 차단', { name: esc(p.author_name) })}</button>` : ''}
-    ${(mine || owner) && !isText(p) ? `<button class="menu-item" onclick="closeSheet();setTimeout(() => editPostText('${id}'), 250)">${t('게시물 수정')}</button>` : ''}
-    ${owner || mine ? `<button class="menu-item danger" onclick="deleteGroupPost('${id}')">${t('삭제')}</button>` : ''}`);
-}
+const groupPostMenu = postMenu;
 const curMediaIdx = id => +(document.querySelector(`.overlay .carwrap`)?.dataset.idx || document.querySelector(`.reel[data-id="${id}"] .carwrap`)?.dataset.idx || 0);
 // iOS 앱: iPhone 사진첩에 바로 저장
 async function saveNative(blob, okMsg) {
@@ -6480,18 +6473,13 @@ async function unblockUser(uid) {
 }
 function profileMenu(uid) {
   const name = S.prof?.id === uid ? S.prof.name : '';
-  menu(`<button class="menu-item" onclick="closeSheet();shareOther('${uid}', ${S.prof?.handle ? `'${S.prof.handle}'` : 'null'})">${t('프로필 링크 공유')}</button>
+  menu(`<button class="menu-item" onclick="closeSheet();shareOther('${uid}', ${S.prof?.handle ? `'${S.prof.handle}'` : 'null'})">${t('피드 링크 공유')}</button>
     <button class="menu-item danger" onclick="closeSheet();setTimeout(() => reportContent('user', '${uid}'), 250)">${t('신고하기')}</button>
     ${BLOCKED.has(uid) ? `<button class="menu-item" onclick="closeSheet();unblockUser('${uid}').then(() => paintProfile())">${t('차단 해제')}</button>`
       : `<button class="menu-item danger" onclick="blockUser('${uid}', '${esc(name).replace(/'/g, '&#39;')}')">${t('차단하기')}</button>`}`);
 }
 // 남의 게시물(개인 피드) 메뉴: 신고 · 보낸 사람 차단
-function otherPostItems(id) {
-  const p = findAny(id); if (!p || !me) return '';
-  return `<button class="menu-item danger" onclick="closeSheet();setTimeout(() => reportContent('post', '${id}'), 250)">${t('신고하기')}</button>
-    ${p.author_id && p.author_id !== me.id ? `<button class="menu-item danger" onclick="blockUser('${p.author_id}', '${esc(p.author_name).replace(/'/g, '&#39;')}')">${t('{name}님 차단', { name: esc(p.author_name) })}</button>` : ''}`;
-}
-function otherPostMenu(id) { const h = otherPostItems(id); if (h) menu(h); }
+const otherPostMenu = postMenu;
 async function openBlockedList() {
   const w = sheet(`<div class="shead"><h3>Blocked<i class="pd">.</i></h3><button class="icon-btn" aria-label="${t('닫기')}" onclick="closeSheet()">${I.close}</button></div><div class="flist" id="bl" style="padding:0"><p class="hint">${t('불러오는 중…')}</p></div>`);
   await loadBlocks();
@@ -7107,95 +7095,7 @@ async function resizeSquare(file, size) {
   return new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
 }
 
-// 글자 단위 줄바꿈 (한글은 띄어쓰기가 적어서 글자 단위가 자연스러움), 넘치면 말줄임
-function wrapLines(g, text, maxW, maxLines) {
-  const lines = []; let cur = '';
-  for (const ch of [...text]) {
-    if (g.measureText(cur + ch).width > maxW && cur) { lines.push(cur); cur = ch.trimStart(); } else cur += ch;
-  }
-  if (cur) lines.push(cur);
-  if (lines.length > maxLines) { lines.length = maxLines; lines[maxLines - 1] = lines[maxLines - 1].replace(/.$/, '…'); }
-  return lines;
-}
 
-// 투표·질문 스토리: 사진 자리에 블루 카드로 내용 그리기
-function drawTextCard(g, p, x, y, w, h) {
-  g.fillStyle = p.media_type === 'poll' ? '#2b50ff' : '#0a0a0a'; g.fillRect(x, y, w, h);
-  g.fillStyle = 'rgba(255,255,255,.6)'; g.font = '800 28px Pretendard, sans-serif'; g.fillText(p.media_type === 'poll' ? 'POLL' : 'Q&A', x + 48, y + 80);
-  g.fillStyle = '#fff'; g.font = '800 54px Pretendard, sans-serif';
-  const ql = wrapLines(g, (p.media_type === 'question' ? 'Q. ' : '') + p.text, w - 96, 4);
-  ql.forEach((ln, i) => g.fillText(ln, x + 48, y + 170 + i * 68));
-  let yy = y + 190 + ql.length * 68;
-  if (p.media_type === 'poll') {
-    const s = POLL.get(p.id) || { counts: p.poll_options.map(() => 0), total: 0 };
-    p.poll_options.forEach((o, i) => {
-      const pct = s.total ? Math.round(s.counts[i] / s.total * 100) : 0;
-      g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(x + 48, yy, w - 96, 72);
-      g.fillStyle = 'rgba(255,255,255,.45)'; g.fillRect(x + 48, yy, (w - 96) * pct / 100, 72);
-      g.fillStyle = '#fff'; g.font = '700 30px Pretendard, sans-serif'; g.fillText(wrapLines(g, o, w - 260, 1)[0], x + 72, yy + 47);
-      g.textAlign = 'right'; g.fillText(pct + '%', x + w - 72, yy + 47); g.textAlign = 'left';
-      yy += 86;
-    });
-  } else if (p.answer) {
-    g.fillStyle = 'rgba(255,255,255,.75)'; g.font = '600 40px Pretendard, sans-serif';
-    wrapLines(g, 'A. ' + p.answer, w - 96, 5).forEach((ln, i) => g.fillText(ln, x + 48, yy + 20 + i * 54));
-  }
-}
-
-// 인스타 스토리용 1080x1920 이미지 — 위 250px/아래 300px은 인스타 UI가 덮으므로 비워 둠
-async function makeStory(id) {
-  closeSheet();
-  const p = S.approved.find(x => x.id === id); if (!p) return;
-  toast(t('스토리 이미지를 만드는 중…'));
-  await Promise.all([document.fonts.load('800 80px "Bricolage Grotesque"'), document.fonts.load('800 40px Pretendard')]).catch(() => {});
-  let img = null;
-  if (!isText(p)) { try { img = await loadImg(isVideo(p) ? thumbUrl(p) : photoUrl(p.image_path)); } catch { return toast(t('사진을 불러오지 못했어요. 다시 시도해 주세요')); } }
-  const c = document.createElement('canvas'); c.width = 1080; c.height = 1920;
-  const g = c.getContext('2d');
-  const cover = (W, H) => { const r = Math.max(W / img.width, H / img.height), sw = W / r, sh = H / r; return [(img.width - sw) / 2, (img.height - sh) / 2, sw, sh]; };
-
-  // 배경: 사진을 아주 작게 그렸다 키워서 블러 효과 → 사진마다 다른 톤 (모든 브라우저에서 동작)
-  if (img) {
-    const t = document.createElement('canvas'); t.width = 27; t.height = 48;
-    t.getContext('2d').drawImage(img, ...cover(27, 48), 0, 0, 27, 48);
-    g.imageSmoothingQuality = 'high'; g.drawImage(t, 0, 0, 1080, 1920);
-    g.fillStyle = 'rgba(255,255,255,.72)'; g.fillRect(0, 0, 1080, 1920);
-  } else { const bg = g.createLinearGradient(0, 0, 1080, 1920); bg.addColorStop(0, '#eef1ff'); bg.addColorStop(1, '#ffffff'); g.fillStyle = bg; g.fillRect(0, 0, 1080, 1920); }
-
-  // 로고 + 부제
-  g.textAlign = 'left'; g.font = '800 80px "Bricolage Grotesque", sans-serif';
-  const lw = g.measureText('candid').width, dw = g.measureText('.').width, lx = 540 - (lw + dw) / 2;
-  g.fillStyle = '#0a0a0a'; g.fillText('candid', lx, 330); g.fillStyle = '#2b50ff'; g.fillText('.', lx + lw, 330);
-  g.textAlign = 'center'; g.fillStyle = '#3a3a3c'; g.font = '700 34px Pretendard, sans-serif';
-  g.fillText(t('친구가 본 {name}', { name: S.prof.name }), 540, 392);
-
-  // 폴라로이드 카드 (랜딩 콜라주와 같은 구조)
-  g.save(); g.translate(540, 960); g.rotate(-0.02);
-  g.shadowColor = 'rgba(0,0,0,.18)'; g.shadowBlur = 70; g.shadowOffsetY = 24;
-  g.fillStyle = '#fff'; g.fillRect(-360, -510, 720, 1040); g.shadowColor = 'transparent';
-  if (img) g.drawImage(img, ...cover(640, 800), -320, -470, 640, 800);
-  else drawTextCard(g, p, -320, -470, 640, 800);
-  g.textAlign = 'left'; g.fillStyle = '#2b50ff'; g.font = '800 26px Pretendard, sans-serif';
-  g.fillText(p.mission || '', -320, 382);
-  g.fillStyle = '#0a0a0a'; g.font = '800 44px Pretendard, sans-serif';
-  const lines = p.text && !isText(p) ? wrapLines(g, p.text, 640, 2) : [];
-  lines.forEach((ln, i) => g.fillText(ln, -320, 438 + i * 54));
-  g.fillStyle = '#8e8e93'; g.font = '600 26px Pretendard, sans-serif';
-  g.fillText(`— ${p.author_name}`, -320, lines.length > 1 ? 512 : lines.length ? 488 : 430);
-  g.restore();
-
-  // 하단 CTA 알약 — 인스타 링크 스티커를 여기에 붙이면 좋음
-  g.fillStyle = '#2b50ff'; g.beginPath(); g.roundRect ? g.roundRect(170, 1560, 740, 96, 48) : g.rect(170, 1560, 740, 96); g.fill();
-  g.fillStyle = '#fff'; g.font = '700 32px Pretendard, sans-serif'; g.textAlign = 'center';
-  g.fillText(t('나한테도 사진 보내줘 → 링크 클릭'), 540, 1619);
-
-  const blob = await new Promise(res => c.toBlob(res, 'image/png'));
-  const file = new File([blob], 'candid-story.png', { type: 'image/png' });
-  if (IN_APP) return saveNative(blob, t('이미지를 저장했어요. 스토리에 올리고 링크 스티커로 내 피드 링크를 붙여 보세요'));
-  if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file] }); return; } catch {} }
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; a.click();
-  toast(t('이미지를 저장했어요. 스토리에 올리고 링크 스티커로 내 피드 링크를 붙여 보세요'));
-}
 </script>
 </body>
 </html>
