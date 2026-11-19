@@ -1349,6 +1349,19 @@
   .oreel-h .icon-btn[data-more] { color:#fff; }
   /* Candids 보기(z 30) 위에서 여는 화면들(꾸며주기·채워주기 작성 등)은 그 위로 */
   .oreel ~ .page-ov, .oreel ~ .composer { z-index:46; }
+  /* 하단 메뉴: 떠 있는 캡슐 바(아이콘만, 지금 탭은 알약 배경) — 앞의 .bnav 규칙들을 덮어씀 */
+  .bnav { bottom:calc(8px + env(safe-area-inset-bottom)) !important; width:calc(100% - 64px); max-width:360px; height:60px; padding:6px; gap:4px; align-items:center;
+    border-radius:30px; border:1px solid var(--line); background:var(--bg); box-shadow:0 8px 28px rgba(0,0,0,.18); backdrop-filter:none; -webkit-backdrop-filter:none; }
+  .bnav.dark { background:#000; border-color:#2a2a2e; box-shadow:0 8px 28px rgba(0,0,0,.55); }
+  .bnav button { height:48px !important; border-radius:24px; gap:0 !important; color:var(--fg); }
+  .bnav button.on { background:var(--soft) !important; }
+  .bnav.dark button { color:#fff; } .bnav.dark button.on { background:#2a2a2e !important; }
+  .bnav .bl { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); } /* 글자는 숨김(읽기 도우미용으로만 남김) */
+  .bnav button svg { width:26px; height:26px; }
+  .bnav .bav .av.xs { width:28px !important; height:28px !important; }
+  .bnav button.on .bav { box-shadow:none; }
+  .app.has-nav { padding-bottom:calc(84px + env(safe-area-inset-bottom)); }
+  body:has(.bnav) .toast { bottom:calc(84px + env(safe-area-inset-bottom)); }
 </style>
 </head>
 <body>
