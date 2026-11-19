@@ -1327,6 +1327,11 @@
   .grid .gfrom img { width:100%; height:100%; object-fit:cover; }
   .grid .gfrom svg { width:16px; height:16px; }
   .grid .gnew { position:absolute; right:7px; bottom:9px; z-index:1; width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 2px rgba(0,0,0,.25); }
+  /* 프로필 머리: 소개 글을 아이디 바로 아래로(사진 옆 칸까지 같이 씀), 숫자 줄은 좌우 꽉 채워 고르게 */
+  .head { grid-template-areas:"name av" "handle av" "desc av" "dots dots" "stats stats"; align-items:start; }
+  .head > .name { align-self:end; }
+  .head > .desc, .head > .bio-empty { margin:8px 0 0; }
+  .head > .stats { justify-content:space-between; gap:8px; margin-top:16px; }
 </style>
 </head>
 <body>
