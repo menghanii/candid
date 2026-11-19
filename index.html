@@ -1284,6 +1284,13 @@
   .adbox b { display:block; font-size:18px; margin-bottom:4px; } .adbox p { color:var(--sub); font-size:14px; margin:0 0 14px; }
   .adtag { position:absolute; left:16px; top:14px; font-size:11px; font-weight:700; color:var(--sub); border:1px solid var(--line); border-radius:6px; padding:1px 6px; }
   .adx { position:absolute; right:8px; top:6px; } .adx:disabled { opacity:.25; }
+  /* 피드 광고 자리 */
+  .reel.adslot { display:flex; align-items:center; justify-content:center; background:#000; }
+  .adph span { color:#555; font-size:12px; font-weight:700; border:1px solid #333; border-radius:6px; padding:2px 8px; }
+  .adinline { width:min(88vw, 380px); text-align:center; color:#fff; position:relative; padding-top:28px; }
+  .adinline img { width:100%; aspect-ratio:4/5; object-fit:cover; border-radius:16px; margin-bottom:14px; }
+  .adinline b { display:block; font-size:18px; margin-bottom:4px; } .adinline p { color:#aaa; font-size:14px; margin:0 0 14px; }
+  .adinline .adtag { left:0; top:0; color:#ccc; border-color:#444; }
 </style>
 </head>
 <body>
@@ -1703,6 +1710,7 @@ const pageKey = () => location.pathname + location.search;
 function go(url, replace) {
   const u = new URL(url, location.href);
   if (PERF) console.log(`[candid] go +${Math.round(performance.now())}ms ${u.search}`);
+  FEED_ADS.hide();
   if (history.state?.post) replace = true; // 사진 페이지에서 다른 화면으로: 사진 페이지 기록은 새 화면으로 바꿈
   if (u.pathname + u.search === pageKey() && !replace) return;
   const d = history.state?.d || 0;
@@ -3055,7 +3063,7 @@ function openOrbitStack(x) {
   const ov = document.createElement('div'); ov.className = 'oreel';
   ov.innerHTML = `<div class="reels" id="sreels"><header class="rtop oreel-h"><button class="icon-btn" data-x aria-label="${t('뒤로')}">${I.back}</button>
       <a class="oreel-who" href="${x.g ? gUrl(x.g) : feedUrl(x.o?.id || list[0].owner_id)}">${face}<b>${esc(x.name)}</b></a><div class="sp"></div></header>
-    ${list.map(p => reelSection(p, owners)).join('')}</div>`;
+    ${FEED_ADS.weave(list, p => reelSection(p, owners))}</div>`;
   document.body.appendChild(ov);
   const $r = ov.querySelector('#sreels');
   $r.classList.toggle('hide-stk', HIDE_STK);
@@ -3064,7 +3072,7 @@ function openOrbitStack(x) {
   loadStickers(list.map(p => p.id)).then(() => list.forEach(p => refreshStickerLayers(p.id))).catch(() => {});
   // 뒤로가기(제스처·버튼)로 닫힘 → 궤도(숫자 갱신)
   history.pushState({ ...(history.state || {}), oreel: 1 }, '');
-  const close = () => { if (!ov.isConnected) return; ov.querySelectorAll('video').forEach(v => v.pause()); ov.classList.add('out'); setTimeout(() => ov.remove(), 200); if (CACHE.home && document.getElementById('orbitv')) paintHome(CACHE.home); };
+  const close = () => { if (!ov.isConnected) return; FEED_ADS.hide(); ov.querySelectorAll('video').forEach(v => v.pause()); ov.classList.add('out'); setTimeout(() => ov.remove(), 200); if (CACHE.home && document.getElementById('orbitv')) paintHome(CACHE.home); };
   const onPop = () => { if (!history.state?.oreel && !document.querySelector('.overlay.page')) { removeEventListener('popstate', onPop); close(); } };
   addEventListener('popstate', onPop);
   ov.querySelector('[data-x]').onclick = () => history.state?.oreel ? history.back() : close();
@@ -3176,7 +3184,7 @@ function paintHome({ posts, owners, groups }) {
       <a class="btn block" href="${feedUrl(me.id)}" style="display:block;text-decoration:none;text-align:center">${t('내 피드로 가기')}</a></div></section></div>${navBar('reels')}`;
     return;
   }
-  $app.innerHTML = `<div class="reels" id="reels">${top}${posts.map(p => reelSection(p, owners)).join('')}
+  $app.innerHTML = `<div class="reels" id="reels">${top}${FEED_ADS.weave(posts, p => reelSection(p, owners))}
     <section class="reel rempty"><div><div class="empty-dot">${DOT('happy', { size: 80, cls: 'hop' })}</div><h2>All caught <em>up.</em></h2><p>${t('친구들 새 사진을 다 봤어요.<br>이번엔 내가 친구 피드를 채워줄 차례!')}</p>
       <button class="btn primary block" onclick="openFriends()">${t('친구 피드에 사진 보내기')}</button></div></section></div>${navBar('reels')}`;
 
@@ -3197,6 +3205,7 @@ function paintHome({ posts, owners, groups }) {
 }
 // 칸 연결: 보이는 영상만 재생·1초 보면 '본 것'·여러 장 넘기기·확대·두 번 탭 좋아요
 function wireReels($reels) {
+  FEED_ADS.wire($reels);
   // 화면에 보이는 영상만 재생
   const io = new IntersectionObserver(es => es.forEach(e => {
     if (e.isIntersecting) { try { sessionStorage.setItem('candid_reel', e.target.dataset.id); } catch {} } // 이번 세션에서 마지막으로 본 릴스
@@ -3524,7 +3533,7 @@ const ADS = {
   async start() { if (!this.on || !me || this.started) return; this.started = true; for (const p of this.providers) if (p.available()) await p.init?.().catch(e => console.log('[candid] ad init ' + p.name + ' ' + (e?.message || e))); },
   // Candids 한 장을 봤을 때(1초 이상) 부름: N장마다, 최소 간격·하루 한도 안에서 광고
   async viewed(placement = 'candids') {
-    if (!this.on || !me) return;
+    if (!this.on || !me || this.cfg.interstitial === false) return; // 전면 광고 끔(피드 광고만)
     if (++this.count < (this.cfg.every || 8)) return;
     if (Date.now() - this.lastAt < (this.cfg.minGapSec || 90) * 1000 || this.today() >= (this.cfg.dailyCap || 12)) return;
     if (document.querySelector('.sheet-wrap:not(.closing), .composer, .overlay.page')) return; // 무언가 하는 중이면 미룸
@@ -3540,6 +3549,13 @@ const ADS = {
   },
   log(provider, kind, placement, adId = null) { if (PERF) console.log(`[candid] ad ${kind} ${provider} ${placement}`); sb.rpc('log_ad_event', { p_provider: provider, p_kind: kind, p_placement: placement, p_ad: adId }).then(() => {}, () => {}); },
 };
+// 하우스 광고 목록(10분 보관) → 가중치로 하나
+let HOUSE = { list: null, at: 0 };
+async function pickHouseAd() {
+  if (!HOUSE.list || Date.now() - HOUSE.at > 10 * 60e3) { const { data, error } = await sb.from('house_ads').select('id, title, body, image_url, url, cta, weight').eq('active', true); HOUSE = { list: error ? [] : data || [], at: Date.now() }; }
+  const L = HOUSE.list.filter(a => a.weight > 0); if (!L.length) return null;
+  let r = Math.random() * L.reduce((n, a) => n + a.weight, 0); for (const a of L) { if ((r -= a.weight) < 0) return a; } return L[0];
+}
 // 1) Google AdMob 전면 광고(iOS 앱): 미리 받아 두었다가 보여 주고, 닫히면 다음 것을 미리 받음
 ADS.register({
   name: 'admob', priority: 10, ready: false, npa: true,
@@ -3571,9 +3587,7 @@ ADS.register({
   name: 'house', priority: 50, list: null, at: 0,
   available() { return !!ADS.cfg.house; },
   async show(placement) {
-    if (!this.list || Date.now() - this.at > 10 * 60e3) { const { data, error } = await sb.from('house_ads').select('id, title, body, image_url, url, cta, weight').eq('active', true); this.list = error ? [] : data || []; this.at = Date.now(); }
-    const L = this.list.filter(a => a.weight > 0); if (!L.length) return false;
-    let r = Math.random() * L.reduce((n, a) => n + a.weight, 0), ad = L[0]; for (const a of L) { if ((r -= a.weight) < 0) { ad = a; break; } }
+    const ad = await pickHouseAd(); if (!ad) return false;
     const ov = document.createElement('div'); ov.className = 'adcard';
     ov.innerHTML = `<div class="adbox"><span class="adtag">${t('광고')}</span><button class="icon-btn adx" aria-label="${t('닫기')}" disabled>${I.close}</button>
       ${ad.image_url ? `<img src="${esc(ad.image_url)}" alt="">` : ''}<b>${esc(ad.title)}</b>${ad.body ? `<p>${esc(ad.body)}</p>` : ''}
@@ -3586,6 +3600,58 @@ ADS.register({
     return true;
   },
 });
+
+// ---------- 피드 광고: Candids 사진 사이의 광고 자리 ----------
+// 자리를 먼저 끼워 두고(feed.first 장 뒤, 그다음 feed.every 장마다), 자리가 가까워지면 공급자 순서대로 채움:
+//   ① Google 네이티브 광고(iOS 앱, NativeAds 플러그인이 그 자리 위에 겹쳐 그림) → ② 하우스 광고(웹으로 그 자리에) → 없으면 자리를 뺌
+const FEED_ADS = {
+  pool: [], loading: false, swipeOn: false,
+  admob() { return ADS.providers.find(p => p.name === 'admob'); },
+  nativeOk() { const a = this.admob(); return IN_APP && !!window.Capacitor?.isPluginAvailable?.('NativeAds') && (a?.testing() || !!ADS.cfg.admob?.iosNative); },
+  async fill() {
+    if (!ADS.on || !this.nativeOk() || this.loading || this.pool.length >= 2) return;
+    this.loading = true;
+    try { const a = this.admob(); const r = await capPlugin('NativeAds').load({ adId: ADS.cfg.admob?.iosNative || '', testing: a.testing(), count: 3, npa: a.npa }); this.pool.push(...(r?.ids || [])); }
+    catch (e) { if (PERF) console.log('[candid] native load ' + (e?.message || e?.code || e)); }
+    finally { this.loading = false; }
+  },
+  // 게시물 목록 HTML 사이에 광고 자리 끼우기
+  weave(list, render) {
+    const f = ADS.cfg.feed; if (!ADS.on || !me || !f) return list.map(render).join('');
+    const first = f.first ?? 3, every = f.every ?? 5;
+    return list.map((p, i) => render(p) + (i + 1 >= first && (i + 1 - first) % every === 0 && i < list.length - 1 ? `<section class="reel adslot"><div class="adph"><span>${t('광고')}</span></div></section>` : '')).join('');
+  },
+  async bind(sec) {
+    if (sec.dataset.kind) return; sec.dataset.kind = 'wait';
+    if (!this.pool.length) await this.fill();
+    if (this.pool.length) { sec.dataset.kind = 'native'; sec.dataset.ad = this.pool.shift(); this.fill(); return; }
+    const ad = ADS.cfg.house ? await pickHouseAd().catch(() => null) : null;
+    if (ad) {
+      sec.dataset.kind = 'house';
+      sec.innerHTML = `<div class="adinline"><span class="adtag">${t('광고')}</span>${ad.image_url ? `<img src="${esc(ad.image_url)}" alt="">` : ''}<b>${esc(ad.title)}</b>${ad.body ? `<p>${esc(ad.body)}</p>` : ''}${ad.url ? `<a class="btn primary block" href="${esc(ad.url)}" target="_blank" rel="noopener sponsored">${esc(ad.cta || t('자세히 보기'))}</a>` : ''}</div>`;
+      sec.querySelector('a')?.addEventListener('click', () => ADS.log('house', 'click', 'feed', ad.id));
+      sec._houseId = ad.id; return;
+    }
+    sec.remove(); // 채울 광고가 없으면 자리 빼기(아직 화면 밖)
+  },
+  show(sec) {
+    if (sec.dataset.kind === 'house') { if (!sec._logged) { sec._logged = 1; ADS.log('house', 'view', 'feed', sec._houseId); } return; }
+    if (sec.dataset.kind !== 'native') return;
+    // 맨 위 줄(뒤로·친구 이름)은 가리지 않게 그 아래부터
+    const R = sec.getBoundingClientRect(), hb = sec.closest('.oreel, .reels')?.querySelector('.rtop')?.getBoundingClientRect().bottom || 0, y = Math.max(R.top, hb);
+    capPlugin('NativeAds').show({ id: sec.dataset.ad, x: R.left, y, w: R.width, h: R.bottom - y, label: t('광고') }).catch(() => {});
+    if (!sec._logged) { sec._logged = 1; ADS.log('admob', 'impression', 'feed'); }
+    if (!this.swipeOn) { this.swipeOn = true; capPlugin('NativeAds').addListener('swipe', ({ dir }) => { const c = document.querySelector('.oreel .reels, #reels'); c?.scrollBy({ top: dir * c.clientHeight, behavior: 'smooth' }); }); }
+  },
+  hide() { if (this.nativeOk()) capPlugin('NativeAds').hide().catch(() => {}); },
+  wire($reels) {
+    const slots = $reels.querySelectorAll('.adslot'); if (!slots.length) return;
+    this.fill();
+    const near = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { near.unobserve(e.target); this.bind(e.target); } }), { root: $reels, rootMargin: '150% 0px' });
+    const vis = new IntersectionObserver(es => es.forEach(e => { if (e.intersectionRatio >= 0.9) this.show(e.target); else if (e.target.dataset.kind === 'native') this.hide(); }), { root: $reels, threshold: [0, 0.9] });
+    slots.forEach(sl => { near.observe(sl); vis.observe(sl); });
+  },
+};
 // ---------- 관리자: 전체 사용자(33 SQL) ----------
 let IS_ADMIN = false;
 async function checkAdmin() { if (!me || DEMO) return; const { data } = await sb.rpc('is_admin').catch(() => ({})); IS_ADMIN = data === true; }

@@ -7,5 +7,6 @@ class AppViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(AuthSessionPlugin())
         bridge?.registerPluginInstance(MediaPickerPlugin())
         bridge?.registerPluginInstance(AppleSignInPlugin())
+        bridge?.registerPluginInstance(NativeAdsPlugin())
     }
 }

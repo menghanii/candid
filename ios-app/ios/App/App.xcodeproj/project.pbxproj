@@ -16,6 +16,7 @@
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		5705BFDB8C02873E4E328F7E /* NativeAdsPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EF2624FD508FF05D5BB64C9 /* NativeAdsPlugin.swift */; };
 		A084ECDBA7D38E1E42DFC39D /* Pods_App.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF277DCFFFF123FFC6DF26C7 /* Pods_App.framework */; };
 		A5077FD5C3A3B3F9A39220E5 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 2F488A2DF4D7BCC9BF5A1FDC /* PrivacyInfo.xcprivacy */; };
 		BF66B74C17D890FC0CCD39DB /* AppleSignInPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = F41E5B4BA2ED0FFC61441D54 /* AppleSignInPlugin.swift */; };
@@ -25,6 +26,7 @@
 
 /* Begin PBXFileReference section */
 		182EDB3EF82BCF235975DED7 /* MediaPickerPlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MediaPickerPlugin.swift; sourceTree = "<group>"; };
+		2EF2624FD508FF05D5BB64C9 /* NativeAdsPlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NativeAdsPlugin.swift; sourceTree = "<group>"; };
 		2F488A2DF4D7BCC9BF5A1FDC /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
 		4725A491C823082CF7BBC72D /* App.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
@@ -101,6 +103,7 @@
 				F41E5B4BA2ED0FFC61441D54 /* AppleSignInPlugin.swift */,
 				4725A491C823082CF7BBC72D /* App.entitlements */,
 				2F488A2DF4D7BCC9BF5A1FDC /* PrivacyInfo.xcprivacy */,
+				2EF2624FD508FF05D5BB64C9 /* NativeAdsPlugin.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -250,6 +253,7 @@
 				E0B56966CCB7C8F33329FEE8 /* MediaPickerPlugin.swift in Sources */,
 				1C8BC42DA008EDC25A1F37E3 /* SceneDelegate.swift in Sources */,
 				BF66B74C17D890FC0CCD39DB /* AppleSignInPlugin.swift in Sources */,
+				5705BFDB8C02873E4E328F7E /* NativeAdsPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
