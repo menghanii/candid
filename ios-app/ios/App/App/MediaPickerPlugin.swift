@@ -18,7 +18,12 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
         CAPPluginMethod(name: "pick", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "exportVideo", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "saveToPhotos", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "camera", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "camera", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "libAuth", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "libList", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "libThumbs", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "libExport", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "libManage", returnType: CAPPluginReturnPromise)
     ]
     private var pending: CAPPluginCall?
     private var camCall: CAPPluginCall?
@@ -222,6 +227,106 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
                 guard let mp = self.saveJPEG(main, 0.82), let tp = self.saveJPEG(thumb, 0.7) else { call.reject("image_failed"); return }
                 call.resolve(["items": [["kind": "image", "path": mp, "thumbPath": tp, "width": Int(main.size.width), "height": Int(main.size.height)]], "skipped": 0])
             } else { call.reject("no_media") }
+        }
+    }
+
+    // ---------- 앱 안 사진첩(아래에서 올라오는 시트) ----------
+    //  · libAuth: 권한 상태(request: true 면 물어봄) → authorized | limited | denied | notDetermined
+    //  · libList: 사진·영상 전체(최신순) id·찍은 시각(초)·영상 길이
+    //  · libThumbs: 보이는 칸의 작은 사진을 캐시 폴더에 jpg 로 → 경로
+    //  · libExport: 고른 것들을 pick 과 같은 모양(items)으로 준비(iCloud 에만 있으면 받아 옴)
+    //  · libManage: '선택한 사진만 허용'일 때 허용 사진 고치기
+    private var fetch: PHFetchResult<PHAsset>?
+    private var byId: [String: PHAsset] = [:]
+    private let imgr = PHCachingImageManager()
+    private lazy var thumbDir: URL = {
+        let d = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent("lib-thumbs", isDirectory: true)
+        try? FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
+        return d
+    }()
+    private func authName(_ s: PHAuthorizationStatus) -> String {
+        switch s { case .authorized: return "authorized"; case .limited: return "limited"; case .notDetermined: return "notDetermined"; default: return "denied" }
+    }
+    @objc func libAuth(_ call: CAPPluginCall) {
+        let s = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        if s == .notDetermined && (call.getBool("request") ?? false) {
+            PHPhotoLibrary.requestAuthorization(for: .readWrite) { ns in call.resolve(["status": self.authName(ns)]) }
+        } else { call.resolve(["status": authName(s)]) }
+    }
+    @objc func libList(_ call: CAPPluginCall) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let o = PHFetchOptions()
+            o.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+            o.predicate = NSPredicate(format: "mediaType == %d || mediaType == %d", PHAssetMediaType.image.rawValue, PHAssetMediaType.video.rawValue)
+            let r = PHAsset.fetchAssets(with: o)
+            var ids = [String](), ts = [Int](), dur = [Double](), map = [String: PHAsset]()
+            ids.reserveCapacity(r.count); ts.reserveCapacity(r.count); dur.reserveCapacity(r.count)
+            r.enumerateObjects { a, _, _ in
+                ids.append(a.localIdentifier); ts.append(Int(a.creationDate?.timeIntervalSince1970 ?? 0))
+                dur.append(a.mediaType == .video ? (a.duration * 10).rounded() / 10 : 0); map[a.localIdentifier] = a
+            }
+            DispatchQueue.main.async { self.fetch = r; self.byId = map; call.resolve(["ids": ids, "ts": ts, "dur": dur]) }
+        }
+    }
+    @objc func libThumbs(_ call: CAPPluginCall) {
+        let ids = call.getArray("ids", String.self) ?? []
+        let px = CGFloat(call.getInt("size") ?? 240)
+        var out = [String: String](), lock = NSLock(); let g = DispatchGroup()
+        let opt = PHImageRequestOptions(); opt.deliveryMode = .highQualityFormat; opt.resizeMode = .fast; opt.isNetworkAccessAllowed = true; opt.isSynchronous = false
+        for id in ids {
+            let safe = id.replacingOccurrences(of: "/", with: "_")
+            let f = thumbDir.appendingPathComponent("\(safe)-\(Int(px)).jpg")
+            if FileManager.default.fileExists(atPath: f.path) { out[id] = f.path; continue }
+            guard let a = byId[id] else { continue }
+            g.enter()
+            imgr.requestImage(for: a, targetSize: CGSize(width: px, height: px), contentMode: .aspectFill, options: opt) { img, _ in
+                if let img = img, let d = img.jpegData(compressionQuality: 0.72), (try? d.write(to: f)) != nil { lock.lock(); out[id] = f.path; lock.unlock() }
+                g.leave()
+            }
+        }
+        g.notify(queue: .main) { call.resolve(["paths": out]) }
+    }
+    @objc func libExport(_ call: CAPPluginCall) {
+        let ids = call.getArray("ids", String.self) ?? []
+        if let old = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) { old.forEach { try? FileManager.default.removeItem(at: $0) } }
+        let g = DispatchGroup(), lock = NSLock(); var out = [Int: [String: Any]]()
+        let put = { (i: Int, v: [String: Any]) in lock.lock(); out[i] = v; lock.unlock() }
+        for (i, id) in ids.enumerated() {
+            guard let a = byId[id] else { continue }
+            g.enter()
+            if a.mediaType == .video {
+                let vo = PHVideoRequestOptions(); vo.isNetworkAccessAllowed = true; vo.deliveryMode = .highQualityFormat; vo.version = .current
+                PHImageManager.default().requestAVAsset(forVideo: a, options: vo) { av, _, _ in
+                    if let u = (av as? AVURLAsset)?.url {
+                        let dst = self.newFile(u.pathExtension.isEmpty ? "mov" : u.pathExtension.lowercased())
+                        if (try? FileManager.default.copyItem(at: u, to: dst)) != nil, let v = self.videoInfo(dst) { put(i, v) }
+                        g.leave()
+                    } else if let av = av, let ex = AVAssetExportSession(asset: av, presetName: AVAssetExportPresetHighestQuality) { // 슬로모 등
+                        let dst = self.newFile("mp4"); ex.outputURL = dst; ex.outputFileType = .mp4
+                        ex.exportAsynchronously { if ex.status == .completed, let v = self.videoInfo(dst) { put(i, v) }; g.leave() }
+                    } else { g.leave() }
+                }
+            } else {
+                let io = PHImageRequestOptions(); io.isNetworkAccessAllowed = true; io.deliveryMode = .highQualityFormat; io.resizeMode = .exact; io.version = .current
+                PHImageManager.default().requestImage(for: a, targetSize: CGSize(width: 1080, height: 1080), contentMode: .aspectFit, options: io) { img, _ in
+                    defer { g.leave() }
+                    guard let img = img else { return }
+                    let main = Self.resize(img, maxSide: 1080), thumb = Self.resize(main, maxSide: 480)
+                    guard let mp = self.saveJPEG(main, 0.82), let tp = self.saveJPEG(thumb, 0.7) else { return }
+                    put(i, ["kind": "image", "path": mp, "thumbPath": tp, "width": Int(main.size.width), "height": Int(main.size.height)])
+                }
+            }
+        }
+        g.notify(queue: .main) {
+            let items = (0..<ids.count).compactMap { out[$0] }
+            call.resolve(["items": items, "skipped": ids.count - items.count])
+        }
+    }
+    @objc func libManage(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            guard let vc = self.bridge?.viewController else { call.reject("no_vc"); return }
+            if #available(iOS 15.0, *) { PHPhotoLibrary.shared().presentLimitedLibraryPicker(from: vc) { _ in call.resolve() } }
+            else { PHPhotoLibrary.shared().presentLimitedLibraryPicker(from: vc); call.resolve() }
         }
     }
 
