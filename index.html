@@ -1337,6 +1337,9 @@
   .head > .stats b { font-size:22px; line-height:1; }
   .head > .stats span { font-size:12px; }
   .head > .stats > .stat-btn:active { transform:scale(.96); }
+  .fcount { flex:none; color:var(--accent); font-weight:700; font-size:13px; }
+  .anonav { display:block; }
+  .who-ic.anon { overflow:hidden; border-radius:50%; }
 </style>
 </head>
 <body>
@@ -1549,6 +1552,10 @@ function DOT(mood = 'base', { size = 72, tail = true, cls = '', label = '' } = {
   return `<svg class="dotc ${cls}" viewBox="${vb}" width="${w}" height="${size}" ${label ? `role="img" aria-label="${label}"` : 'aria-hidden="true"'}><g class="dotc-b"><path d="${DOT_BODY}" fill="var(--accent)"/><g class="dotc-e">${eyes}</g></g>${tail ? '<circle class="dotc-t" cx="101" cy="82" r="7" fill="var(--accent)"/>' : ''}</svg>`;
 }
 // 로고: 'candid' + 마침표 자리에 닷(통통 튐). 시작 화면·로그인 중 화면에서 같은 자리에
+// 익명: 블루닷 변형 — 그림자 같은 회색 닷이 검은 눈가리개를 쓴 모습(동그란 칸 안에)
+const ANON_AV = `<svg class="anonav" viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true"><rect width="100" height="100" fill="#26262b"/>
+  <g transform="translate(15 20) scale(.7)"><path d="${DOT_BODY}" fill="#9a9cab"/><rect x="18" y="36" width="64" height="22" rx="11" fill="#141417"/><circle cx="38" cy="47" r="4.2" fill="#fff"/><circle cx="62" cy="47" r="4.2" fill="#fff"/></g></svg>`;
+const isAnonName = n => !n || n === '익명의 친구' || n === t('익명의 친구');
 const LOGO_DOT = `candid<span class="wm-dot">${DOT('base', { size: 22, tail: false, cls: 'hop' })}</span>`;
 // 시작 화면: 닷이 두 번 통통 튀다가 눈을 감고 작아지며 파란 마침표로 변신 → 앱 화면으로
 // (로그인에서 돌아오는 중이면 변신 없이 계속 튐 — 곧 '로그인하는 중' 화면이 같은 자리에 이어짐)
@@ -1678,6 +1685,7 @@ function route() {
   const qs = new URLSearchParams(location.search);
   if (qs.get('p') && (qs.get('u') || qs.get('g'))) openDeepPost(qs.get('p'));
   if (qs.get('gi')) return renderGroupInvite(qs.get('gi'));
+  if (qs.get('fillers')) return renderFillers(qs.get('fillers'));
   // 내 친구·내 그룹: 새 페이지(내 피드의 숫자를 눌러서)
   if (me && qs.has('friends')) return renderTabPage('feed', 'Friends', renderFriendsTab, t('내 친구'));
   if (me && qs.has('groups')) return renderTabPage('feed', 'Groups', renderGroupsTab, t('내 그룹'));
@@ -2385,7 +2393,7 @@ function paintProfile() {
       <div class="dotshelf" data-shelf="${uid}">${dotShelfHTML(uid)}</div>
       <div class="stats"${S.locked ? ' hidden' : ''}>
         <div><b>${approved.length}</b><span>${t('게시물')}</span></div>
-        <div><b>${friends}</b><span>${t('참여한 친구')}</span></div>
+        <button class="stat-btn" onclick="go('?fillers=${uid}')" aria-label="${t('채워준 친구 보기')}"><b>${friends}</b><span>${t('채워준 친구')}</span></button>
         ${isOwner ? `<button class="stat-btn" onclick="go('?friends=1')" aria-label="${t('친구 목록 보기')}"><b>${myFollows.size}</b><span>${t('친구')}</span></button>
           <button class="stat-btn" onclick="go('?groups=1')" aria-label="${t('그룹 목록 보기')}"><b>${MYG.ok === false ? 0 : myGroupList().length}</b><span>${t('그룹')}${INVITES.list?.length ? ` <i class="stat-n">${INVITES.list.length}</i>` : ''}</span></button>` : ''}
       </div>
@@ -2634,6 +2642,28 @@ async function toggleFollow(uid, btn) {
 }
 
 // 하단 탭 화면(친구·그룹): 공통 상단 바 + 큰 제목 + 내용
+// 채워준 친구: 이 피드에 사진을 보내 준 사람들(많이 보낸 순), 익명은 한 줄로
+async function renderFillers(uid) {
+  CUR = pageKey(); const myKey = CUR, own = me?.id === uid;
+  $app.innerHTML = `${appTop(t('채워준 친구'))}<section class="ptitle"><h1>Fillers<i class="pd">.</i></h1></section><main id="body"><p class="hint" style="padding:16px 20px">${t('불러오는 중…')}</p></main>${navBar(own ? 'feed' : '')}`;
+  $app.classList.toggle('has-nav', !!me);
+  const [{ data: posts, error }, pr] = await Promise.all([sb.from('posts').select('author_id, author_name').eq('owner_id', uid).eq('status', 'approved').limit(2000), loadProfLite(uid)]);
+  if (pageKey() !== myKey) return;
+  const $b = document.getElementById('body');
+  if (error) return $b.innerHTML = `<p class="hint" style="padding:16px 20px">${esc(kerr(error))}</p>`;
+  const by = new Map(); let anon = 0;
+  (posts || []).forEach(p => { if (p.author_id) { const x = by.get(p.author_id) || { id: p.author_id, name: p.author_name, n: 0 }; x.n++; by.set(p.author_id, x); } else if (isAnonName(p.author_name)) anon++; else { const k = 'guest:' + p.author_name; const x = by.get(k) || { id: null, name: p.author_name, n: 0 }; x.n++; by.set(k, x); } });
+  const ids = [...by.values()].filter(x => x.id).map(x => x.id);
+  const { data: profs } = ids.length ? await sb.from('profiles').select('id, name, handle, avatar_url').in('id', ids) : { data: [] };
+  if (pageKey() !== myKey) return;
+  const P = new Map((profs || []).map(p => [p.id, p]));
+  const list = [...by.values()].sort((a, b) => b.n - a.n || byKoName(a, b));
+  const total = list.length + (anon ? 1 : 0);
+  const head = `<p class="hint" style="padding:4px 20px 10px">${own ? t('내 피드를 채워준 친구 {n}명', { n: total }) : t('{name}님 피드를 채워준 친구 {n}명', { name: esc(pr?.name || ''), n: total })}</p>`;
+  const row = x => { const p = x.id && P.get(x.id); return `<div class="frow">${x.id ? `<a href="${feedUrl(x.id)}">${avatar(p || { name: x.name }, 'xs')}<span><b>${esc(p?.name || x.name)}</b><small>${p?.handle ? '@' + esc(p.handle) : ''}</small></span></a>` : `<span class="av xs av-def">${DEFAULT_AV}</span><span style="flex:1"><b>${esc(x.name)}</b><small>${t('로그인 없이 보냄')}</small></span>`}<span class="fcount">${t('{n}장', { n: x.n })}</span></div>`; };
+  $b.innerHTML = total ? head + `<div class="flist">${list.map(row).join('')}${anon ? `<div class="frow"><span class="av xs av-def">${ANON_AV}</span><span style="flex:1"><b>${t('익명의 친구')}</b><small>${t('누가 보냈는지는 비밀이에요')}</small></span><span class="fcount">${t('{n}장', { n: anon })}</span></div>` : ''}</div>`
+    : `<div class="empty"><div class="empty-dot">${DOT('look', { cls: 'blink' })}</div><p>${t('아직 채워준 친구가 없어요.')}</p></div>`;
+}
 function renderTabPage(active, title, fill, backTitle) {
   CUR = pageKey();
   $app.innerHTML = `${appTop(backTitle)}<section class="ptitle"><h1>${title}<i class="pd">.</i></h1></section><main id="body"></main>${navBar(active)}`;
@@ -3445,14 +3475,14 @@ function openAnswer(id) {
 const HOME = { posts: [] };
 // 격자 칸: 글자 대신 보낸 친구의 작은 프로필 사진(왼쪽 아래) + 아직 안 본 사진은 블루닷(오른쪽 아래)
 function tileFrom(p, dotNew) {
-  const face = p.author_id ? `<span class="gfrom" data-au="${p.author_id}">${DEFAULT_AV}</span>` : `<span class="gfrom anon">${II.mask}</span>`;
+  const face = p.author_id ? `<span class="gfrom" data-au="${p.author_id}">${DEFAULT_AV}</span>` : `<span class="gfrom anon">${isAnonName(p.author_name) ? ANON_AV : DEFAULT_AV}</span>`;
   return face + (dotNew && !lsGet(SEEN_KEY)[p.id] ? '<i class="gnew"></i>' : '');
 }
 function fillTileFaces(root) {
   const els = [...(root || document).querySelectorAll('.gfrom[data-au]:not([data-done])')];
   [...new Set(els.map(e => e.dataset.au))].forEach(id => loadProfLite(id).then(pr => {
     if (!pr) return;
-    (root || document).querySelectorAll(`.gfrom[data-au="${id}"]`).forEach(e => { e.dataset.done = 1; e.innerHTML = pr.avatar_url ? `<img src="${esc(pr.avatar_url)}" alt="" referrerpolicy="no-referrer">` : esc((pr.name || '?').slice(0, 1)); e.classList.toggle('txt', !pr.avatar_url); });
+    (root || document).querySelectorAll(`.gfrom[data-au="${id}"]`).forEach(e => { e.dataset.done = 1; e.innerHTML = pr.avatar_url ? `<img src="${esc(pr.avatar_url)}" alt="" referrerpolicy="no-referrer">` : DEFAULT_AV; }); // 사진이 없으면 기본 프로필
   }));
 }
 const findAny = id => findPost(id) || HOME.posts.find(x => x.id === id);
@@ -3506,7 +3536,7 @@ function openPost(id) {
     <article class="post">
       <div class="post-h">
         <button class="icon-btn" data-close aria-label="${t('뒤로')}">${I.back}</button>
-        ${p.author_id ? `<a class="ph-av" href="${feedUrl(p.author_id)}" aria-label="${t('{name} 피드로 가기', { name: esc(p.author_name) })}"><div class="av sm" data-pav>${esc(p.author_name.slice(0, 1))}</div></a>` : `<div class="av sm">${esc(p.author_name.slice(0, 1))}</div>`}
+        ${p.author_id ? `<a class="ph-av" href="${feedUrl(p.author_id)}" aria-label="${t('{name} 피드로 가기', { name: esc(p.author_name) })}"><div class="av sm av-def" data-pav>${DEFAULT_AV}</div></a>` : `<div class="av sm av-def">${isAnonName(p.author_name) ? ANON_AV : DEFAULT_AV}</div>`}
         <div class="who"><b>${(() => { const nm = gp ? esc(p.author_name) : aname(p.author_name), n = p.author_id ? `<a class="ph-name" href="${feedUrl(p.author_id)}">${nm}</a>` : nm;
           return gp ? t('{name}<span style="font-weight:400;color:var(--sub)">님이 올림</span>', { name: n }) : t('{name}<span style="font-weight:400;color:var(--sub)">님이 보냄</span>', { name: n }); })()}</b>${gp && p.pinned_at ? `<span class="mchip">${II.pin} ${t('고정됨')}</span>` : ''}${p.mission ? `<span class="mchip">${mname(p.mission)}</span>` : ''}</div>
       </div>
@@ -4044,7 +4074,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
     who = w;
     el.querySelectorAll('.cmp-seg button').forEach(b => { b.classList.toggle('on', b.dataset.who === w); b.setAttribute('aria-checked', b.dataset.who === w); });
     $('#whoval').innerHTML = w === 'anon'
-      ? `<div class="who-card"><span class="who-ic">${II.mask}</span><span><b>${t('익명의 친구')}</b><small>${t('누가 보냈는지 {name}님도 알 수 없어요', { name })}</small></span></div>`
+      ? `<div class="who-card"><span class="who-ic anon">${ANON_AV}</span><span><b>${t('익명의 친구')}</b><small>${t('누가 보냈는지 {name}님도 알 수 없어요', { name })}</small></span></div>`
       : me
         ? `<div class="who-card">${avatar(myProf, 'xs')}<span><b>${esc(myProf?.name || '')}</b><small>${myProf?.handle ? '@' + esc(myProf.handle) + ' · ' : ''}${t('내 프로필 이름으로 보내요')}</small></span></div>`
         : `<input class="field" id="author" maxlength="12" placeholder="${t('내 이름 (예: 지수)')}" value="${esc(typedNow ?? nick)}" autocomplete="off">`;
@@ -4058,7 +4088,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
   el.querySelectorAll('#sugs button').forEach(b => b.onclick = () => { $t.value = b.textContent; capFit(); el.querySelectorAll('#sugs button').forEach(x => x.classList.toggle('on', x === b)); });
   const capAv = () => {
     const typed = $('#author')?.value.trim();
-    $('#capav').innerHTML = who === 'anon' ? II.mask : me ? avatar(myProf, 'xs') : esc((typed || t('나')).slice(0, 1));
+    $('#capav').innerHTML = who === 'anon' ? ANON_AV : me ? avatar(myProf, 'xs') : esc((typed || t('나')).slice(0, 1));
   };
   el.addEventListener('input', e => { if (e.target.id === 'author') capAv(); });
   el.querySelectorAll('.cmp-seg button').forEach(b => b.addEventListener('click', capAv));

@@ -795,5 +795,13 @@
  "관심 은하": "Interest galaxy",
  "지금 뜨는 곳": "Trending now",
  "곧 열려요": "Opening soon",
- "그룹 목록 보기": "View my groups"
+ "그룹 목록 보기": "View my groups",
+ "채워준 친구 보기": "See who filled this feed",
+ "채워준 친구": "Fillers",
+ "내 피드를 채워준 친구 {n}명": "{n} friends filled my feed",
+ "{name}님 피드를 채워준 친구 {n}명": "{n} friends filled {name}'s feed",
+ "로그인 없이 보냄": "Sent without logging in",
+ "{n}장": "{n}",
+ "누가 보냈는지는 비밀이에요": "Who sent these is a secret",
+ "아직 채워준 친구가 없어요.": "No one has filled this feed yet."
 };
