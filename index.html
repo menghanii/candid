@@ -1267,6 +1267,16 @@
   .gdots button.on { width:22px; border-radius:4px; opacity:1; }
   .gdots button.f:not(.on) { opacity:.9; box-shadow:0 0 0 3px color-mix(in srgb, var(--gc) 30%, transparent); }
   @media (prefers-reduced-motion: reduce) { .orbitv.warping .ogal, .orbitv.warping .ostars, .orbitv.warpin .ogal, .orbitv.warpin .ostars { transition:none; animation:none; } }
+  /* 궤도에서 연 Candids 보기 */
+  .oreel { position:fixed; inset:0; z-index:30; background:#000; animation:fade .2s; }
+  .oreel.out { opacity:0; transition:opacity .2s; }
+  .oreel .reels { position:absolute; inset:0; }
+  .oreel-h { gap:8px; padding-left:8px; }
+  .oreel-h .icon-btn { color:#fff; }
+  .oreel-who { display:flex; align-items:center; gap:8px; color:#fff; text-decoration:none; min-width:0; }
+  .oreel-who .av.xs, .oreel-who .gav.xs { width:32px; height:32px; }
+  .oreel-who b { font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .oreel ~ .overlay { z-index:40; }
 </style>
 </head>
 <body>
@@ -3025,44 +3035,30 @@ function warpTo(ng, dir) {
     const n = document.getElementById('orbitv'); n?.classList.add('warpin'); setTimeout(() => n?.classList.remove('warpin'), 520);
   }, 300);
 }
-// 궤도에서 누르면: 그 친구·그룹 사진을 인화 사진 더미로. 맨 위 장을 옆으로 밀거나 눌러 다음 장
+// 궤도에서 누르면: 그 친구·그룹 사진을 Candids 넘기기처럼(위아래로 다음 사진, 좌우로 여러 장). 안 본 것부터
 function openOrbitStack(x) {
-  if (!x) return;
+  if (!x?.posts.length) return;
   const seen = lsGet(SEEN_KEY), list = [...x.posts].sort((a, b) => (!!seen[a.id] - !!seen[b.id]) || new Date(b.approved_at) - new Date(a.approved_at));
-  const img = p => isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" draggable="false">${isVideo(p) ? `<span class="vplay">${I.play}</span>` : mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : ''}`;
-  const ov = document.createElement('div'); ov.className = 'ostack';
+  const owners = CACHE.home?.owners || HOME.owners || new Map();
   const face = x.g ? gAv(x.g, 'xs') : avatar(x.o || { name: x.name }, 'xs');
-  ov.innerHTML = `<div class="osh">${face}<b>${esc(x.name)}</b><button class="icon-btn" data-x aria-label="${t('닫기')}">${I.close}</button></div>
-    <div class="opile">${list.map((p, i) => `<div class="oprint" data-id="${p.id}" style="--r:${(i % 2 ? 1 : -1) * (1.5 + (i % 4) * 1.2)}deg;z-index:${list.length - i}">
-      <div class="oph">${img(p)}</div><span class="ocap">from<i class="pd">.</i> ${esc(p.group_id ? p.author_name : aname(p.author_name))}${p.text && !isText(p) ? ` · “${esc(p.text)}”` : ''}</span></div>`).join('')}
-</div>
-    <div class="ofoot"><span class="ocount"></span><small>${t('옆으로 밀면 다음 장 · 누르면 크게')}</small></div>`;
+  const ov = document.createElement('div'); ov.className = 'oreel';
+  ov.innerHTML = `<div class="reels" id="sreels"><header class="rtop oreel-h"><button class="icon-btn" data-x aria-label="${t('뒤로')}">${I.back}</button>
+      <a class="oreel-who" href="${x.g ? gUrl(x.g) : feedUrl(x.o?.id || list[0].owner_id)}">${face}<b>${esc(x.name)}</b></a><div class="sp"></div></header>
+    ${list.map(p => reelSection(p, owners)).join('')}</div>`;
   document.body.appendChild(ov);
-  const prints = [...ov.querySelectorAll('.oprint')]; let i = 0;
-  const paint = () => {
-    ov.querySelector('.ocount').textContent = i < prints.length ? `${i + 1} / ${prints.length}` : '';
-    if (i < prints.length) markSeen(list[i].id);
-  };
-  const next = dir => {
-    if (i >= prints.length) return; const el = prints[i]; el.style.transition = 'transform .35s ease-in, opacity .35s'; el.style.transform = `translateX(${dir * 130}%) rotate(${dir * 24}deg)`; el.style.opacity = '0'; i++; navigator.vibrate?.(5); paint();
-    if (i >= prints.length) setTimeout(close, 320); // 다 넘기면 바로 궤도로
-  };
-  // 끌어서 던지기 / 그냥 누르면 다음 장
-  let x0 = null, dx = 0;
-  ov.querySelector('.opile').addEventListener('pointerdown', e => { if (i >= prints.length || !e.target.closest('.oprint')) return; x0 = e.clientX; dx = 0; prints[i].style.transition = 'none'; });
-  const mv = e => { if (x0 == null) return; dx = e.clientX - x0; prints[i].style.transform = `translateX(${dx}px) rotate(${dx / 14}deg)`; };
-  const up = () => {
-    if (x0 == null) return; x0 = null;
-    if (Math.abs(dx) > 70) return next(dx < 0 ? -1 : 1);
-    prints[i].style.transition = 'transform .25s'; prints[i].style.transform = '';
-    if (Math.abs(dx) < 6) openPost(list[i].id); // 그냥 누르면 친구 피드에서 누른 것과 같은 사진 페이지(뒤로 가면 다시 더미)
-  };
-  addEventListener('pointermove', mv); addEventListener('pointerup', up);
-  new MutationObserver((_, ob) => { if (!ov.isConnected) { ob.disconnect(); removeEventListener('pointermove', mv); removeEventListener('pointerup', up); } }).observe(document.body, { childList: true });
-  function close() { if (!ov.isConnected || ov.classList.contains('out')) return; ov.classList.add('out'); setTimeout(() => ov.remove(), 200); if (homeView() === 'orbit' && CACHE.home && document.getElementById('orbitv')) paintHome(CACHE.home); }
-  ov.querySelector('[data-x]').onclick = close;
-  ov.addEventListener('click', e => { if (e.target === ov) close(); });
-  paint();
+  const $r = ov.querySelector('#sreels');
+  $r.classList.toggle('hide-stk', HIDE_STK);
+  wireReels($r);
+  loadSocial(list.map(p => p.id)).then(() => list.forEach(p => paintSoc(p.id))).catch(() => {});
+  loadStickers(list.map(p => p.id)).then(() => list.forEach(p => refreshStickerLayers(p.id))).catch(() => {});
+  // 뒤로가기(제스처·버튼)로 닫힘 → 궤도(숫자 갱신)
+  history.pushState({ ...(history.state || {}), oreel: 1 }, '');
+  const close = () => { if (!ov.isConnected) return; ov.querySelectorAll('video').forEach(v => v.pause()); ov.classList.add('out'); setTimeout(() => ov.remove(), 200); if (CACHE.home && document.getElementById('orbitv')) paintHome(CACHE.home); };
+  const onPop = () => { if (!history.state?.oreel && !document.querySelector('.overlay.page')) { removeEventListener('popstate', onPop); close(); } };
+  addEventListener('popstate', onPop);
+  ov.querySelector('[data-x]').onclick = () => history.state?.oreel ? history.back() : close();
+  ov.querySelector('.oreel-who').addEventListener('click', () => { removeEventListener('popstate', onPop); ov.remove(); });
+  edgeSwipeBack(ov, () => history.state?.oreel ? history.back() : close());
 }
 function fillHomeExtras(posts) {
   posts.forEach(p => {
@@ -3081,7 +3077,7 @@ async function renderHome(fresh) {
       const same = sameSet(d.posts, CACHE.home.posts);
       CACHE.home = d;
       const r = document.querySelector('.reels');
-      if (!same && pageKey() === myKey && ((r && r.scrollTop < 10) || (document.getElementById('orbitv') && !document.querySelector('.ostack')))) paintHome(d); // 맨 위에 있을 때(궤도는 사진 더미를 보고 있지 않을 때)만 조용히 교체
+      if (!same && pageKey() === myKey && ((r && r.scrollTop < 10) || (document.getElementById('orbitv') && !document.querySelector('.ostack, .oreel')))) paintHome(d); // 맨 위에 있을 때(궤도는 사진 더미를 보고 있지 않을 때)만 조용히 교체
     }).catch(() => {});
     return;
   }
@@ -3125,23 +3121,8 @@ async function pickFriendToSend() {
   };
   $q.oninput = paint; paint();
 }
-function paintHome({ posts, owners, groups }) {
-  if (PERF) console.log(`[candid] paint home +${Math.round(performance.now())}ms`);
-  HOME.posts = posts; HOME.owners = owners; HOME.groups = groups || new Map();
-  if (me) setTimeout(refreshNotiDot, 0); // 상단 종 빨간 점
-  const vw = homeView();
-  const top = `<header class="rtop"><button class="logo" onclick="logoTap()">${LOGO}</button><div class="sp"></div>
-    ${HOME_VIEWS ? '' : '<!--'}<div class="vseg" role="radiogroup" aria-label="${t('보기 방식')}"><button role="radio" aria-checked="${vw === 'reels'}" class="${vw === 'reels' ? 'on' : ''}" onclick="setHomeView('reels')">${t('넘기기')}</button><button role="radio" aria-checked="${vw === 'orbit'}" class="${vw === 'orbit' ? 'on' : ''}" onclick="setHomeView('orbit')">${t('궤도')}</button></div>${HOME_VIEWS ? '' : '-->'}
-    ${topIcons()}</header>`;
-  if (vw === 'orbit' && (posts.length || owners?.size || HOME.groups.size)) return paintOrbit(arguments[0].all || posts, owners, top); // 새 사진이 없어도 친구·그룹이 있으면 궤도
-  if (!posts.length) {
-    $app.innerHTML = `<div class="reels">${top}<section class="reel rempty"><div><div class="empty-dot">${DOT('sleepy', { size: 80, cls: 'float' })}</div>
-      <h2>Quiet for now<i class="pd">.</i></h2><p>${t('친구들 피드에 새 사진이 올라오면 여기 떠요.<br>친구 피드에 사진을 먼저 보내 보는 건 어때요?')}</p>
-      <button class="btn primary block" onclick="openSearch()">${t('친구 찾기')}</button><div style="height:8px"></div>
-      <a class="btn block" href="${feedUrl(me.id)}" style="display:block;text-decoration:none;text-align:center">${t('내 피드로 가기')}</a></div></section></div>${navBar('reels')}`;
-    return;
-  }
-  $app.innerHTML = `<div class="reels" id="reels">${top}${posts.map(p => {
+// Candids 한 칸(사진·영상·투표 + 정보 + 오른쪽 버튼). 넘기기 화면과 궤도의 사진 보기에서 같이 씀
+function reelSection(p, owners) {
     const o = owners.get(p.owner_id) || { name: t('친구') }, s = SOC.get(p.id);
     const gg = p.group_id ? HOME.groups.get(p.group_id) : null; // 그룹 사진: 오른쪽 위 아바타 = 그룹, 아래에 그룹 이름 배지
     return `<section class="reel" data-id="${p.id}">
@@ -3167,7 +3148,24 @@ function paintHome({ posts, owners, groups }) {
 
       </div>
     </section>`;
-  }).join('')}
+}
+function paintHome({ posts, owners, groups }) {
+  if (PERF) console.log(`[candid] paint home +${Math.round(performance.now())}ms`);
+  HOME.posts = posts; HOME.owners = owners; HOME.groups = groups || new Map();
+  if (me) setTimeout(refreshNotiDot, 0); // 상단 종 빨간 점
+  const vw = homeView();
+  const top = `<header class="rtop"><button class="logo" onclick="logoTap()">${LOGO}</button><div class="sp"></div>
+    ${HOME_VIEWS ? '' : '<!--'}<div class="vseg" role="radiogroup" aria-label="${t('보기 방식')}"><button role="radio" aria-checked="${vw === 'reels'}" class="${vw === 'reels' ? 'on' : ''}" onclick="setHomeView('reels')">${t('넘기기')}</button><button role="radio" aria-checked="${vw === 'orbit'}" class="${vw === 'orbit' ? 'on' : ''}" onclick="setHomeView('orbit')">${t('궤도')}</button></div>${HOME_VIEWS ? '' : '-->'}
+    ${topIcons()}</header>`;
+  if (vw === 'orbit' && (posts.length || owners?.size || HOME.groups.size)) return paintOrbit(arguments[0].all || posts, owners, top); // 새 사진이 없어도 친구·그룹이 있으면 궤도
+  if (!posts.length) {
+    $app.innerHTML = `<div class="reels">${top}<section class="reel rempty"><div><div class="empty-dot">${DOT('sleepy', { size: 80, cls: 'float' })}</div>
+      <h2>Quiet for now<i class="pd">.</i></h2><p>${t('친구들 피드에 새 사진이 올라오면 여기 떠요.<br>친구 피드에 사진을 먼저 보내 보는 건 어때요?')}</p>
+      <button class="btn primary block" onclick="openSearch()">${t('친구 찾기')}</button><div style="height:8px"></div>
+      <a class="btn block" href="${feedUrl(me.id)}" style="display:block;text-decoration:none;text-align:center">${t('내 피드로 가기')}</a></div></section></div>${navBar('reels')}`;
+    return;
+  }
+  $app.innerHTML = `<div class="reels" id="reels">${top}${posts.map(p => reelSection(p, owners)).join('')}
     <section class="reel rempty"><div><div class="empty-dot">${DOT('happy', { size: 80, cls: 'hop' })}</div><h2>All caught <em>up.</em></h2><p>${t('친구들 새 사진을 다 봤어요.<br>이번엔 내가 친구 피드를 채워줄 차례!')}</p>
       <button class="btn primary block" onclick="openFriends()">${t('친구 피드에 사진 보내기')}</button></div></section></div>${navBar('reels')}`;
 
@@ -3184,6 +3182,10 @@ function paintHome({ posts, owners, groups }) {
     $reels.appendChild(up);
     $reels.addEventListener('scroll', () => up.classList.toggle('hide', $reels.scrollTop < 10), { passive: true });
   }
+  wireReels($reels);
+}
+// 칸 연결: 보이는 영상만 재생·1초 보면 '본 것'·여러 장 넘기기·확대·두 번 탭 좋아요
+function wireReels($reels) {
   // 화면에 보이는 영상만 재생
   const io = new IntersectionObserver(es => es.forEach(e => {
     if (e.isIntersecting) { try { sessionStorage.setItem('candid_reel', e.target.dataset.id); } catch {} } // 이번 세션에서 마지막으로 본 릴스
@@ -3193,11 +3195,11 @@ function paintHome({ posts, owners, groups }) {
     const v = currentVideo(e.target); if (!v) return; // 여러 장이면 지금 보이는 장의 영상만
     v.preload = 'auto'; v.muted = muted; v.play().catch(() => {});
   }), { threshold: 0.6 });
-  initCarousels(document.getElementById('reels'), () => true);
-  document.querySelectorAll('#reels .rcar .stage').forEach(st => enableZoom(st, { snap: true })); // 사진만 잠깐 확대
-  document.querySelectorAll('.rcar .stage').forEach(watchReelRatio);
-  cardDots(document.getElementById('reels'));
-  document.querySelectorAll('.reel[data-id]').forEach(r => {
+  initCarousels($reels, () => true);
+  $reels.querySelectorAll('.rcar .stage').forEach(st => enableZoom(st, { snap: true })); // 사진만 잠깐 확대
+  $reels.querySelectorAll('.rcar .stage').forEach(watchReelRatio);
+  cardDots($reels);
+  $reels.querySelectorAll('.reel[data-id]').forEach(r => {
     io.observe(r);
     // 두 번 탭: 좋아요 + 하트 / 한 번 탭(영상): 소리 켜기·끄기
     let last = 0, timer;
@@ -3333,7 +3335,7 @@ const findAny = id => findPost(id) || HOME.posts.find(x => x.id === id);
   let buzzed = false;
   document.body.appendChild(ind);
   const scroller = () => document.querySelector('.reels') || document.scrollingElement;
-  const blocked = () => busy || document.querySelector('.sheet-wrap:not(.closing), .overlay, #orbitv, .ostack'); // 궤도 화면에서는 당겨서 새로고침 없음
+  const blocked = () => busy || document.querySelector('.sheet-wrap:not(.closing), .overlay, #orbitv, .ostack, .oreel'); // 궤도 화면에서는 당겨서 새로고침 없음
   addEventListener('touchstart', e => { y0 = !blocked() && scroller().scrollTop <= 0 ? e.touches[0].clientY : null; dy = 0; }, { passive: true });
   addEventListener('touchmove', e => {
     if (y0 == null) return;
