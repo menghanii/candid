@@ -1376,6 +1376,30 @@
   .bnav.dark { background:rgba(0,0,0,.3) !important; border-color:rgba(255,255,255,.12) !important; }
   .bnav button.on { background:color-mix(in srgb, var(--fg) 14%, transparent) !important; }
   .bnav.dark button.on { background:rgba(255,255,255,.16) !important; }
+  /* 가운데 닷 콕: 행동 */
+  .orbitv .ome { pointer-events:auto; cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+  .ome > .dotc { transform-origin:50% 90%; }
+  .ome.act-jump > .dotc { animation:pkJump .9s cubic-bezier(.3,.7,.4,1); }
+  .ome.act-spin > .dotc { animation:pkSpin .8s cubic-bezier(.4,1.4,.5,1); transform-origin:50% 50%; }
+  .ome.act-tilt > .dotc { animation:pkTilt 1s ease-in-out; }
+  .ome.act-squish > .dotc { animation:pkSquish .7s cubic-bezier(.2,1.6,.4,1); }
+  .ome.act-shake > .dotc { animation:pkShake .7s ease-in-out; }
+  .ome.act-beat > .dotc { animation:pkBeat 1s ease-in-out; transform-origin:50% 50%; }
+  .ome.act-doze > .dotc { animation:pkDoze 2.2s ease-in-out; }
+  .ome.act-shy > .dotc { animation:pkShy 1.2s ease-in-out; }
+  @keyframes pkJump { 0% { transform:scale(1.1,.88); } 35% { transform:translateY(-38px) scale(.92,1.08); } 60% { transform:translateY(-38px) rotate(8deg); } 85% { transform:translateY(0) scale(1.12,.86); } 100% { transform:none; } }
+  @keyframes pkSpin { from { transform:rotate(0) scale(1); } 50% { transform:rotate(200deg) scale(1.15); } to { transform:rotate(360deg) scale(1); } }
+  @keyframes pkTilt { 25% { transform:rotate(-14deg); } 55% { transform:rotate(10deg); } 80% { transform:rotate(-4deg); } }
+  @keyframes pkSquish { 0% { transform:scale(1.35,.65); } 40% { transform:scale(.85,1.2); } 70% { transform:scale(1.06,.95); } 100% { transform:none; } }
+  @keyframes pkShake { 15%,45%,75% { transform:translateX(-7px) rotate(-5deg); } 30%,60%,90% { transform:translateX(7px) rotate(5deg); } }
+  @keyframes pkBeat { 15%,55% { transform:scale(1.2); } 35%,75% { transform:scale(.97); } }
+  @keyframes pkDoze { 30%,80% { transform:rotate(-12deg) translateY(3px) scale(1.02,.96); } }
+  @keyframes pkShy { 20%,80% { transform:translateY(6px) scale(.9); } }
+  .ofx { position:absolute; left:50%; top:30%; color:var(--accent); pointer-events:none; opacity:0; animation:ofx 1.2s var(--dl) ease-out forwards; filter:drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 70%, transparent)); }
+  .ofx-heart { color:#ff5a8a; } .ofx-spark { color:#ffe17a; } .ofx-drop { color:#7cc4ff; left:72%; top:20%; }
+  .ofx b { font:800 15px/1 var(--display, system-ui); color:#fff; text-shadow:0 0 8px var(--accent); }
+  @keyframes ofx { 0% { opacity:0; transform:translate(-50%,-50%) scale(.3); } 25% { opacity:1; } 100% { opacity:0; transform:translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1.1); } }
+  @media (prefers-reduced-motion: reduce) { .ome[class*="act-"] > .dotc { animation:none !important; } }
 </style>
 </head>
 <body>
@@ -3209,27 +3233,56 @@ function paintOrbit(posts, owners, top) {
     : gi === 1 && !here.length ? `<div class="oempty" style="top:${cy + 64}px"><b>${TREND.list ? t('아직 뜨는 곳이 없어요') : t('불러오는 중…')}</b>${TREND.err ? `<span>${t('트렌딩 준비 중이에요(관리자: 35 SQL 실행 필요)')}</span>` : ''}</div>` : '';
   // 2) 궤도 그리기
   document.getElementById('ogal').innerHTML = `<svg class="olines" width="${W}" height="${H}" aria-hidden="true">${defs}${lines.join('')}</svg>
-    <div class="ome" style="left:${cx}px;top:${cy}px;--accent:${G.c}">${DOT(gi === 2 ? G.moods[0] : freshHere || gi === 1 ? G.moods[0] : G.moods[1], { size: 58, cls: 'float' })}</div>
+    <div class="ome" role="button" aria-label="${t('닷 콕 찌르기')}" data-mood="${gi === 2 ? G.moods[0] : freshHere || gi === 1 ? G.moods[0] : G.moods[1]}" style="left:${cx}px;top:${cy}px;--accent:${G.c}">${DOT(gi === 2 ? G.moods[0] : freshHere || gi === 1 ? G.moods[0] : G.moods[1], { size: 58, cls: 'float' })}</div>
     ${here.map(orb).join('')}${empty}`;
   const v = document.getElementById('orbitv');
   v.querySelectorAll('.gdots button').forEach(b => b.onclick = () => warpTo(+b.dataset.g, +b.dataset.g > gi ? 1 : -1));
   // 누르기·옆으로 밀기: iPhone 이 움직이는 화면에서 click 을 안 줄 때가 있어 손을 뗄 때 직접 처리
   let d0 = null;
-  v.addEventListener('pointerdown', e => { if (PERF) console.log('[candid] orb down ' + e.pointerType + ' ' + (e.target.closest('.orb')?.dataset.k || e.target.className)); if (e.target.closest('.rtop, .gdots, .bnav')) return; d0 = { x: e.clientX, y: e.clientY, t: Date.now(), orb: e.target.closest('.orb') }; });
+  v.addEventListener('pointerdown', e => { if (PERF) console.log('[candid] orb down ' + e.pointerType + ' ' + (e.target.closest('.orb')?.dataset.k || e.target.className)); if (e.target.closest('.rtop, .gdots, .bnav')) return; d0 = { x: e.clientX, y: e.clientY, t: Date.now(), orb: e.target.closest('.orb'), me: e.target.closest('.ome') }; });
   const openSrc = k => {
     const x = src.find(z => z.k === k); if (!x) return; v._openedAt = Date.now();
     try { if (x.trend) return openTrending(x); if (!x.posts.length) return go(x.g ? gUrl(x.g) : feedUrl(x.o.id)); openOrbitStack(x); }
     catch (err) { console.log('[candid] orb open fail ' + k + ' ' + (err?.message || err) + ' @ ' + String(err?.stack || '').split('\n').slice(0, 3).join(' | ')); }
   };
   // 보조: iPhone 이 pointerup 을 안 주고 click 만 주는 경우
-  v.addEventListener('click', e => { const o = e.target.closest('.orb'); if (PERF) console.log('[candid] orb click ' + (o?.dataset.k || '-')); if (o && Date.now() - (v._openedAt || 0) > 800) openSrc(o.dataset.k); });
+  v.addEventListener('click', e => { const m = e.target.closest('.ome'); if (m && Date.now() - (v._pokedAt || 0) > 500) pokeDot(m); const o = e.target.closest('.orb'); if (PERF) console.log('[candid] orb click ' + (o?.dataset.k || '-')); if (o && Date.now() - (v._openedAt || 0) > 800) openSrc(o.dataset.k); });
   v.addEventListener('pointerup', e => {
     const d = d0; d0 = null; if (PERF) console.log('[candid] orb up ' + (d ? Math.round(e.clientX - d.x) + ',' + Math.round(e.clientY - d.y) : 'no-down')); if (!d) return;
     const dx = e.clientX - d.x, dy = e.clientY - d.y;
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.3) { const ng = gi + (dx < 0 ? 1 : -1); if (ng >= 0 && ng < GALAXIES.length) warpTo(ng, dx < 0 ? 1 : -1); else { navigator.vibrate?.(4); v.querySelector('.ogal').animate([{ translate: '0 0' }, { translate: `${dx < 0 ? -14 : 14}px 0` }, { translate: '0 0' }], { duration: 260, easing: 'ease-out' }); } return; }
     if (d.orb && Math.hypot(dx, dy) < 14 && Date.now() - d.t < 900) openSrc(d.orb.dataset.k); // 조용한 곳은 피드·그룹으로
+    else if (d.me && Math.hypot(dx, dy) < 14) { v._pokedAt = Date.now(); pokeDot(d.me); }
   });
   v.addEventListener('pointercancel', () => { if (PERF) console.log('[candid] orb cancel'); d0 = null; });
+}
+// 가운데 닷을 누르면: 무작위 표정 + 행동(점프·빙글·찌그러짐·도리도리·두근·졸기), 반짝이·하트가 퐁퐁
+const POKES = [
+  { mood: 'happy', act: 'jump', fx: 'heart' }, { mood: 'wow', act: 'spin', fx: 'spark' }, { mood: 'wink', act: 'tilt', fx: 'heart' },
+  { mood: 'base', act: 'squish', fx: 'spark' }, { mood: 'look', act: 'shake', fx: 'q' }, { mood: 'happy', act: 'beat', fx: 'heart' },
+  { mood: 'sleepy', act: 'doze', fx: 'z' }, { mood: 'down', act: 'shy', fx: 'drop' }, { mood: 'wow', act: 'jump', fx: 'spark' },
+];
+function pokeDot(me) {
+  if (me._busy && Date.now() - me._busy < 450) return; me._busy = Date.now();
+  const base = me.dataset.mood || 'base';
+  let p; do p = POKES[Math.floor(Math.random() * POKES.length)]; while (POKES.length > 1 && p === me._last); me._last = p;
+  me.innerHTML = DOT(p.mood, { size: 58 });
+  me.classList.remove(...[...me.classList].filter(c => c.startsWith('act-'))); void me.offsetWidth; me.classList.add('act-' + p.act);
+  navigator.vibrate?.(8);
+  // 퐁퐁 효과
+  const n = p.fx === 'z' ? 3 : p.fx === 'q' || p.fx === 'drop' ? 1 : 5;
+  for (let i = 0; i < n; i++) {
+    const f = document.createElement('i'); f.className = 'ofx ofx-' + p.fx;
+    const a = p.fx === 'z' ? -60 + i * 8 : p.fx === 'q' ? -70 : p.fx === 'drop' ? -40 : -90 + (i - (n - 1) / 2) * 32 + (Math.random() * 14 - 7);
+    const r = p.fx === 'z' ? 34 + i * 16 : 44 + Math.random() * 18;
+    f.style.cssText = `--tx:${Math.cos(a * Math.PI / 180) * r}px;--ty:${Math.sin(a * Math.PI / 180) * r}px;--dl:${p.fx === 'z' ? i * .28 : i * .04}s`;
+    f.innerHTML = p.fx === 'heart' ? '<svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 21s-7.5-4.6-9.3-9.2C1.4 8.5 3.4 5 7 5c2.1 0 3.6 1.2 5 3 1.4-1.8 2.9-3 5-3 3.6 0 5.6 3.5 4.3 6.8C19.5 16.4 12 21 12 21z" fill="currentColor"/></svg>'
+      : p.fx === 'spark' ? '<svg viewBox="0 0 24 24" width="13" height="13"><path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z" fill="currentColor"/></svg>'
+      : p.fx === 'z' ? '<b>z</b>' : p.fx === 'q' ? '<b>?</b>' : '<svg viewBox="0 0 24 24" width="11" height="11"><path d="M12 3c3 4.5 6 8 6 11a6 6 0 0 1-12 0c0-3 3-6.5 6-11z" fill="currentColor"/></svg>';
+    me.appendChild(f); setTimeout(() => f.remove(), 1600);
+  }
+  clearTimeout(me._back);
+  me._back = setTimeout(() => { me.classList.remove('act-' + p.act); me.querySelectorAll('.dotc').forEach(e => e.remove()); me.insertAdjacentHTML('afterbegin', DOT(base, { size: 58, cls: 'float' })); me._busy = 0; }, p.act === 'doze' ? 2400 : 1500);
 }
 // 다음 은하로 워프: 지금 은하가 빨려 들어가듯 작아지고 별빛이 늘어난 뒤, 새 은하가 멀리서 다가옴
 function warpTo(ng, dir) {
