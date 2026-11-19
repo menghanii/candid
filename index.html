@@ -1325,7 +1325,8 @@
   .grid button::after { display:none; }
   .grid .gfrom { position:absolute; left:6px; bottom:6px; z-index:1; width:22px; height:22px; border-radius:50%; overflow:hidden; border:0; background:#3a3a3e; color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; box-shadow:0 1px 4px rgba(0,0,0,.35); }
   .grid .gfrom img { width:100%; height:100%; object-fit:cover; }
-  .grid .gfrom svg { width:16px; height:16px; }
+  .grid .gfrom svg { width:100%; height:100%; display:block; }
+  .grid .gfrom { box-shadow:0 2px 7px rgba(0,0,0,.5), 0 0 0 .5px rgba(0,0,0,.35); } /* 사진과 구분되게 살짝 띄움 */
   .grid .gnew { position:absolute; right:7px; bottom:9px; z-index:1; width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 2px rgba(0,0,0,.25); }
   /* 프로필 머리: 소개 글을 아이디 바로 아래로(사진 옆 칸까지 같이 씀), 숫자 줄은 좌우 꽉 채워 고르게 */
   .head { grid-template-areas:"name av" "handle av" "desc av" "dots dots" "stats stats"; align-items:start; }
@@ -1339,7 +1340,8 @@
   .head > .stats > .stat-btn:active { transform:scale(.96); }
   .fcount { flex:none; color:var(--accent); font-weight:700; font-size:13px; }
   .anonav { display:block; }
-  .who-ic.anon { overflow:hidden; border-radius:50%; }
+  .who-ic.anon, .gfrom.anon, .av:has(> .anonav) { overflow:hidden; border-radius:50%; background:#26262b !important; padding:0 !important; } /* 익명 닷 칸은 배경까지 같은 색 동그라미 */
+  .who-ic.anon .anonav, .av:has(> .anonav) .anonav { width:100%; height:100%; }
 </style>
 </head>
 <body>
@@ -1553,7 +1555,7 @@ function DOT(mood = 'base', { size = 72, tail = true, cls = '', label = '' } = {
 }
 // 로고: 'candid' + 마침표 자리에 닷(통통 튐). 시작 화면·로그인 중 화면에서 같은 자리에
 // 익명: 블루닷 변형 — 그림자 같은 회색 닷이 검은 눈가리개를 쓴 모습(동그란 칸 안에)
-const ANON_AV = `<svg class="anonav" viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true"><rect width="100" height="100" fill="#26262b"/>
+const ANON_AV = `<svg class="anonav" viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true"><circle cx="50" cy="50" r="50" fill="#26262b"/>
   <g transform="translate(15 15.4) scale(.7)"><path d="${DOT_BODY}" fill="#9a9cab"/><rect x="18" y="36" width="64" height="22" rx="11" fill="#141417"/><circle cx="38" cy="47" r="4.2" fill="#fff"/><circle cx="62" cy="47" r="4.2" fill="#fff"/></g></svg>`;
 const isAnonName = n => !n || n === '익명의 친구' || n === t('익명의 친구');
 const LOGO_DOT = `candid<span class="wm-dot">${DOT('base', { size: 22, tail: false, cls: 'hop' })}</span>`;
@@ -3475,7 +3477,7 @@ function openAnswer(id) {
 const HOME = { posts: [] };
 // 격자 칸: 글자 대신 보낸 친구의 작은 프로필 사진(왼쪽 아래) + 아직 안 본 사진은 블루닷(오른쪽 아래)
 function tileFrom(p, dotNew) {
-  const face = p.author_id ? `<span class="gfrom" data-au="${p.author_id}">${DEFAULT_AV}</span>` : `<span class="gfrom anon">${isAnonName(p.author_name) ? ANON_AV : DEFAULT_AV}</span>`;
+  const face = p.author_id ? `<span class="gfrom" data-au="${p.author_id}">${DEFAULT_AV}</span>` : (isAnonName(p.author_name) ? `<span class="gfrom anon">${ANON_AV}</span>` : `<span class="gfrom">${DEFAULT_AV}</span>`);
   return face + (dotNew && !lsGet(SEEN_KEY)[p.id] ? '<i class="gnew"></i>' : '');
 }
 function fillTileFaces(root) {
