@@ -1342,6 +1342,14 @@
   .anonav { display:block; }
   .who-ic.anon, .gfrom.anon, .av:has(> .anonav) { overflow:hidden; border-radius:50%; background:#26262b !important; padding:0 !important; } /* 익명 닷 칸은 배경까지 같은 색 동그라미 */
   .who-ic.anon .anonav, .av:has(> .anonav) .anonav { width:100%; height:100%; }
+  /* Candids 보기 다듬기: 빈 검은 띠 대신 그 사진을 흐리게 깐 배경, 한마디 크게·from·시간 한 줄 */
+  .reel .ramb { inset:-80px; filter:blur(40px) saturate(1.3) brightness(.42); transform:scale(1.15); }
+  .rinfo .rtext { margin:0 0 8px; }
+  .rfrom .rago { opacity:.7; font-weight:400; margin-left:2px; }
+  .rtc { padding-right:78px; } /* 투표·질문 카드가 오른쪽 버튼에 가리지 않게 */
+  .oreel .rinfo .rgroup { display:none; } /* 궤도 보기: 주인은 맨 위에 이미 있음 */
+  .oreel .rside .rmorebtn { display:none; } /* ⋯ 는 맨 위로 */
+  .oreel-h .icon-btn[data-more] { color:#fff; }
 </style>
 </head>
 <body>
@@ -3194,7 +3202,8 @@ function openOrbitStack(x, extraOwner) {
   const face = x.g ? gAv(x.g, 'xs') : avatar(x.o || { name: x.name }, 'xs');
   const ov = document.createElement('div'); ov.className = 'oreel';
   ov.innerHTML = `<div class="reels" id="sreels"><header class="rtop oreel-h"><button class="icon-btn" data-x aria-label="${t('뒤로')}">${I.back}</button>
-      <a class="oreel-who" href="${x.g ? gUrl(x.g) : feedUrl(x.o?.id || list[0].owner_id)}">${face}<b>${esc(x.name)}</b></a><div class="sp"></div></header>
+      <a class="oreel-who" href="${x.g ? gUrl(x.g) : feedUrl(x.o?.id || list[0].owner_id)}">${face}<b>${esc(x.name)}</b></a><div class="sp"></div>
+      <button class="icon-btn" data-more aria-label="${t('더보기')}">${I.more}</button></header>
     ${FEED_ADS.weave(list, p => reelSection(p, owners))}</div>`;
   document.body.appendChild(ov);
   const $r = ov.querySelector('#sreels');
@@ -3208,6 +3217,7 @@ function openOrbitStack(x, extraOwner) {
   const onPop = () => { if (!history.state?.oreel && !document.querySelector('.overlay.page')) { removeEventListener('popstate', onPop); close(); } };
   addEventListener('popstate', onPop);
   ov.querySelector('[data-x]').onclick = () => history.state?.oreel ? history.back() : close();
+  ov.querySelector('[data-more]').onclick = () => { const R = $r.getBoundingClientRect(); const cur = [...$r.querySelectorAll('.reel[data-id]')].find(e => Math.abs(e.getBoundingClientRect().top - R.top) < 40); if (cur) reelMore(cur.dataset.id); };
   ov.querySelector('.oreel-who').addEventListener('click', () => { removeEventListener('popstate', onPop); ov.remove(); });
   edgeSwipeBack(ov, () => history.state?.oreel ? history.back() : close());
 }
@@ -3278,16 +3288,16 @@ function reelSection(p, owners) {
     const gg = p.group_id ? HOME.groups.get(p.group_id) : null; // 그룹 사진: 오른쪽 위 아바타 = 그룹, 아래에 그룹 이름 배지
     return `<section class="reel" data-id="${p.id}">
       ${isText(p) ? `<div class="rbg rbg-${p.media_type}"></div><div class="rmedia rtc">${textStage(p)}</div>` : ''}
-      ${isText(p) ? '' : `<div class="rmedia rcar">${mediaCarousel(p, 'reel')}</div>
+      ${isText(p) ? '' : `<div class="rbg ramb" style="background-image:url('${thumbUrl(p)}')"></div><div class="rmedia rcar">${mediaCarousel(p, 'reel')}</div>
         ${mediaOf(p).some(m => m.k === 'video') ? `<button class="rmute" aria-label="${t('소리 켜기/끄기')}">${muted ? I.mute : I.sound}</button>` : ''}`}
       <div class="rburst">${I.heartOn}</div>
       <div class="rinfo">
 
         ${gg ? '' : `<a class="rgroup rowner" href="${feedUrl(p.owner_id)}" aria-label="${t('{name} 피드로 가기', { name: esc(o.name) })}">${avatar(o, 'xs')}<span>${esc(o.name)}</span></a>`}
         ${gg ? `<a class="rgroup" href="${gUrl(gg)}">${gAv(gg, 'xs')}<span>${esc(gg.name)}</span></a>${p._more ? `<a class="rmore" href="${gUrl(gg)}">${t('+{n}장 더 올라왔어요', { n: p._more })}</a>` : ''}` : ''}
-        <div class="rfrom">from<i class="pd">.</i> ${p.author_id ? `<a class="rname" href="${feedUrl(p.author_id)}"><b>${gg ? esc(p.author_name) : aname(p.author_name)}</b></a>` : `<b>${gg ? esc(p.author_name) : aname(p.author_name)}</b>`} ${p.mission ? `<span class="mchip">${mname(p.mission)}</span>` : ''}</div>
         ${p.text && !isText(p) ? `<div class="rtext">“${esc(p.text)}”</div>` : ''}
-        <small>${ago(p.approved_at)}</small>
+        <div class="rfrom">from<i class="pd">.</i> ${p.author_id ? `<a class="rname" href="${feedUrl(p.author_id)}"><b>${gg ? esc(p.author_name) : aname(p.author_name)}</b></a>` : `<b>${gg ? esc(p.author_name) : aname(p.author_name)}</b>`} <span class="rago">· ${ago(p.approved_at)}</span> ${p.mission ? `<span class="mchip">${mname(p.mission)}</span>` : ''}</div>
+
       </div>
       <div class="rside">
         <button class="rbtn" data-like="${p.id}" aria-label="${t('좋아요')}" aria-pressed="${s.liked}" onclick="toggleLike('${p.id}')"><span>${s.liked ? I.heartOn : I.heart}</span><b>${s.likes || t('좋아요')}</b></button>
@@ -3295,7 +3305,7 @@ function reelSection(p, owners) {
         ${me ? `<button class="rbtn" aria-label="${t('스티커로 꾸며주기')}" onclick="decorateFromReel('${p.id}', this)"><span>${I.sparkle}</span><b>${t('꾸며주기')}</b></button>` : ''}
         ${gg ? (canPostTo(gg) ? `<button class="rbtn" aria-label="${t('이 그룹에 올리기')}" onclick="composeToGroup(HOME.groups.get('${gg.id}'))"><span>${I.send}</span><b>${t('올리기')}</b></button>` : '')
           : p.owner_id !== me?.id ? `<button class="rbtn" aria-label="${t('{name} 피드 채워주기', { name: esc(o.name) })}" onclick="fillFriend('${p.owner_id}')"><span>${I.send}</span><b>${t('채워주기')}</b></button>` : ''}
-        <button class="rbtn" aria-label="${t('더보기')}" onclick="reelMore('${p.id}')"><span>${I.more}</span></button>
+        <button class="rbtn rmorebtn" aria-label="${t('더보기')}" onclick="reelMore('${p.id}')"><span>${I.more}</span></button>
 
       </div>
     </section>`;
