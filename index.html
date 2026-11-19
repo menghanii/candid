@@ -3012,18 +3012,21 @@ function paintOrbit(posts, owners, top) {
   v.querySelectorAll('.gdots button').forEach(b => b.onclick = () => warpTo(+b.dataset.g, +b.dataset.g > gi ? 1 : -1));
   // 누르기·옆으로 밀기: iPhone 이 움직이는 화면에서 click 을 안 줄 때가 있어 손을 뗄 때 직접 처리
   let d0 = null;
-  v.addEventListener('pointerdown', e => { if (e.target.closest('.rtop, .gdots, .bnav')) return; d0 = { x: e.clientX, y: e.clientY, t: Date.now(), orb: e.target.closest('.orb') }; });
+  v.addEventListener('pointerdown', e => { if (PERF) console.log('[candid] orb down ' + e.pointerType + ' ' + (e.target.closest('.orb')?.dataset.k || e.target.className)); if (e.target.closest('.rtop, .gdots, .bnav')) return; d0 = { x: e.clientX, y: e.clientY, t: Date.now(), orb: e.target.closest('.orb') }; });
+  const openSrc = k => {
+    const x = src.find(z => z.k === k); if (!x) return; v._openedAt = Date.now();
+    try { if (!x.posts.length) return go(x.g ? gUrl(x.g) : feedUrl(x.o.id)); openOrbitStack(x); }
+    catch (err) { console.log('[candid] orb open fail ' + k + ' ' + (err?.message || err) + ' @ ' + String(err?.stack || '').split('\n').slice(0, 3).join(' | ')); }
+  };
+  // 보조: iPhone 이 pointerup 을 안 주고 click 만 주는 경우
+  v.addEventListener('click', e => { const o = e.target.closest('.orb'); if (PERF) console.log('[candid] orb click ' + (o?.dataset.k || '-')); if (o && Date.now() - (v._openedAt || 0) > 800) openSrc(o.dataset.k); });
   v.addEventListener('pointerup', e => {
-    const d = d0; d0 = null; if (!d) return;
+    const d = d0; d0 = null; if (PERF) console.log('[candid] orb up ' + (d ? Math.round(e.clientX - d.x) + ',' + Math.round(e.clientY - d.y) : 'no-down')); if (!d) return;
     const dx = e.clientX - d.x, dy = e.clientY - d.y;
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.3) { const ng = gi + (dx < 0 ? 1 : -1); if (ng >= 0 && ng < gal.length) warpTo(ng, dx < 0 ? 1 : -1); else { navigator.vibrate?.(4); v.querySelector('.ogal').animate([{ translate: '0 0' }, { translate: `${dx < 0 ? -14 : 14}px 0` }, { translate: '0 0' }], { duration: 260, easing: 'ease-out' }); } return; }
-    if (d.orb && Math.hypot(dx, dy) < 12 && Date.now() - d.t < 700) {
-      const x = src.find(z => z.k === d.orb.dataset.k); if (!x) return;
-      if (!x.posts.length) return go(x.g ? gUrl(x.g) : feedUrl(x.o.id)); // 조용한 곳: 피드·그룹으로
-      openOrbitStack(x);
-    }
+    if (d.orb && Math.hypot(dx, dy) < 14 && Date.now() - d.t < 900) openSrc(d.orb.dataset.k); // 조용한 곳은 피드·그룹으로
   });
-  v.addEventListener('pointercancel', () => { d0 = null; });
+  v.addEventListener('pointercancel', () => { if (PERF) console.log('[candid] orb cancel'); d0 = null; });
 }
 // 다음 은하로 워프: 지금 은하가 빨려 들어가듯 작아지고 별빛이 늘어난 뒤, 새 은하가 멀리서 다가옴
 function warpTo(ng, dir) {
@@ -3123,7 +3126,7 @@ async function pickFriendToSend() {
 }
 // Candids 한 칸(사진·영상·투표 + 정보 + 오른쪽 버튼). 넘기기 화면과 궤도의 사진 보기에서 같이 씀
 function reelSection(p, owners) {
-    const o = owners.get(p.owner_id) || { name: t('친구') }, s = SOC.get(p.id);
+    const o = owners.get(p.owner_id) || { name: t('친구') }, s = (SOC.get(p.id) || { likes: 0, liked: false, comments: 0 });
     const gg = p.group_id ? HOME.groups.get(p.group_id) : null; // 그룹 사진: 오른쪽 위 아바타 = 그룹, 아래에 그룹 이름 배지
     return `<section class="reel" data-id="${p.id}">
       ${isText(p) ? `<div class="rbg rbg-${p.media_type}"></div><div class="rmedia rtc">${textStage(p)}</div>` : ''}
