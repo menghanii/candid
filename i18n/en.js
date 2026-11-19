@@ -785,5 +785,14 @@
  "퍼플 은하": "Purple galaxy",
  "코랄 은하": "Coral galaxy",
  "광고": "Ad",
- "자세히 보기": "Learn more"
+ "자세히 보기": "Learn more",
+ "이번 주 {n}장": "{n} this week",
+ "관심 은하는 곧 열려요": "Interest galaxy opens soon",
+ "내가 좋아할 만한 사람·그룹을 모아 둘게요": "We'll gather people and groups you might like",
+ "아직 뜨는 곳이 없어요": "Nothing trending yet",
+ "트렌딩 준비 중이에요(관리자: 35 SQL 실행 필요)": "Trending not ready (admin: run SQL 35)",
+ "트렌딩 은하": "Trending galaxy",
+ "관심 은하": "Interest galaxy",
+ "지금 뜨는 곳": "Trending now",
+ "곧 열려요": "Opening soon"
 };

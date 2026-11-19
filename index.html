@@ -1291,6 +1291,35 @@
   .adinline img { width:100%; aspect-ratio:4/5; object-fit:cover; border-radius:16px; margin-bottom:14px; }
   .adinline b { display:block; font-size:18px; margin-bottom:4px; } .adinline p { color:#aaa; font-size:14px; margin:0 0 14px; }
   .adinline .adtag { left:0; top:0; color:#ccc; border-color:#444; }
+  /* 은하 이름 + 부제 */
+  .orbitv .ohint b { color:var(--gc); margin-right:6px; }
+  .orbitv .ohint span { color:#8e8e93; }
+  .oneb { position:absolute; inset:0; pointer-events:none; }
+  /* 트렌딩 은하: 화려하고 신나게 — 분홍·주황 그라데이션, 반짝이는 별, 흐르는 궤도선, 불꽃 */
+  .orbitv[data-th="party"] { background:radial-gradient(110% 70% at 50% 48%, #3d0e3a 0%, #1a0622 45%, #050007 75%); }
+  .orbitv[data-th="party"] .ohint b { background:linear-gradient(90deg, var(--gc), var(--gc2)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .orbitv[data-th="party"] .oneb { background:radial-gradient(40% 25% at 25% 30%, rgba(255,79,154,.18), transparent 70%), radial-gradient(35% 22% at 78% 70%, rgba(255,178,61,.16), transparent 70%); }
+  .orbitv[data-th="party"] .ostars { opacity:.9; animation:twinkle 1.6s ease-in-out infinite alternate; }
+  .orbitv[data-th="party"] .olines ellipse, .orbitv[data-th="party"] .olines path { stroke:url(#ogr); stroke-width:1.6; stroke-dasharray:6 7; opacity:.75; animation:odash 3s linear infinite; }
+  .orbitv[data-th="party"] .ome::before { background:radial-gradient(circle, rgba(255,79,154,.45), rgba(255,178,61,.15) 45%, transparent 68%); }
+  .orb.hot .oface { box-shadow:0 0 0 2.5px #12001a, 0 0 0 5px var(--gc), 0 0 24px 6px rgba(255,120,150,.45); }
+  .orb.hot .oface::after { content:""; position:absolute; inset:-8px; border-radius:inherit; border:2px solid var(--gc2); opacity:0; animation:opulse 1.8s ease-out infinite; }
+  .orb.hot em { color:#ffb23d; font-weight:700; white-space:nowrap; }
+  .orb em { white-space:nowrap; }
+  @keyframes twinkle { from { opacity:.45; } to { opacity:1; } }
+  @keyframes odash { to { stroke-dashoffset:-26; } }
+  @keyframes ospin { to { transform:rotate(360deg); } }
+  /* 관심 은하: 꿈같이 — 보라 성운, 천천히 흐려졌다 밝아지는 빈 자리 */
+  .orbitv[data-th="dream"] { background:radial-gradient(120% 75% at 50% 50%, #1c1340 0%, #0a0718 55%, #000 80%); }
+  .orbitv[data-th="dream"] .oneb { background:radial-gradient(45% 30% at 30% 40%, rgba(155,123,255,.16), transparent 70%), radial-gradient(40% 28% at 70% 62%, rgba(80,200,255,.10), transparent 70%); filter:blur(6px); }
+  .orbitv[data-th="dream"] .ostars { opacity:.35; }
+  .orbitv[data-th="dream"] .olines ellipse { stroke:rgba(190,170,255,.18); stroke-dasharray:2 6; }
+  .oghost { position:absolute; width:40px; height:40px; margin:-20px 0 0 -20px; border-radius:50%; border:1.5px dashed rgba(190,170,255,.35); animation:oghost 3.4s ease-in-out infinite alternate; }
+  .oghost:nth-child(2n) { animation-delay:-1.7s; }
+  @keyframes oghost { from { opacity:.25; } to { opacity:.8; } }
+  .oempty { position:absolute; left:24px; right:24px; text-align:center; color:#fff; pointer-events:none; }
+  .oempty b { display:block; font-size:15px; } .oempty span { display:block; margin-top:4px; color:#8e8e93; font-size:12.5px; }
+  @media (prefers-reduced-motion: reduce) { .orbitv[data-th] .olines, .orbitv[data-th] .ostars, .orbitv[data-th] .olines * , .oghost { animation:none !important; } }
 </style>
 </head>
 <body>
@@ -1368,6 +1397,7 @@ const I = {
   reelsNav: dotIcon(false),
   // 선택된 하단 탭: 같은 모양을 면으로 채움(Instagram·Threads 방식)
   reelsOn: dotIcon(true),
+  flame: '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px;margin-right:2px"><path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5.3 1.8 1.2 2.6 2 3 .2-3.3-.5-6.3 1-9.5z"/></svg>',
   // 내 피드 탭: 피드 = 네 칸 격자, 대기 피드 = 받은편지함(+ 숫자)
   gridTab: sv('<rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/>', 24, 1.8),
   friendsTab: sv('<circle cx="9" cy="8.5" r="3.4"/><path d="M2.8 19.5c.7-3.4 3.2-5.3 6.2-5.3s5.5 1.9 6.2 5.3"/><path d="M15.6 5.4a3.2 3.2 0 0 1 0 6.2M17.6 14.6c2 .7 3.3 2.3 3.7 4.9"/>', 24, 1.8),
@@ -2946,34 +2976,52 @@ const HOME_VIEWS = false; // 넘기기 보기는 잠시 끔: Candids 는 궤도�
 const homeView = () => { if (!HOME_VIEWS) return 'orbit'; try { return localStorage.getItem('candid_view') === 'orbit' ? 'orbit' : 'reels'; } catch { return 'reels'; } };
 function setHomeView(v) { if (v === homeView()) return; try { localStorage.setItem('candid_view', v); } catch {} navigator.vibrate?.(6); if (CACHE.home) paintHome(CACHE.home); }
 // 궤도: 가운데 나(블루닷), 둘레에 친구·그룹. 새 사진이 있으면 크고 파랗게 빛남(숫자 = 안 본 사진 수)
-function orbitSources(posts, owners) {
-  const seen = lsGet(SEEN_KEY), m = new Map();
-  for (const p of posts) {
-    const k = srcOf(p);
-    if (!m.has(k)) {
-      const g = p.group_id && HOME.groups.get(p.group_id), o = !p.group_id && owners.get(p.owner_id);
-      if (p.group_id && !g) continue;
-      m.set(k, { k, g, o, name: g ? g.name : o?.name || t('친구'), posts: [], fresh: 0, at: 0 });
-    }
-    const x = m.get(k); x.posts.push(p); if (!seen[p.id]) x.fresh++; x.at = Math.max(x.at, new Date(p.approved_at).getTime());
-  }
-  // 노출 순서: ① 안 본 사진이 있는 곳 ② 안 본 사진이 많은 곳 ③ 내가 자주 반응한 곳(좋아요 등) ④ 최근에 올라온 곳 → 그다음 조용한 곳(가나다순)
-  const aff = lsGet(AFF_KEY);
-  const active = [...m.values()].sort((a, b) => (b.fresh > 0) - (a.fresh > 0) || b.fresh - a.fresh || Math.min(aff[b.k] || 0, 10) - Math.min(aff[a.k] || 0, 10) || b.at - a.at);
-  // 최근 사진이 없는 친구·그룹도 뒤쪽 은하에(조용한 곳)
-  const quiet = [];
-  owners.forEach(o => { if (o.id !== me?.id && !m.has('u:' + o.id)) quiet.push({ k: 'u:' + o.id, o, name: o.name, posts: [], fresh: 0, at: 0 }); });
-  HOME.groups.forEach(g => { if (!m.has('g:' + g.id) && (MYG.fol.has(g.id) || gRole(g.id))) quiet.push({ k: 'g:' + g.id, g, name: g.name, posts: [], fresh: 0, at: 0 }); });
-  return [...active, ...quiet.sort(byKoName)];
+// 블루 은하: 내 친구·내 그룹. 나와 많이 주고받은 순(서버 my_interactions 점수, 없으면 이 기기의 좋아요 기록) → 가까운 궤도부터
+let INTER = { map: null, at: 0 };
+async function loadInteractions() {
+  if (INTER.map && Date.now() - INTER.at < 5 * 60e3) return INTER.map;
+  try { const { data, error } = await sb.rpc('my_interactions'); if (error) throw error; INTER = { map: new Map((data || []).map(r => [r.k, +r.score])), at: Date.now() }; }
+  catch { INTER = { map: INTER.map || new Map(), at: Date.now() }; }
+  return INTER.map;
 }
-// 은하: 18곳씩. 은하마다 궤도 모양·가운데 닷 색·표정이 다름
+function orbitSources(posts, owners) {
+  const seen = lsGet(SEEN_KEY), aff = lsGet(AFF_KEY), inter = INTER.map || new Map(), m = new Map();
+  const add = (k, o, g) => { if (!m.has(k)) m.set(k, { k, o, g, name: g ? g.name : o?.name || t('친구'), posts: [], fresh: 0, at: 0 }); return m.get(k); };
+  owners.forEach(o => { if (o.id !== me?.id) add('u:' + o.id, o, null); });
+  HOME.groups.forEach(g => { if (MYG.fol.has(g.id) || gRole(g.id)) add('g:' + g.id, null, g); });
+  for (const p of posts) {
+    const x = m.get(srcOf(p)); if (!x) continue;
+    x.posts.push(p); if (!seen[p.id]) x.fresh++; x.at = Math.max(x.at, new Date(p.approved_at).getTime());
+  }
+  const score = x => (inter.get(x.k) || 0) * 2 + Math.min(aff[x.k] || 0, 20) + (x.fresh ? 3 : 0) + (x.at ? Math.max(0, 3 - (Date.now() - x.at) / 864e5 / 3) : 0);
+  return [...m.values()].map(x => (x.sc = score(x), x)).sort((a, b) => b.sc - a.sc || b.at - a.at || byKoName(a, b)).slice(0, PER_GALAXY);
+}
+// 트렌딩 은하: 내 친구·내 그룹이 아닌 공개 피드·그룹 중 최근 7일 활발한 곳(서버 trending_sources, 35 SQL)
+let TREND = { list: null, at: 0, err: false };
+async function loadTrending() {
+  if (TREND.list && Date.now() - TREND.at < 5 * 60e3) return TREND.list;
+  try {
+    const { data, error } = await sb.rpc('trending_sources'); if (error) throw error;
+    TREND = { at: Date.now(), err: false, list: (data || []).map(r => r.kind === 'group'
+      ? { k: 'g:' + r.id, g: { id: r.id, name: r.name, handle: r.handle, cover_path: r.avatar, visibility: 'public' }, name: r.name, posts: [], fresh: 0, trend: { posts: +r.posts, likes: +r.likes } }
+      : { k: 'u:' + r.id, o: { id: r.id, name: r.name, handle: r.handle, avatar_url: r.avatar }, name: r.name, posts: [], fresh: 0, trend: { posts: +r.posts, likes: +r.likes } }) };
+  } catch { TREND = { list: TREND.list || [], at: Date.now(), err: true }; }
+  return TREND.list;
+}
+// 트렌딩 곳을 누르면: 그 피드·그룹의 최근 사진을 받아 Candids 보기로
+async function openTrending(x) {
+  const q = x.g ? sb.from('posts').select(GPOST_COLS).eq('group_id', x.g.id).eq('status', 'approved').eq('flagged', false)
+                : sb.from('posts').select(POST_COLS).eq('owner_id', x.o.id).eq('status', 'approved');
+  const { data, error } = await q.order('approved_at', { ascending: false }).limit(20);
+  if (error || !data?.length) return go(x.g ? gUrl(x.g) : feedUrl(x.o.id));
+  if (x.g && !HOME.groups.has(x.g.id)) HOME.groups.set(x.g.id, x.g);
+  openOrbitStack({ ...x, posts: data }, x.o);
+}
+// 은하 3개: 각자 성격·색·궤도 모양·배경·가운데 닷 표정이 다름
 const GALAXIES = [
-  { kind: 'blue', c: '#5c7cff', shape: 'rings', moods: ['look', 'happy'] },
-  { kind: 'mint', c: '#2fd3a6', shape: 'tilt', moods: ['wink', 'happy'] },
-  { kind: 'pink', c: '#ff6fb1', shape: 'spiral', moods: ['wow', 'happy'] },
-  { kind: 'lemon', c: '#ffd23f', shape: 'eight', moods: ['look', 'wink'] },
-  { kind: 'purple', c: '#a374ff', shape: 'rings', moods: ['down', 'happy'] },
-  { kind: 'coral', c: '#ff8a5c', shape: 'tilt', moods: ['sleepy', 'happy'] },
+  { key: 'my', name: '블루 은하', sub: '내 친구·그룹', c: '#5c7cff', shape: 'rings', th: 'calm', moods: ['look', 'happy'] },
+  { key: 'trend', name: '트렌딩 은하', sub: '지금 뜨는 곳', c: '#ff4f9a', c2: '#ffb23d', shape: 'rings', th: 'party', moods: ['wow', 'wink'] },
+  { key: 'interest', name: '관심 은하', sub: '곧 열려요', c: '#9b7bff', shape: 'eight', th: 'dream', moods: ['sleepy', 'look'] },
 ];
 const PER_GALAXY = 20;
 let ORBIT_G = 0;
@@ -3009,33 +3057,55 @@ function galaxyLayout(shape, n, W, H, topY) {
   return { pts, lines, cx, cy };
 }
 function paintOrbit(posts, owners, top) {
-  const src = orbitSources(posts, owners);
-  const gal = []; for (let i = 0; i < src.length; i += PER_GALAXY) gal.push(src.slice(i, i + PER_GALAXY));
-  if (!gal.length) gal.push([]);
-  ORBIT_G = Math.min(ORBIT_G, gal.length - 1);
-  const gi = ORBIT_G, here = gal[gi], G = GALAXIES[gi % GALAXIES.length];
+  ORBIT_G = Math.max(0, Math.min(ORBIT_G, GALAXIES.length - 1));
+  const gi = ORBIT_G, G = GALAXIES[gi];
+  // 은하별 사람·그룹: 블루 = 내 사람들, 트렌딩 = 서버가 고른 뜨는 곳, 관심 = 아직(곧 열림)
+  const mine = orbitSources(posts, owners);
+  if (!INTER.map) loadInteractions().then(() => { if (document.getElementById('orbitv') && ORBIT_G === 0 && CACHE.home) paintHome(CACHE.home); });
+  if (!TREND.list) loadTrending().then(() => { if (document.getElementById('orbitv') && ORBIT_G === 1 && CACHE.home) paintHome(CACHE.home); });
+  const here = gi === 0 ? mine : gi === 1 ? (TREND.list || []) : [];
+  const src = [...mine, ...(TREND.list || [])];
   const W = Math.min(innerWidth, 480), H = innerHeight;
-  const freshHere = here.reduce((n, x) => n + x.fresh, 0), freshAll = src.reduce((n, x) => n + x.fresh, 0), allSeen = !freshAll;
-  const gname = t({ blue: '블루 은하', mint: '민트 은하', pink: '핑크 은하', lemon: '레몬 은하', purple: '퍼플 은하' }[G.kind] || '코랄 은하');
-  const gdots = gal.length > 1 ? `<div class="gdots">${gal.map((g, i) => { const GG = GALAXIES[i % GALAXIES.length], f = g.some(x => x.fresh); return `<button class="${i === gi ? 'on' : ''}${f ? ' f' : ''}" style="--gc:${GG.c}" data-g="${i}" aria-label="${t('{n}번째 은하', { n: i + 1 })}"></button>`; }).join('')}</div>` : '';
+  const freshHere = here.reduce((n, x) => n + x.fresh, 0), freshMine = mine.reduce((n, x) => n + x.fresh, 0), allSeen = gi === 0 && !freshMine;
+  const gdots = `<div class="gdots">${GALAXIES.map((GG, i) => `<button class="${i === gi ? 'on' : ''}${i === 0 && freshMine && gi !== 0 ? ' f' : ''}" style="--gc:${GG.c}" data-g="${i}" aria-label="${t(GG.name)}"></button>`).join('')}</div>`;
   // 1) 틀(상단·은하 이름·은하 점) 먼저 → 은하 이름이 실제로 어디까지 내려왔는지 잼
-  $app.innerHTML = `<div class="orbitv${allSeen ? ' allseen' : ''}" id="orbitv" style="--gc:${G.c}">${top}<i class="ostars"></i>
-    <p class="ohint"><b style="color:${G.c}">${gname}</b></p><div class="ogal" id="ogal"></div>${gdots}</div>${navBar('reels')}`;
+  $app.innerHTML = `<div class="orbitv${allSeen ? ' allseen' : ''}" id="orbitv" data-th="${G.th}" style="--gc:${G.c};--gc2:${G.c2 || G.c}">${top}<i class="ostars"></i><i class="oneb"></i>
+    <p class="ohint"><b>${t(G.name)}</b><span>${t(G.sub)}</span></p><div class="ogal" id="ogal"></div>${gdots}</div>${navBar('reels')}`;
   const hintBottom = document.querySelector('#orbitv .ohint')?.getBoundingClientRect().bottom;
-  const { pts, lines, cx, cy } = galaxyLayout(G.shape, here.length, W, H, hintBottom ? hintBottom + 44 : undefined);
+  const { pts, lines, cx, cy } = galaxyLayout(G.shape, gi === 2 ? 10 : here.length, W, H, hintBottom ? hintBottom + 44 : undefined);
+  const dense = here.length > 10, maxSc = Math.max(1, ...here.map(x => x.trend ? x.trend.posts * 2 + x.trend.likes : 0));
+  const sizeOf = x => x.trend ? Math.round((dense ? 36 : 42) + (dense ? 16 : 20) * Math.sqrt((x.trend.posts * 2 + x.trend.likes) / maxSc))
+      : x.fresh ? Math.min(dense ? 54 : 70, (dense ? 44 : 50) + x.fresh * 3) : allSeen ? (dense ? 42 : 50) : (dense ? 36 : 42);
+  // 겹치는 동그라미는 서로 살짝 밀어냄(이름표 높이까지 고려), 가운데 닷·화면 밖은 피함
+  const P2 = here.map((x, i) => ({ ...(pts[i] || { X: cx, Y: cy }), r: sizeOf(x) / 2 }));
+  const yTop = (hintBottom || 110) + 14, yBot = H - safeArea().bottom - 120;
+  for (let it = 0; it < 80; it++) {
+    let moved = false;
+    for (let a = 0; a < P2.length; a++) for (let b = a + 1; b < P2.length; b++) {
+      const A = P2[a], B = P2[b], need = A.r + B.r + 30, dx = B.X - A.X, dy = (B.Y - A.Y) * 0.8, d = Math.hypot(dx, dy) || 0.01;
+      if (d < need) { const k = (need - d) / 2 / d; A.X -= dx * k; A.Y -= dy * k / 0.8; B.X += dx * k; B.Y += dy * k / 0.8; moved = true; }
+    }
+    for (const A of P2) { const dx = A.X - cx, dy = A.Y - cy, d = Math.hypot(dx, dy) || 0.01, need = A.r + 46; if (d < need) { A.X = cx + dx / d * need; A.Y = cy + dy / d * need; }
+      A.X = Math.max(A.r + 6, Math.min(W - A.r - 6, A.X)); A.Y = Math.max(yTop + A.r, Math.min(yBot - A.r - 26, A.Y)); }
+    if (!moved) break;
+  }
   const orb = (x, i) => {
-    const dense = here.length > 10; // 꽉 찬 은하는 조금 작게(겹치지 않게)
-    const P = pts[i] || { X: cx, Y: cy }, s = x.fresh ? Math.min(dense ? 54 : 70, (dense ? 44 : 50) + x.fresh * 3) : allSeen ? (dense ? 42 : 50) : (dense ? 36 : 42);
+    const P = P2[i];
+    const s = x.trend ? Math.round((dense ? 36 : 42) + (dense ? 16 : 20) * Math.sqrt((x.trend.posts * 2 + x.trend.likes) / maxSc)) // 트렌딩: 활발할수록 큼
+      : x.fresh ? Math.min(dense ? 54 : 70, (dense ? 44 : 50) + x.fresh * 3) : allSeen ? (dense ? 42 : 50) : (dense ? 36 : 42);
     const px = Math.max(s / 2 + 6, Math.min(W - s / 2 - 6, P.X));
     const face = x.g ? gAv(x.g, 'xs') : avatar(x.o || { name: x.name }, 'xs');
-    const sub = x.fresh ? (x.g ? t('새 사진 {n}장', { n: x.fresh }) : t('새 사진')) : x.posts.length ? t('다 봤어요') : t('조용해요');
-    return `<button class="orb${x.g ? ' grp' : ''}${x.fresh ? ' new' : ' seen'}" style="left:${px}px;top:${P.Y}px;--s:${s}px;--d:${5 + i % 4}s;--dl:-${(i * .7).toFixed(1)}s;--fi:${(i * .06).toFixed(2)}s" data-k="${x.k}">
+    const sub = x.trend ? `${I.flame}${t('이번 주 {n}장', { n: x.trend.posts })}` : x.fresh ? (x.g ? t('새 사진 {n}장', { n: x.fresh }) : t('새 사진')) : x.posts.length ? t('다 봤어요') : t('조용해요');
+    return `<button class="orb${x.g ? ' grp' : ''}${x.trend ? ' hot' : x.fresh ? ' new' : ' seen'}" style="left:${px}px;top:${P.Y}px;--s:${s}px;--d:${5 + i % 4}s;--dl:-${(i * .7).toFixed(1)}s;--fi:${(i * .06).toFixed(2)}s" data-k="${x.k}">
       <span class="oface">${face}${x.fresh ? `<i class="on">${x.fresh}</i>` : ''}</span><b>${esc(x.name)}</b><em>${sub}</em></button>`;
   };
+  const defs = `<defs><linearGradient id="ogr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${G.c}"/><stop offset="1" stop-color="${G.c2 || G.c}"/></linearGradient></defs>`;
+  const empty = gi === 2 ? `<div class="oempty" style="top:${cy + 64}px"><b>${t('관심 은하는 곧 열려요')}</b><span>${t('내가 좋아할 만한 사람·그룹을 모아 둘게요')}</span></div>${pts.map(P => `<i class="oghost" style="left:${P.X}px;top:${P.Y}px"></i>`).join('')}`
+    : gi === 1 && !here.length ? `<div class="oempty" style="top:${cy + 64}px"><b>${TREND.list ? t('아직 뜨는 곳이 없어요') : t('불러오는 중…')}</b>${TREND.err ? `<span>${t('트렌딩 준비 중이에요(관리자: 35 SQL 실행 필요)')}</span>` : ''}</div>` : '';
   // 2) 궤도 그리기
-  document.getElementById('ogal').innerHTML = `<svg class="olines" width="${W}" height="${H}" aria-hidden="true">${lines.join('')}</svg>
-    <div class="ome" style="left:${cx}px;top:${cy}px;--accent:${G.c}">${DOT(freshHere ? G.moods[0] : G.moods[1], { size: 58, cls: 'float' })}</div>
-    ${here.map(orb).join('')}`;
+  document.getElementById('ogal').innerHTML = `<svg class="olines" width="${W}" height="${H}" aria-hidden="true">${defs}${lines.join('')}</svg>
+    <div class="ome" style="left:${cx}px;top:${cy}px;--accent:${G.c}">${DOT(gi === 2 ? G.moods[0] : freshHere || gi === 1 ? G.moods[0] : G.moods[1], { size: 58, cls: 'float' })}</div>
+    ${here.map(orb).join('')}${empty}`;
   const v = document.getElementById('orbitv');
   v.querySelectorAll('.gdots button').forEach(b => b.onclick = () => warpTo(+b.dataset.g, +b.dataset.g > gi ? 1 : -1));
   // 누르기·옆으로 밀기: iPhone 이 움직이는 화면에서 click 을 안 줄 때가 있어 손을 뗄 때 직접 처리
@@ -3043,7 +3113,7 @@ function paintOrbit(posts, owners, top) {
   v.addEventListener('pointerdown', e => { if (PERF) console.log('[candid] orb down ' + e.pointerType + ' ' + (e.target.closest('.orb')?.dataset.k || e.target.className)); if (e.target.closest('.rtop, .gdots, .bnav')) return; d0 = { x: e.clientX, y: e.clientY, t: Date.now(), orb: e.target.closest('.orb') }; });
   const openSrc = k => {
     const x = src.find(z => z.k === k); if (!x) return; v._openedAt = Date.now();
-    try { if (!x.posts.length) return go(x.g ? gUrl(x.g) : feedUrl(x.o.id)); openOrbitStack(x); }
+    try { if (x.trend) return openTrending(x); if (!x.posts.length) return go(x.g ? gUrl(x.g) : feedUrl(x.o.id)); openOrbitStack(x); }
     catch (err) { console.log('[candid] orb open fail ' + k + ' ' + (err?.message || err) + ' @ ' + String(err?.stack || '').split('\n').slice(0, 3).join(' | ')); }
   };
   // 보조: iPhone 이 pointerup 을 안 주고 click 만 주는 경우
@@ -3051,7 +3121,7 @@ function paintOrbit(posts, owners, top) {
   v.addEventListener('pointerup', e => {
     const d = d0; d0 = null; if (PERF) console.log('[candid] orb up ' + (d ? Math.round(e.clientX - d.x) + ',' + Math.round(e.clientY - d.y) : 'no-down')); if (!d) return;
     const dx = e.clientX - d.x, dy = e.clientY - d.y;
-    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.3) { const ng = gi + (dx < 0 ? 1 : -1); if (ng >= 0 && ng < gal.length) warpTo(ng, dx < 0 ? 1 : -1); else { navigator.vibrate?.(4); v.querySelector('.ogal').animate([{ translate: '0 0' }, { translate: `${dx < 0 ? -14 : 14}px 0` }, { translate: '0 0' }], { duration: 260, easing: 'ease-out' }); } return; }
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.3) { const ng = gi + (dx < 0 ? 1 : -1); if (ng >= 0 && ng < GALAXIES.length) warpTo(ng, dx < 0 ? 1 : -1); else { navigator.vibrate?.(4); v.querySelector('.ogal').animate([{ translate: '0 0' }, { translate: `${dx < 0 ? -14 : 14}px 0` }, { translate: '0 0' }], { duration: 260, easing: 'ease-out' }); } return; }
     if (d.orb && Math.hypot(dx, dy) < 14 && Date.now() - d.t < 900) openSrc(d.orb.dataset.k); // 조용한 곳은 피드·그룹으로
   });
   v.addEventListener('pointercancel', () => { if (PERF) console.log('[candid] orb cancel'); d0 = null; });
@@ -3067,10 +3137,10 @@ function warpTo(ng, dir) {
   }, 300);
 }
 // 궤도에서 누르면: 그 친구·그룹 사진을 Candids 넘기기처럼(위아래로 다음 사진, 좌우로 여러 장). 안 본 것부터
-function openOrbitStack(x) {
+function openOrbitStack(x, extraOwner) {
   if (!x?.posts.length) return;
   const seen = lsGet(SEEN_KEY), list = [...x.posts].sort((a, b) => (!!seen[a.id] - !!seen[b.id]) || new Date(b.approved_at) - new Date(a.approved_at));
-  const owners = CACHE.home?.owners || HOME.owners || new Map();
+  const owners = new Map(CACHE.home?.owners || HOME.owners || []); if (extraOwner) owners.set(extraOwner.id, extraOwner);
   const face = x.g ? gAv(x.g, 'xs') : avatar(x.o || { name: x.name }, 'xs');
   const ov = document.createElement('div'); ov.className = 'oreel';
   ov.innerHTML = `<div class="reels" id="sreels"><header class="rtop oreel-h"><button class="icon-btn" data-x aria-label="${t('뒤로')}">${I.back}</button>
