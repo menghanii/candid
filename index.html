@@ -1321,6 +1321,12 @@
   .oempty b { display:block; font-size:15px; } .oempty span { display:block; margin-top:4px; color:#8e8e93; font-size:12.5px; }
   @media (prefers-reduced-motion: reduce) { .orbitv[data-th] .olines, .orbitv[data-th] .ostars, .orbitv[data-th] .olines * , .oghost { animation:none !important; } }
   .stat-n { font-style:normal; display:inline-flex; min-width:15px; height:15px; padding:0 4px; border-radius:8px; background:var(--accent); color:#fff; font-size:10px; font-weight:800; align-items:center; justify-content:center; vertical-align:1px; }
+  /* 격자 칸: 글자 없이 보낸 친구 사진 + 안 본 사진 블루닷 */
+  .grid button::after { display:none; }
+  .grid .gfrom { position:absolute; left:6px; bottom:6px; z-index:1; width:22px; height:22px; border-radius:50%; overflow:hidden; border:1.5px solid #fff; background:#3a3a3e; color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; box-shadow:0 1px 4px rgba(0,0,0,.35); }
+  .grid .gfrom img { width:100%; height:100%; object-fit:cover; }
+  .grid .gfrom svg { width:16px; height:16px; }
+  .grid .gnew { position:absolute; right:7px; bottom:9px; z-index:1; width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 2px rgba(0,0,0,.25); }
 </style>
 </head>
 <body>
@@ -2526,7 +2532,8 @@ function renderBody() {
     return;
   }
   if (approved.length) {
-    $b.innerHTML = `<div class="grid">${approved.map(p => `<button onclick="openPost('${p.id}')" class="${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${t('{name}가 보낸 사진', { name: aname(p.author_name) })}${p.text ? ': ' + esc(p.text) : ''}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">`}${gridStickers(p)}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}<span class="from">${p.text && !isText(p) ? `<q>“${esc(p.text)}”</q>` : ''}from<i class="pd">.</i> ${aname(p.author_name)}</span></button>`).join('')}</div>`;
+    $b.innerHTML = `<div class="grid">${approved.map(p => `<button onclick="openPost('${p.id}')" class="${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${t('{name}가 보낸 사진', { name: aname(p.author_name) })}${p.text ? ': ' + esc(p.text) : ''}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">`}${gridStickers(p)}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}${tileFrom(p, !isOwner)}</button>`).join('')}</div>`;
+    fillTileFaces($b);
     S.justApproved = null;
     return;
   }
@@ -3426,6 +3433,18 @@ function openAnswer(id) {
   };
 }
 const HOME = { posts: [] };
+// 격자 칸: 글자 대신 보낸 친구의 작은 프로필 사진(왼쪽 아래) + 아직 안 본 사진은 블루닷(오른쪽 아래)
+function tileFrom(p, dotNew) {
+  const face = p.author_id ? `<span class="gfrom" data-au="${p.author_id}">${DEFAULT_AV}</span>` : `<span class="gfrom anon">${II.mask}</span>`;
+  return face + (dotNew && !lsGet(SEEN_KEY)[p.id] ? '<i class="gnew"></i>' : '');
+}
+function fillTileFaces(root) {
+  const els = [...(root || document).querySelectorAll('.gfrom[data-au]:not([data-done])')];
+  [...new Set(els.map(e => e.dataset.au))].forEach(id => loadProfLite(id).then(pr => {
+    if (!pr) return;
+    (root || document).querySelectorAll(`.gfrom[data-au="${id}"]`).forEach(e => { e.dataset.done = 1; e.innerHTML = pr.avatar_url ? `<img src="${esc(pr.avatar_url)}" alt="" referrerpolicy="no-referrer">` : esc((pr.name || '?').slice(0, 1)); e.classList.toggle('txt', !pr.avatar_url); });
+  }));
+}
 const findAny = id => findPost(id) || HOME.posts.find(x => x.id === id);
 
 // ---------- 당겨서 새로고침 ----------
@@ -3469,6 +3488,7 @@ const findPost = id => [...(G.g && !document.querySelector('.reels') ? G.posts :
 function openPost(id) {
   const fromHome = !findPost(id);
   const p = findPost(id) || HOME.posts?.find(x => x.id === id); if (!p) return; // 궤도의 사진 더미에서 연 게시물
+  markSeen(id); document.querySelectorAll(`[onclick="openPost('${id}')"] .gnew`).forEach(e => e.remove());
   const gp = !!p.group_id, gg = gp ? groupOf(p.group_id) : null, own = !gp && (fromHome ? p.owner_id === me?.id : S.isOwner); // 그룹 게시물: 주인 대신 방장·올린 사람
   const ov = document.createElement('div');
   ov.className = 'overlay page';
@@ -5336,7 +5356,7 @@ function paintGroup() {
   const tile = p => `<button onclick="openPost('${p.id}')" class="${p.flagged ? 'gflagged' : ''}" aria-label="${t('{name}님이 올린 사진', { name: esc(p.author_name) })}">
       <img src="${thumbUrl(p)}" alt="" loading="lazy">${gridStickers(p)}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}
       ${p.pinned_at ? `<span class="gpin" aria-label="${t('고정됨')}">${II.pin}</span>` : ''}${p.flagged ? `<span class="gflag">${t('신고로 가려짐')}</span>` : ''}
-      <span class="from">${p.text ? `<q>“${esc(p.text)}”</q>` : ''}from<i class="pd">.</i> ${esc(p.author_name)}</span></button>`;
+      ${tileFrom(p, true)}</button>`;
   const body = !canSee
     ? `<div class="empty"><div class="empty-dot">${DOT('look', { cls: 'blink' })}</div><h2>Members <em>only.</em></h2><p>${t(isPending ? '방장이 승인하면 사진을 볼 수 있어요.' : '비공개 그룹이에요. 멤버만 사진을 볼 수 있어요.')}</p></div>`
     : posts.length ? `<div class="grid">${posts.map(tile).join('')}</div>`
@@ -5363,6 +5383,7 @@ function paintGroup() {
     ${navBar('')}`;
   $app.classList.toggle('has-nav', !!me);
   scrollTo(0, y);
+  fillTileFaces(document.getElementById('body'));
 }
 
 async function joinGroup(code) {
