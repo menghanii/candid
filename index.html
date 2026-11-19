@@ -6329,9 +6329,7 @@ function editPostText(id) {
       [findPost(id), HOME.posts?.find(x => x.id === id), p].filter(Boolean).forEach(x => Object.assign(x, patch));
       await loadStickers([id]).catch(() => {});
       closeSheet(); toast(t('게시물을 고쳤어요'));
-      document.querySelectorAll('.oreel, .overlay.page').forEach(o => o.remove()); VIEWER = [];
-      if (p.group_id && G.g?.id === p.group_id) paintGroup(); else if (S.prof && !p.group_id) paintProfile();
-      return;
+      return refreshAfterEdit(id);
     }
     const status = x => { b.textContent = x; };
     try {
@@ -6371,11 +6369,23 @@ function editPostText(id) {
         : /closed/.test(e?.message || '') ? t('업로드가 마감된 그룹이에요') : /edit_post_media/.test(e?.message || '') && /does not exist|not find|42883|PGRST20/.test(e?.message || '') ? t('사진 수정 기능 준비 중이에요(관리자: 24 SQL 실행 필요)') : e?.user ? e.message : editErr(e));
     }
     closeSheet(); toast(t('수정했어요'));
-    const ov = document.querySelector('.overlay'); if (ov) { ov.remove(); openPost(id); }
-    if (G.g && document.querySelector('.ghead')) { setThumbs?.(G.posts); paintGroup(); } else if (S.prof && document.getElementById('body')) renderBody();
-    if (mediaChanged && document.querySelector(`.reel[data-id="${id}"]`) && CACHE.home) paintHome(CACHE.home);
-    else { const r = document.querySelector(`.reel[data-id="${id}"] .rtext`); if (r) r.textContent = v ? `“${v}”` : ''; }
+    refreshAfterEdit(id);
   };
+}
+// 고친 뒤: 지금 보던 화면(격자·사진 페이지·Candids 보기)을 새 내용으로 다시 — 보기는 같은 사진에서 다시 열림
+function refreshAfterEdit(id) {
+  const inViewer = !!document.querySelector('.oreel'), page = document.querySelector('.overlay.page');
+  const repaint = () => {
+    if (G.g && document.querySelector('.ghead')) { setThumbs?.(G.posts); paintGroup(); } else if (S.prof && document.getElementById('body')) paintProfile();
+    else if (document.getElementById('reels') && CACHE.home) paintHome(CACHE.home);
+  };
+  if (inViewer) {
+    const after = () => { removeEventListener('popstate', after); setTimeout(() => { repaint(); const b = document.querySelector(`.grid button[data-pid="${id}"]`); if (b) openFeedViewer(id, b); }, 60); };
+    if (history.state?.oreel) { addEventListener('popstate', after); closeViewer(); } else { document.querySelectorAll('.oreel').forEach(o => o.remove()); VIEWER = []; after(); }
+    return;
+  }
+  if (page) { page.remove(); repaint(); openPost(id); return; }
+  repaint();
 }
 async function deleteMyPost(id) {
   closeSheet();
