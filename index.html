@@ -1347,6 +1347,8 @@
   .oreel .rinfo .rgroup { display:none; } /* 궤도 보기: 주인은 맨 위에 이미 있음 */
   .oreel .rside .rmorebtn { display:none; } /* ⋯ 는 맨 위로 */
   .oreel-h .icon-btn[data-more] { color:#fff; }
+  /* Candids 보기(z 30) 위에서 여는 화면들(꾸며주기·채워주기 작성 등)은 그 위로 */
+  .oreel ~ .page-ov, .oreel ~ .composer { z-index:46; }
 </style>
 </head>
 <body>
@@ -3265,8 +3267,10 @@ async function renderHome(fresh) {
   paintHome(CACHE.home);
 }
 // 릴스에서 바로 그 친구 피드 채워주기: 페이지 이동 없이 작성 화면 + 사진첩
-function fillFriend(uid) {
-  const o = HOME.owners?.get(uid); if (!o) return go(`${feedUrl(uid)}&m=0`);
+async function fillFriend(uid) {
+  // 홈 목록에 없는 친구(피드·트렌딩에서 연 Candids 보기 등)도 이름·사진을 받아 바로 작성 화면
+  const o = HOME.owners?.get(uid) || (S.prof?.id === uid ? S.prof : null) || await loadProfLite(uid);
+  if (!o) { closeViewer(); return go(`${feedUrl(uid)}&m=0`); }
   composeTo(o);
 }
 // 지금 화면(내 피드 등)을 떠나지 않고 특정 친구에게 보내기: 작성 화면이 닫히면 원래 화면 상태로 되돌림
@@ -3514,7 +3518,7 @@ function fillTileFaces(root) {
     (root || document).querySelectorAll(`.gfrom[data-au="${id}"]`).forEach(e => { e.dataset.done = 1; e.innerHTML = pr.avatar_url ? `<img src="${esc(pr.avatar_url)}" alt="" referrerpolicy="no-referrer">` : DEFAULT_AV; }); // 사진이 없으면 기본 프로필
   }));
 }
-const findAny = id => findPost(id) || HOME.posts.find(x => x.id === id);
+const findAny = id => findPost(id) || HOME.posts.find(x => x.id === id) || VIEWER.find(x => x.id === id); // VIEWER: 열린 Candids 보기의 게시물
 
 // ---------- 당겨서 새로고침 ----------
 (function pullToRefresh() {
