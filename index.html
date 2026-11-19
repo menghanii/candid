@@ -4508,6 +4508,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
   // 자르기 틀을 만지는 동안에는 사진 칸을 눌러도 사진첩이 열리지 않게
   $('#pick').addEventListener('click', e => { if (e.target.closest('.ccrop')) e.preventDefault(); }, true);
   $file.onchange = () => handlePick();
+  el._pick = items => handlePick(items); // 앱 사진첩·카메라에서 받은 것 넣기(시험용으로도 씀)
   // iOS 앱: 사진 칸을 누르면 웹 파일 선택 대신 iPhone 사진 선택창(빠른 HEIC 처리·줄이기는 iPhone 이 함)
   if (IN_APP && window.Capacitor?.isPluginAvailable?.('MediaPicker')) $('#pick').addEventListener('click', async e => {
     if (e.target.closest('input[type=range], .trim, .ccrop')) return;
