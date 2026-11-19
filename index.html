@@ -1492,6 +1492,19 @@
   .cmp-media.has .repick { z-index:3; }
   /* 궤도를 곧바로 다시 그릴 때(시작 직후 데이터가 이어서 올 때): 등장 효과 없이 그대로 */
   .orbitv.still .orb, .orbitv.still.allseen .orb.seen { animation:ofloat var(--d,6s) ease-in-out infinite !important; animation-delay:var(--dl,0s) !important; opacity:1; }
+  /* 수정 시트 사진 줄: 여러 줄로(가로 스크롤 대신) — 손가락으로 끌어 순서 바꾸기 */
+  .epm { flex-wrap:wrap; overflow:visible !important; }
+  .epm-i { touch-action:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+  .epm-i img { pointer-events:none; -webkit-user-drag:none; }
+  .epm-i.drag { z-index:5; box-shadow:0 8px 20px rgba(0,0,0,.45); transition:none; }
+  /* 작성 화면: 9:16 틀(올라가면 보일 모습) 안에서 사진 옮기기·확대 */
+  .cmp-media.has.frame9 { aspect-ratio:9/16; width:auto; height:min(60vh, 60dvh, 620px); max-height:none; margin:0 auto; border-radius:14px; }
+  .cmp-media .cfr { position:absolute; inset:0; overflow:hidden; touch-action:none; background:#000; transition:background .3s; }
+  .cfr img { position:absolute; left:0; top:0; transform-origin:0 0; user-select:none; -webkit-user-select:none; pointer-events:none; max-width:none; }
+  .cfr .chint { position:absolute; left:50%; top:14px; transform:translateX(-50%); padding:6px 11px; border-radius:14px; background:rgba(0,0,0,.55); color:#fff; font-size:12px; font-weight:600; white-space:nowrap; pointer-events:none; transition:opacity .4s; }
+  .cfr.touched .chint { opacity:0; }
+  .cfr .cgrid { position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .2s; background:linear-gradient(90deg, transparent calc(33.3% - .5px), rgba(255,255,255,.35) 33.3%, transparent calc(33.3% + .5px), transparent calc(66.6% - .5px), rgba(255,255,255,.35) 66.6%, transparent calc(66.6% + .5px)), linear-gradient(transparent calc(33.3% - .5px), rgba(255,255,255,.35) 33.3%, transparent calc(33.3% + .5px), transparent calc(66.6% - .5px), rgba(255,255,255,.35) 66.6%, transparent calc(66.6% + .5px)); }
+  .cfr.moving .cgrid { opacity:1; }
 </style>
 </head>
 <body>
@@ -1570,7 +1583,7 @@ const I = {
   // 선택된 하단 탭: 같은 모양을 면으로 채움(Instagram·Threads 방식)
   reelsOn: dotIcon(true),
   crop: sv('<path d="M6 2v14a2 2 0 0 0 2 2h14M2 6h14a2 2 0 0 1 2 2v14"/>'),
-  rotate: sv('<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>'),
+  rotate: sv('<rect x="3" y="10" width="11" height="11" rx="2"/><path d="M7 6.5h6.5a5 5 0 0 1 5 5V14"/><path d="M10 3.5 7 6.5l3 3"/>'),
   trash: sv('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>'),
   flame: '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px;margin-right:2px"><path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5.3 1.8 1.2 2.6 2 3 .2-3.3-.5-6.3 1-9.5z"/></svg>',
   // 내 피드 탭: 피드 = 네 칸 격자, 대기 피드 = 받은편지함(+ 숫자)
@@ -1919,45 +1932,68 @@ function rotCanvas(img, rot, max = 2400) {
   const x = c.getContext('2d'); x.translate(c.width / 2, c.height / 2); x.rotate(rot * Math.PI / 180); x.drawImage(img, -w / 2, -h / 2, w, h);
   return c;
 }
-async function renderCrop(src, ed) {
+// 9:16 틀(Candids 에서 보일 모습) 안에서: 한 손가락 = 옮기기, 두 손가락 = 확대·축소, 오른쪽 위 = 90° 회전
+// 남는 곳은 Candids 처럼 사진 색으로 채워 보여 줌. 올라가는 건 틀 안에 보이는 부분만(남는 곳은 보는 쪽에서 다시 채움)
+// edit: { rot, z(1 = 틀 안에 다 보이게), ox, oy(틀 크기 대비 가운데에서 떨어진 정도) }
+function frameMath(rw, rh, FW, FH, ed) {
+  const k = Math.min(FW / rw, FH / rh) * (ed.z || 1), w = rw * k, h = rh * k;
+  const cl = (o, size, F) => size <= F ? 0 : Math.max(-(size - F) / 2, Math.min((size - F) / 2, o));
+  const cx = cl((ed.ox || 0) * FW, w, FW), cy = cl((ed.oy || 0) * FH, h, FH);
+  return { k, w, h, left: FW / 2 + cx - w / 2, top: FH / 2 + cy - h / 2, ox: cx / FW, oy: cy / FH };
+}
+async function renderFrame(src, ed) {
   const img = await loadImg(src), rc = rotCanvas(img, ed.rot || 0);
-  const sx = ed.crop.x * rc.width, sy = ed.crop.y * rc.height, sw = ed.crop.w * rc.width, sh = ed.crop.h * rc.height;
-  const out = (max, q) => { const k = Math.min(1, max / Math.max(sw, sh)), c = document.createElement('canvas'); c.width = Math.round(sw * k); c.height = Math.round(sh * k); c.getContext('2d').drawImage(rc, sx, sy, sw, sh, 0, 0, c.width, c.height); return new Promise(r => c.toBlob(r, 'image/jpeg', q)); };
+  const FW = 900, FH = 1600, f = frameMath(rc.width, rc.height, FW, FH, ed);
+  const vx0 = Math.max(0, f.left), vy0 = Math.max(0, f.top), vx1 = Math.min(FW, f.left + f.w), vy1 = Math.min(FH, f.top + f.h);
+  const sx = (vx0 - f.left) / f.k, sy = (vy0 - f.top) / f.k, sw = (vx1 - vx0) / f.k, sh = (vy1 - vy0) / f.k;
+  const out = (max, q) => { const kk = Math.min(1, max / Math.max(sw, sh)), c = document.createElement('canvas'); c.width = Math.max(1, Math.round(sw * kk)); c.height = Math.max(1, Math.round(sh * kk)); c.getContext('2d').drawImage(rc, sx, sy, sw, sh, 0, 0, c.width, c.height); return new Promise(r => c.toBlob(r, 'image/jpeg', q)); };
   return { main: await out(1080, .85), thumb: await out(480, .72) };
 }
-function mountCropper(host, src, edit0, onChange) {
-  const MINR = 9 / 16, MAXR = 16 / 9;
-  let rot = edit0?.rot || 0, crop = edit0?.crop ? { ...edit0.crop } : null, img = null, rc = null, fit = null, dead = false;
-  host.innerHTML = `<img alt="" draggable="false"><div class="ied-box"><i class="g"></i><span data-h="nw"></span><span data-h="ne"></span><span data-h="sw"></span><span data-h="se"></span></div>
-    <button type="button" class="crot" aria-label="${t('회전')}">${I.rotate}</button>`;
-  const view = host.querySelector('img'), box = host.querySelector('.ied-box');
-  const ar = () => rc.width / rc.height;
-  const clamp = () => { let { x, y, w, h } = crop; const A = ar(), want = Math.max(MINR, Math.min(MAXR, (w * A) / h)); h = (w * A) / want; if (h > 1) { h = 1; w = want / A; } if (w > 1) { w = 1; h = A / want; } crop = { x: Math.max(0, Math.min(1 - w, x)), y: Math.max(0, Math.min(1 - h, y)), w, h }; };
-  const full = () => { const A = ar(), want = Math.max(MINR, Math.min(MAXR, A)); crop = { x: 0, y: 0, w: 1, h: 1 }; if (A > want) { crop.w = want / A; crop.x = (1 - crop.w) / 2; } else if (A < want) { crop.h = A / want; crop.y = (1 - crop.h) / 2; } };
-  const layout = () => { if (!rc || dead) return; const W = host.clientWidth, H = host.clientHeight, k = Math.min(W / rc.width, H / rc.height); fit = { w: rc.width * k, h: rc.height * k }; fit.x = (W - fit.w) / 2; fit.y = (H - fit.h) / 2; Object.assign(view.style, { left: fit.x + 'px', top: fit.y + 'px', width: fit.w + 'px', height: fit.h + 'px' }); paint(); };
-  const paint = () => Object.assign(box.style, { left: fit.x + crop.x * fit.w + 'px', top: fit.y + crop.y * fit.h + 'px', width: crop.w * fit.w + 'px', height: crop.h * fit.h + 'px' });
-  const emit = () => onChange({ rot, crop: { ...crop } });
-  const redraw = keep => { rc = rotCanvas(img, rot, 1400); view.src = rc.toDataURL('image/jpeg', .85); if (!keep || !crop) full(); else clamp(); layout(); };
-  loadImg(src).then(im => { if (dead) return; img = im; redraw(!!crop); }).catch(() => {});
-  host.querySelector('.crot').onclick = e => { e.preventDefault(); e.stopPropagation(); if (!img) return; rot = (rot + 270) % 360; crop = null; redraw(false); emit(); };
-  box.onpointerdown = e => {
-    e.preventDefault(); e.stopPropagation(); if (!fit) return;
-    const h = e.target.dataset.h, c0 = { ...crop }, x0 = e.clientX, y0 = e.clientY, A = ar(); let moved = false;
-    const mv = ev => {
-      moved = true; const dx = (ev.clientX - x0) / fit.w, dy = (ev.clientY - y0) / fit.h;
-      if (!h) { crop = { ...c0, x: c0.x + dx, y: c0.y + dy }; clamp(); return paint(); }
-      let { x, y, w, h: hh } = c0; const right = x + w, bottom = y + hh;
-      if (h.includes('w')) x = Math.min(right - .08, Math.max(0, x + dx)); if (h.includes('e')) w = Math.max(.08, Math.min(1 - x, w + dx));
-      if (h.includes('n')) y = Math.min(bottom - .08, Math.max(0, y + dy)); if (h.includes('s')) hh = Math.max(.08, Math.min(1 - y, hh + dy));
-      if (h.includes('w')) w = right - x; if (h.includes('n')) hh = bottom - y;
-      const r = (w * A) / hh, want = Math.max(MINR, Math.min(MAXR, r)); // 9:16~16:9 밖으로 가면 높이로 맞춤
-      if (want !== r) { const nh = (w * A) / want; if (h.includes('n')) y = bottom - nh; hh = nh; if (y < 0 || y + hh > 1) { y = Math.max(0, y); hh = Math.min(1 - y, hh); w = hh * want / A; if (h.includes('w')) x = right - w; } }
-      crop = { x, y, w, h: hh }; paint();
-    };
-    const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); removeEventListener('pointercancel', up); if (moved) emit(); };
-    addEventListener('pointermove', mv); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+function mountFramer(host, src, edit0, onChange) {
+  host.className = 'ccrop cfr';
+  let ed = { rot: 0, z: 1, ox: 0, oy: 0, ...(edit0 || {}) }, img = null, rc = null, dead = false;
+  host.innerHTML = `<img alt="" draggable="false"><i class="cgrid"></i><button type="button" class="crot" aria-label="${t('회전')}">${I.rotate}</button><span class="chint">${t('끌어서 옮기기 · 두 손가락으로 확대')}</span>`;
+  if (edit0) host.classList.add('touched');
+  const view = host.querySelector('img');
+  const paint = () => {
+    if (!rc || dead) return; const FW = host.clientWidth, FH = host.clientHeight; if (!FW) return;
+    const f = frameMath(rc.width, rc.height, FW, FH, ed); ed.ox = f.ox; ed.oy = f.oy;
+    view.style.width = rc.width + 'px'; view.style.height = rc.height + 'px';
+    view.style.transform = `translate(${f.left}px, ${f.top}px) scale(${f.k})`;
   };
-  const ro = new ResizeObserver(layout); ro.observe(host);
+  const fill = () => edgeColors(view.src).then(c => { if (!c || dead) return; const rgb = a => `rgb(${a.join(',')})`; host.style.background = `linear-gradient(180deg, ${rgb(c.top)}, ${rgb(c.mid)} 50%, ${rgb(c.bot)})`; });
+  const redraw = () => { rc = rotCanvas(img, ed.rot, 1600); view.src = rc.toDataURL('image/jpeg', .86); paint(); fill(); };
+  loadImg(src).then(im => { if (dead) return; img = im; redraw(); }).catch(() => {});
+  const emit = () => onChange({ ...ed });
+  host.querySelector('.crot').onclick = e => { e.preventDefault(); e.stopPropagation(); if (!img) return; ed = { rot: (ed.rot + 270) % 360, z: 1, ox: 0, oy: 0 }; redraw(); emit(); };
+  // 손가락: 1개 옮기기, 2개 확대(가운데 기준)
+  const pts = new Map(); let g0 = null, gest = null; // gest: 이번 손동작(손가락 최대 수·움직임) — 두 번 톡 판단용
+  const start = () => { const a = [...pts.values()]; const FW = host.clientWidth, FH = host.clientHeight;
+    g0 = { ed: { ...ed }, mx: a.reduce((s, p) => s + p.x, 0) / a.length, my: a.reduce((s, p) => s + p.y, 0) / a.length, d: a.length > 1 ? Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) : 0, FW, FH }; };
+  host.addEventListener('pointerdown', e => { if (e.target.closest('.crot')) return; e.preventDefault(); host.setPointerCapture?.(e.pointerId); if (!pts.size) gest = { n: 0, x: e.clientX, y: e.clientY, moved: false }; pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); gest.n = Math.max(gest.n, pts.size); start(); host.classList.add('moving', 'touched'); });
+  host.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId) || !g0) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (gest && Math.hypot(e.clientX - gest.x, e.clientY - gest.y) > 8) gest.moved = true;
+    const a = [...pts.values()], mx = a.reduce((s, p) => s + p.x, 0) / a.length, my = a.reduce((s, p) => s + p.y, 0) / a.length;
+    let z = g0.ed.z; if (a.length > 1 && g0.d) z = Math.max(1, Math.min(6, g0.ed.z * Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) / g0.d));
+    // 확대는 손가락 가운데를 기준으로: 그 점이 사진의 같은 곳에 머물게
+    const R = host.getBoundingClientRect(), px = g0.mx - R.left - g0.FW / 2, py = g0.my - R.top - g0.FH / 2, r = z / g0.ed.z;
+    const ox = (px - (px - g0.ed.ox * g0.FW) * r + (mx - g0.mx)) / g0.FW, oy = (py - (py - g0.ed.oy * g0.FH) * r + (my - g0.my)) / g0.FH;
+    ed = { ...ed, z, ox, oy }; paint();
+  });
+  let lastTap = 0;
+  const end = e => {
+    if (!pts.delete(e.pointerId)) return; if (pts.size) return start();
+    g0 = null; host.classList.remove('moving');
+    if (gest?.n === 1 && !gest.moved && rc) { // 한 손가락 톡: 두 번이면 꽉 채우기 ↔ 다 보이기
+      const now = Date.now();
+      if (now - lastTap < 320) { const FW = host.clientWidth, FH = host.clientHeight, fit = Math.min(FW / rc.width, FH / rc.height), cover = Math.max(FW / rc.width, FH / rc.height); ed = { ...ed, z: ed.z > 1.01 ? 1 : cover / fit, ox: 0, oy: 0 }; paint(); lastTap = 0; return emit(); }
+      lastTap = now; return;
+    }
+    emit();
+  };
+  host.addEventListener('pointerup', end); host.addEventListener('pointercancel', end);
+  host.addEventListener('wheel', e => { e.preventDefault(); ed = { ...ed, z: Math.max(1, Math.min(6, ed.z * (e.deltaY < 0 ? 1.08 : 1 / 1.08))) }; paint(); clearTimeout(host._w); host._w = setTimeout(emit, 250); }, { passive: false });
   return { destroy() { dead = true; ro.disconnect(); } };
 }
 
@@ -3980,7 +4016,7 @@ function dragToClose(w) {
   sh.addEventListener('touchstart', e => {
     tgt = e.target;
     const fromGrab = e.target.closest('.grab');
-    if (!fromGrab && (!atEdge() || e.target.closest('textarea, .chips'))) return y0 = null;
+    if (!fromGrab && (!atEdge() || e.target.closest('textarea, .chips, .epm, .ogrid, .mstrip'))) return y0 = null; // 끌어서 순서 바꾸는 곳은 시트를 끌지 않음
     y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; t0 = Date.now(); dy = 0; dragging = false;
   }, { passive: true });
   sh.addEventListener('touchmove', e => {
@@ -4393,12 +4429,14 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
     const m = media[curPick];
     cropper?.destroy(); cropper = null;
     pk.classList.add('has');
+    pk.classList.remove('frame9');
     pk.innerHTML = m.kind === 'video'
       ? `<video src="${m.previewUrl}" poster="${m._tu ||= URL.createObjectURL(m.thumb)}" muted playsinline autoplay loop></video><span class="vbadge">${t('{s}초', { s: Math.round((m.end - m.start) * 10) / 10 })}</span>`
       : `<div class="ccrop"></div>`;
     pk.insertAdjacentHTML('beforeend', `<span class="repick">${t(media.length > 1 ? '다시 고르기' : '바꾸기')}</span>`);
     pk.appendChild($file);
-    if (m.kind === 'image') { m.src0 ||= m.previewUrl; cropper = mountCropper(pk.querySelector('.ccrop'), m.src0, m.edit, async ed => { m.edit = ed; m.edited = true; const r = await renderCrop(m.src0, ed); if (m.edit === ed) Object.assign(m, { main: r.main, thumb: r.thumb, job: null, _tu: null }); paintStrip(); }); }
+    pk.classList.toggle('frame9', m.kind === 'image');
+    if (m.kind === 'image') { m.src0 ||= m.previewUrl; cropper = mountFramer(pk.querySelector('.ccrop'), m.src0, m.edit, async ed => { m.edit = ed; m.edited = true; const r = await renderFrame(m.src0, ed); if (m.edit === ed) Object.assign(m, { main: r.main, thumb: r.thumb, job: null, _tu: null }); paintStrip(); }); }
     paintStrip();
     // 영상 구간 자르기: 지금 보이는 장이 영상이면 아래에 구간 선택 바 표시
     const curIdx = () => curPick;
