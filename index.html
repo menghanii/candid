@@ -2684,7 +2684,8 @@ async function renderProfile(uid, fresh, quiet) { // quiet: 돌아왔을 때 뒤
       <p class="tagline">${t('존재하지 않는 피드예요. 링크가 정확한지 확인해 주세요.')}</p><button class="btn primary block" onclick="go(location.pathname)">${t('내 피드 만들기')}</button></div></div>`;
     return;
   }
-  const sig = JSON.stringify([prof, posts.map(p => [p.id, p.status, p.answer, p.approved_at])]);
+  // 바뀐 게 없는지 비교: 고정·사진 순서·한마디 수정도 포함(빠지면 저장해 둔 예전 화면이 그대로 남아 고정이 풀린 것처럼 보임)
+  const sig = JSON.stringify([prof, posts.map(p => [p.id, p.status, p.answer, p.approved_at, p.pinned_at, p.image_path, p.media, p.text, p.edited_at])]);
   if (cached && cached.sig === sig && !fresh) { S.fetchedAt = Date.now(); return; } // 바뀐 게 없으면 다시 그리지 않음
   // 비공개 피드: 주인이 나를 친구로 추가했는지 (서버 규칙과 같은 함수로 확인). 함수가 없으면(19 SQL 전) 게시물이 안 왔는지로 판단
   let locked = false;
@@ -2701,10 +2702,7 @@ async function renderProfile(uid, fresh, quiet) { // quiet: 돌아왔을 때 뒤
   await loadStickers(S.approved.map(p => p.id)).catch(() => {});
   if (!S.isOwner) S.tab = 'grid';
   CACHE.prof.set(uid, { prof, isOwner: S.isOwner, approved: S.approved, pending: S.pending, locked, sig });
-  if (me && uid === me.id && !DEMO) try { // 내 피드는 기기에도 저장 → 앱을 새로 켜도 '나'를 누르면 바로
-    const ids = new Set([...S.approved, ...S.pending].map(p => p.id));
-    localStorage.setItem(ME_KEY, JSON.stringify({ uid, at: Date.now(), data: CACHE.prof.get(uid), soc: [...SOC].filter(([id]) => ids.has(id)), stk: [...STK].filter(([id]) => ids.has(id)) }));
-  } catch {}
+  saveMyFeedCache(uid);
   paintProfile();
   // 공유 링크(?m=미션번호)로 들어온 친구: 사진 보내기 시트를 바로 열어줌 (한 번만)
   const m = new URLSearchParams(location.search).get('m');
@@ -3311,7 +3309,7 @@ function rankFeed(all) {
   }
   return out;
 }
-const sameSet = (a, b) => a.length === b.length && a.every(p => b.some(q => q.id === p.id));
+const sameSet = (a, b) => a.length === b.length && a.every(p => b.some(q => q.id === p.id && q.image_path === p.image_path && JSON.stringify(q.media || null) === JSON.stringify(p.media || null) && (q.text || '') === (p.text || '')));
 async function fetchHome() {
   const ids = [...myFollows];
   await loadMyGroups().catch(() => {});
@@ -3351,6 +3349,15 @@ function saveHomeCache(d) {
 let PREPAINTED = false;
 // 저장해 둔 내 피드를 불러 둠(같은 사람으로 로그인돼 있을 때만)
 const ME_KEY = 'candid_me_v1';
+// 내 피드는 기기에도 저장 → 앱을 새로 켜도 '나'를 누르면 바로. 고정·수정 뒤에도 다시 저장(예전 모습이 남지 않게)
+function saveMyFeedCache(uid = me?.id, changed = false) {
+  if (!me || uid !== me.id || DEMO || !CACHE.prof.get(uid)) return;
+  try {
+    const c = CACHE.prof.get(uid); if (changed) c.sig = null; // 고정·수정 뒤: 다음에 서버에서 받으면 꼭 다시 그리기
+    const ids = new Set([...(c.approved || []), ...(c.pending || [])].map(p => p.id));
+    localStorage.setItem(ME_KEY, JSON.stringify({ uid, at: Date.now(), data: c, soc: [...SOC].filter(([id]) => ids.has(id)), stk: [...STK].filter(([id]) => ids.has(id)) }));
+  } catch {}
+}
 function restoreMyFeed() {
   try {
     if (DEMO) return;
@@ -6374,6 +6381,7 @@ function editPostText(id) {
 }
 // 고친 뒤: 지금 보던 화면(격자·사진 페이지·Candids 보기)을 새 내용으로 다시 — 보기는 같은 사진에서 다시 열림
 function refreshAfterEdit(id) {
+  const ep = findAny(id); if (ep && !ep.group_id) saveMyFeedCache(ep.owner_id, true);
   const inViewer = !!document.querySelector('.oreel'), page = document.querySelector('.overlay.page');
   const repaint = () => {
     if (G.g && document.querySelector('.ghead')) { setThumbs?.(G.posts); paintGroup(); } else if (S.prof && document.getElementById('body')) paintProfile();
@@ -6426,6 +6434,7 @@ async function pinPost(id, on) {
   const { error } = await sb.rpc('pin_post', { p_post: id, p_on: on });
   if (error) return toast(gErr(error));
   const p = findAny(id); if (p) p.pinned_at = on ? new Date().toISOString() : null;
+  if (p && !p.group_id) saveMyFeedCache(p.owner_id, true);
   document.querySelector('.overlay')?.remove();
   toast(t(!on ? '고정을 풀었어요' : groupOf(p?.group_id)?.visibility === 'public' ? '맨 위에 고정했어요 · 공개 그룹에서도 지워지지 않아요' : '맨 위에 고정했어요'));
   document.querySelectorAll('.oreel').forEach(o => o.remove()); VIEWER = [];
