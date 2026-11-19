@@ -1780,11 +1780,12 @@ function route() {
   // 로그인하러 가기 전 보던 그룹·초대 화면으로 돌아오기 (로그인은 첫 화면 주소로 돌아옴)
   if (me && myProf?.onboarded && !location.search) {
     let back = null; try { back = localStorage.getItem('candid_return'); localStorage.removeItem('candid_return'); } catch {}
-    if (back && /^\?(g|gi)=[A-Za-z0-9_-]{3,40}$/.test(back)) history.replaceState(history.state, '', location.pathname + back);
+    if (back && /^\?(g|gi|u)=[A-Za-z0-9_-]{3,40}(&p=[A-Za-z0-9_-]{1,40})?(&s=1)?$/.test(back)) history.replaceState(history.state, '', location.pathname + back);
   }
   CUR = pageKey();
   document.documentElement.classList.remove('noscroll', 'paperbg'); document.getElementById('tcpaper')?.remove();
   const qs = new URLSearchParams(location.search);
+  if (qs.has('s') && shareGate(qs)) return; // 공유 링크: 앱 없음 → App Store, 로그인 안 함 → 가입 먼저
   if (qs.get('p') && (qs.get('u') || qs.get('g'))) openDeepPost(qs.get('p'));
   if (qs.get('gi')) return renderGroupInvite(qs.get('gi'));
   if (qs.get('fillers')) return renderFillers(qs.get('fillers'));
@@ -1828,10 +1829,53 @@ async function checkPushPending() {
 }
 function clearPushPending() { try { window.caches?.open('candid-push').then(c => c.delete('candid-pending-open')); } catch {} }
 // 주소에 ?p=게시물 이 있으면(알림·링크) 화면이 그려진 뒤 그 게시물을 바로 열기
+// ---------- 사진 공유 링크 ----------
+// 그룹 사진: 내가 멤버면 그룹 초대 코드가 든 링크(?gi=코드&p=사진&s=1) → 받은 사람은 가입 → 그룹 초대 → 그 사진
+// 피드 사진: ?u=주인&p=사진&s=1 → 가입 → 그 피드의 그 사진(비공개 피드면 친구 신청 화면)
+async function shareUrlFor(p) {
+  let q;
+  if (p.group_id) {
+    const g = HOME.groups?.get(p.group_id) || (G.g?.id === p.group_id ? G.g : null);
+    let code = null; try { const r = await withTimeout(sb.rpc('group_invite_code', { p_group: p.group_id }), 5000); code = r.data || null; } catch {}
+    q = code ? `gi=${code}` : g?.handle ? `g=${g.handle}` : null;
+  } else {
+    const o = HOME.owners?.get(p.owner_id) || (S.prof?.id === p.owner_id ? S.prof : null);
+    q = `u=${p.owner_id}`;
+  }
+  return q && `${SITE}/?${q}&p=${p.id}&s=1`;
+}
+async function sharePost(id) {
+  const p = findAny(id); if (!p) return;
+  const url = await shareUrlFor(p); if (!url) return toast(t('이 사진은 공유할 수 없어요'));
+  const text = t('candid.에서 이 사진 봐!');
+  if (navigator.share) return navigator.share({ title: 'candid.', text, url }).catch(() => {});
+  try { await navigator.clipboard.writeText(`${text}\n${url}`); toast(t('링크를 복사했어요. 카톡에 붙여넣어 보내세요')); } catch { prompt(t('이 링크를 복사해 주세요'), url); }
+}
+// 공유 링크를 열었을 때: true 를 돌려주면 이 화면이 대신 처리함
+function shareGate(qs) {
+  const store = window.FG_CONFIG?.APP_STORE_URL;
+  // (1) iPhone 브라우저(앱이 있으면 링크가 앱으로 바로 열렸을 것): 앱 열기 시도 → 안 열리면 App Store
+  if (!IN_APP && isIOS && !isStandalone && store && !sessionStorage.getItem('candid_web_ok')) {
+    const deep = `candid://open${location.search}`;
+    $app.innerHTML = `<div class="landing"><span class="logo">${LOGO}</span><div class="hero app1">${DOT('happy', { size: 76, cls: 'hop' })}
+      <h1>${t('친구가 보낸<br>사진이 있어요')}</h1><p class="tagline">${t('candid. 앱에서 열어 보세요')}</p></div>
+      <a class="btn primary block" href="${store}">${t('App Store에서 받기')}</a>
+      <a class="btn block" href="${deep}" style="margin-top:10px">${t('앱이 있어요 · 앱에서 열기')}</a>
+      <button class="linkish" style="margin-top:14px" onclick="sessionStorage.setItem('candid_web_ok','1');route()">${t('웹에서 볼게요')}</button></div>`;
+    let left = false; const onHide = () => { left = true; }; document.addEventListener('visibilitychange', onHide, { once: true });
+    location.href = deep; // 카톡 등 앱 안 브라우저에서 바로 앱으로
+    setTimeout(() => { if (!left && document.visibilityState === 'visible' && new URLSearchParams(location.search).has('s')) location.href = store; }, 1600);
+    return true;
+  }
+  // (2) 로그인(가입) 먼저 → 끝나면 이 링크로 돌아옴
+  if (!me) { try { localStorage.setItem('candid_return', location.search); } catch {} renderLanding(); return true; }
+  return false; // (3)(4) 그룹 초대(?gi) 또는 피드로 이어짐
+}
 function openDeepPost(pid) {
   const t0 = Date.now(), iv = setInterval(() => {
-    if (findPost(pid)) {
-      clearInterval(iv); if (!document.querySelector('.overlay')) openPost(pid);
+    if (findPost(pid) && (document.querySelector(`.grid button[data-pid="${pid}"]`) || Date.now() - t0 > 2500)) { // 격자가 그려질 때까지 잠깐 기다림(그래야 Candids 보기로)
+      clearInterval(iv);
+      if (!document.querySelector('.overlay, .oreel')) { const b = document.querySelector(`.grid button[data-pid="${pid}"]`); if (b && findPost(pid)?.status === 'approved') openFeedViewer(pid, b); else openPost(pid); }
       const u = new URL(location.href); if (u.searchParams.get('p') === pid) { u.searchParams.delete('p'); history.replaceState(history.state, '', u.pathname + u.search); } // 뒤로 갔다 와도 다시 열리지 않게
     }
     else if (Date.now() - t0 > 8000) clearInterval(iv);
@@ -2135,7 +2179,7 @@ if (IN_APP) {
 // candid-feed.com 링크(유니버설 링크)·앱 푸시로 앱이 열렸을 때: 앱 안의 그 화면으로(앱 준비가 끝난 뒤)
 function openAppLink(url) {
   let u; try { u = new URL(url, SITE); } catch { return; }
-  if (!/candid-feed\.com$|candidcrew\.workers\.dev$/.test(u.hostname) && u.protocol !== 'capacitor:') return;
+  if (!/candid-feed\.com$|candidcrew\.workers\.dev$/.test(u.hostname) && u.protocol !== 'capacitor:' && !(u.protocol === 'candid:' && u.hostname === 'open')) return;
   u.searchParams.delete('v'); // 링크 미리보기용 꼬리표
   const target = location.pathname + (u.search === '?' ? '' : u.search);
   const t0 = Date.now(), iv = setInterval(() => { if (!BOOTED && Date.now() - t0 < 10000) return; clearInterval(iv); openFromPush(target); }, 100);
@@ -3466,8 +3510,7 @@ function reelSection(p, owners) {
         <button class="rbtn" data-like="${p.id}" aria-label="${t('좋아요')}" aria-pressed="${s.liked}" onclick="toggleLike('${p.id}')"><span>${s.liked ? I.heartOn : I.heart}</span><b>${s.likes || t('좋아요')}</b></button>
         <button class="rbtn" data-cmt="${p.id}" aria-label="${t('댓글')}" onclick="openComments('${p.id}','${gg ? gg.owner_id : p.owner_id}')"><span>${I.comment}</span><b>${s.comments || t('댓글')}</b></button>
         ${me ? `<button class="rbtn" aria-label="${t('스티커로 꾸며주기')}" onclick="decorateFromReel('${p.id}', this)"><span>${I.sparkle}</span><b>${t('꾸며주기')}</b></button>` : ''}
-        ${gg ? (canPostTo(gg) ? `<button class="rbtn" aria-label="${t('이 그룹에 올리기')}" onclick="composeToGroup(HOME.groups.get('${gg.id}'))"><span>${I.send}</span><b>${t('올리기')}</b></button>` : '')
-          : p.owner_id !== me?.id ? `<button class="rbtn" aria-label="${t('{name} 피드 채워주기', { name: esc(o.name) })}" onclick="fillFriend('${p.owner_id}')"><span>${I.send}</span><b>${t('채워주기')}</b></button>` : ''}
+        <button class="rbtn" aria-label="${t('이 사진 공유하기')}" onclick="sharePost('${p.id}')"><span>${I.send}</span><b>${t('공유')}</b></button>
         <button class="rbtn rmorebtn" aria-label="${t('더보기')}" onclick="reelMore('${p.id}')"><span>${I.more}</span></button>
 
       </div>
@@ -5897,7 +5940,8 @@ async function renderGroupInvite(code) {
   }
   const role = me ? (await loadMyGroups(true), gRole(g.id)) : null;
   if (pageKey() !== myKey) return;
-  if (role === 'owner' || role === 'member') return go(gUrl(g), true);
+  const pq = /^[A-Za-z0-9_-]{1,40}$/.test(new URLSearchParams(location.search).get('p') || '') ? `&p=${new URLSearchParams(location.search).get('p')}` : '';
+  if (role === 'owner' || role === 'member') return go(gUrl(g) + pq, true);
   const open = g.visibility === 'public' && g.join_mode === 'open';
   $app.innerHTML = `<div class="landing"><span class="logo">${LOGO}</span>
     <div class="hero app1 invite1">${gAv(g, 'lg')}
@@ -5915,7 +5959,7 @@ async function renderGroupInvite(code) {
     const { data, error } = await sb.rpc('join_group', { p_group: g.id, p_code: code });
     if (error) { b.disabled = false; return toast(gErr(error)); }
     MYG.at = 0;
-    if (data === 'active') { toast(t('참여했어요! 이제 사진을 올릴 수 있어요')); return go(gUrl(g), true); }
+    if (data === 'active') { toast(t('참여했어요! 이제 사진을 올릴 수 있어요')); return go(gUrl(g) + pq, true); }
     b.innerHTML = II.clock + t('참여 신청함 · 방장 승인을 기다리는 중');
     toast(t('참여를 신청했어요. 방장이 승인하면 들어갈 수 있어요'));
   };

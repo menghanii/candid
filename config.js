@@ -3,6 +3,7 @@
 window.FG_CONFIG = {
   SUPABASE_URL: 'https://erlrviaqnnlfeehizlxc.supabase.co',
   SUPABASE_ANON_KEY: 'sb_publishable_LfUJRHztENtaEmt7YV_bzQ_iboVhvn3',
+  APP_STORE_URL: '', // 앱 출시 후 App Store 주소(예: https://apps.apple.com/app/id1234567890). 비어 있으면 공유 링크는 웹에서 이어짐
   PROVIDERS: ['kakao', 'google'], // Supabase에서 켠 로그인만 남기기
   VAPID_PUBLIC_KEY: 'BA1pPJ0-hFg1kIB5JskH0DDhxUzAx5fpZjR-ANhxXMnxuoeUFQdwtj9GQOWdLmidhcZtE-Iyj6u7Jok1DMOI2P0', // 푸시 알림 공개키 (공개돼도 됨)
   // 광고: 공급자 순서는 AdMob(iOS 앱) → 하우스 광고
