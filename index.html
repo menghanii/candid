@@ -3684,7 +3684,7 @@ const FEED_ADS = {
 };
 // ---------- 관리자: 전체 사용자(33 SQL) ----------
 let IS_ADMIN = false;
-async function checkAdmin() { if (!me || DEMO) return; const { data } = await sb.rpc('is_admin').catch(() => ({})); IS_ADMIN = data === true; }
+async function checkAdmin() { if (!me || DEMO) return; try { const { data } = await sb.rpc('is_admin'); IS_ADMIN = data === true; } catch { IS_ADMIN = false; } } // (sb.rpc 는 .catch 가 없어서 try 로)
 async function openAdminUsers() {
   const w = sheet(`<div class="shead"><h3>Users<i class="pd">.</i></h3><button class="icon-btn" aria-label="${t('닫기')}" onclick="closeSheet()">${I.close}</button></div>
     <input class="field" id="auq" placeholder="${t('이름·@아이디·이메일로 거르기')}" autocomplete="off" style="margin-bottom:8px">
@@ -4091,7 +4091,7 @@ async function openPush() {
   if (off) off.onclick = async () => {
     if (NPUSH()) {
       let tok = null; try { tok = localStorage.getItem('candid_apns'); localStorage.setItem('candid_apns_off', '1'); } catch {}
-      if (tok) await sb.rpc('unregister_device', { p_token: tok }).catch(() => {});
+      if (tok) try { await sb.rpc('unregister_device', { p_token: tok }); } catch {}
       closeSheet(); toast(t('이 기기 알림을 껐어요')); return updateBell();
     }
     const reg = await navigator.serviceWorker.getRegistration();
