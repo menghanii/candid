@@ -1293,21 +1293,21 @@
   .orbitv .ohint b { color:var(--gc); margin-right:6px; }
   .orbitv .ohint span { color:#8e8e93; }
   .oneb { position:absolute; inset:0; pointer-events:none; }
-  /* 트렌딩 은하: 화려하고 신나게 — 분홍·주황 그라데이션, 반짝이는 별, 흐르는 궤도선, 불꽃 */
+  /* 핑크 은하(지금 뜨는 곳): 화려하고 신나게 — 분홍 그라데이션, 반짝이는 별, 흐르는 궤도선, 불꽃 */
   .orbitv[data-th="party"] { background:radial-gradient(110% 70% at 50% 48%, #3d0e3a 0%, #1a0622 45%, #050007 75%); }
   .orbitv[data-th="party"] .ohint b { background:linear-gradient(90deg, var(--gc), var(--gc2)); -webkit-background-clip:text; background-clip:text; color:transparent; }
-  .orbitv[data-th="party"] .oneb { background:radial-gradient(40% 25% at 25% 30%, rgba(255,79,154,.18), transparent 70%), radial-gradient(35% 22% at 78% 70%, rgba(255,178,61,.16), transparent 70%); }
+  .orbitv[data-th="party"] .oneb { background:radial-gradient(40% 25% at 25% 30%, rgba(255,79,154,.18), transparent 70%), radial-gradient(35% 22% at 78% 70%, rgba(255,143,196,.16), transparent 70%); }
   .orbitv[data-th="party"] .ostars { opacity:.9; animation:twinkle 1.6s ease-in-out infinite alternate; }
   .orbitv[data-th="party"] .olines ellipse, .orbitv[data-th="party"] .olines path { stroke:url(#ogr); stroke-width:1.6; stroke-dasharray:6 7; opacity:.75; animation:odash 3s linear infinite; }
-  .orbitv[data-th="party"] .ome::before { background:radial-gradient(circle, rgba(255,79,154,.45), rgba(255,178,61,.15) 45%, transparent 68%); }
+  .orbitv[data-th="party"] .ome::before { background:radial-gradient(circle, rgba(255,79,154,.45), rgba(255,143,196,.15) 45%, transparent 68%); }
   .orb.hot .oface { box-shadow:0 0 0 2.5px #12001a, 0 0 0 5px var(--gc), 0 0 24px 6px rgba(255,120,150,.45); }
   .orb.hot .oface::after { content:""; position:absolute; inset:-8px; border-radius:inherit; border:2px solid var(--gc2); opacity:0; animation:opulse 1.8s ease-out infinite; }
-  .orb.hot em { color:#ffb23d; font-weight:700; white-space:nowrap; }
+  .orb.hot em { color:#ff8fc4; font-weight:700; white-space:nowrap; }
   .orb em { white-space:nowrap; }
   @keyframes twinkle { from { opacity:.45; } to { opacity:1; } }
   @keyframes odash { to { stroke-dashoffset:-26; } }
   @keyframes ospin { to { transform:rotate(360deg); } }
-  /* 관심 은하: 꿈같이 — 보라 성운, 천천히 흐려졌다 밝아지는 빈 자리 */
+  /* 퍼플 은하(관심): 꿈같이 — 보라 성운, 천천히 흐려졌다 밝아지는 빈 자리 */
   .orbitv[data-th="dream"] { background:radial-gradient(120% 75% at 50% 50%, #1c1340 0%, #0a0718 55%, #000 80%); }
   .orbitv[data-th="dream"] .oneb { background:radial-gradient(45% 30% at 30% 40%, rgba(155,123,255,.16), transparent 70%), radial-gradient(40% 28% at 70% 62%, rgba(80,200,255,.10), transparent 70%); filter:blur(6px); }
   .orbitv[data-th="dream"] .ostars { opacity:.35; }
@@ -3234,8 +3234,8 @@ async function openTrending(x) {
 // 은하 3개: 각자 성격·색·궤도 모양·배경·가운데 닷 표정이 다름
 const GALAXIES = [
   { key: 'my', name: '블루 은하', sub: '내 친구·그룹', c: '#5c7cff', shape: 'rings', th: 'calm', moods: ['look', 'happy'] },
-  { key: 'trend', name: '트렌딩 은하', sub: '지금 뜨는 곳', c: '#ff4f9a', c2: '#ffb23d', shape: 'rings', th: 'party', moods: ['wow', 'wink'] },
-  { key: 'interest', name: '관심 은하', sub: '곧 열려요', c: '#9b7bff', shape: 'eight', th: 'dream', moods: ['sleepy', 'look'] },
+  { key: 'trend', name: '핑크 은하', sub: '지금 뜨는 곳', c: '#ff4f9a', c2: '#ff8fc4', shape: 'rings', th: 'party', moods: ['wow', 'wink'] },
+  { key: 'interest', name: '퍼플 은하', sub: '내 관심사 · 곧 열려요', c: '#9b7bff', shape: 'eight', th: 'dream', moods: ['sleepy', 'look'] },
 ];
 const PER_GALAXY = 20;
 let ORBIT_G = 0;
@@ -3314,8 +3314,8 @@ function paintOrbit(posts, owners, top) {
       <span class="oface">${face}${x.fresh ? `<i class="on">${x.fresh}</i>` : ''}</span><b>${esc(x.name)}</b><em>${sub}</em></button>`;
   };
   const defs = `<defs><linearGradient id="ogr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${G.c}"/><stop offset="1" stop-color="${G.c2 || G.c}"/></linearGradient></defs>`;
-  const empty = gi === 2 ? `<div class="oempty" style="top:${cy + 64}px"><b>${t('관심 은하는 곧 열려요')}</b><span>${t('내가 좋아할 만한 사람·그룹을 모아 둘게요')}</span></div>${pts.map(P => `<i class="oghost" style="left:${P.X}px;top:${P.Y}px"></i>`).join('')}`
-    : gi === 1 && !here.length ? `<div class="oempty" style="top:${cy + 64}px"><b>${TREND.list ? t('아직 뜨는 곳이 없어요') : t('불러오는 중…')}</b>${TREND.err ? `<span>${t('트렌딩 준비 중이에요(관리자: 35 SQL 실행 필요)')}</span>` : ''}</div>` : '';
+  const empty = gi === 2 ? `<div class="oempty" style="top:${cy + 64}px"><b>${t('퍼플 은하는 곧 열려요')}</b><span>${t('내가 좋아할 만한 사람·그룹을 모아 둘게요')}</span></div>${pts.map(P => `<i class="oghost" style="left:${P.X}px;top:${P.Y}px"></i>`).join('')}`
+    : gi === 1 && !here.length ? `<div class="oempty" style="top:${cy + 64}px"><b>${TREND.list ? t('아직 뜨는 곳이 없어요') : t('불러오는 중…')}</b>${TREND.err ? `<span>${t('핑크 은하 준비 중이에요(관리자: 35 SQL 실행 필요)')}</span>` : ''}</div>` : '';
   // 2) 궤도 그리기
   document.getElementById('ogal').innerHTML = `<svg class="olines" width="${W}" height="${H}" aria-hidden="true">${defs}${lines.join('')}</svg>
     <div class="ome" role="button" aria-label="${t('닷 콕 찌르기')}" data-mood="${gi === 2 ? G.moods[0] : freshHere || gi === 1 ? G.moods[0] : G.moods[1]}" style="left:${cx}px;top:${cy}px;--accent:${G.c}">${DOT(gi === 2 ? G.moods[0] : freshHere || gi === 1 ? G.moods[0] : G.moods[1], { size: 58, cls: 'float' })}</div>
@@ -5648,7 +5648,7 @@ function paintGroup() {
       <div class="handle">@${esc(g.handle)} · <span class="gbadge">${gBadge(g)}</span></div>
       ${g.bio ? `<div class="desc bio">${esc(g.bio)}</div>` : ''}
       <div class="stats">
-        <div><b>${canSee ? n : '–'}${g.visibility === 'public' && canSee ? `<small>/${GROUP_MAX}</small>` : ''}</b><span>${t('게시물')}</span></div>
+        <div><b>${canSee ? n : '–'}</b><span>${t('게시물')}</span></div>
         <button class="stat-btn" onclick="openGroupMembers()"><b>${g.member_count}</b><span>${t('멤버')}</span></button>
         <div><b>${g.follower_count}</b><span>${t('팔로워')}</span></div>
       </div>
@@ -5656,6 +5656,7 @@ function paintGroup() {
     <div class="actions gacts">${acts}<button class="btn bmore" aria-label="${t('더보기')}" onclick="groupMenu()">${I.more}</button></div>
     ${g.closed ? `<p class="gnote">${II.lock} ${t('업로드가 마감된 앨범이에요. 사진 보기·꾸며주기는 그대로 할 수 있어요.')}</p>`
       : canSee && g.visibility === 'public' && n >= GROUP_MAX - 9 ? `<p class="gnote">${t('공개 그룹은 사진 {max}장까지 보관돼요. 넘으면 오래된 사진부터 사라져요(고정한 사진은 남아요).', { max: GROUP_MAX })}</p>` : ''}
+    ${canSee ? `<nav class="tabs"><button class="on" aria-label="${t('피드')}">${I.gridTab}</button></nav>` : ''}
     <main id="body">${body}</main>
     ${navBar('')}`;
   $app.classList.toggle('has-nav', !!me);
