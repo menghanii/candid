@@ -1441,6 +1441,44 @@
   @keyframes gnewHop { 0%,70%,100% { transform:none; } 78% { transform:translateY(0) scale(1.1,.9); } 86% { transform:translateY(-22%) scale(.95,1.05); } 94% { transform:translateY(0) scale(1.05,.95); } }
   .grid button:has(.vplay) .gnew { right:32px !important; } /* 여러 장·영상 표시 옆에 */
   .grid button:has(.ttile) .gnew { --accent:#fff; } /* 파란 투표 카드 위에선 흰 닷 */
+  /* 작성 화면: 고른 사진 줄·자르기 */
+  .mtools { display:flex; align-items:center; gap:10px; margin:10px 0 2px; }
+  .mstrip { flex:1; display:flex; gap:6px; overflow:hidden; min-height:0; touch-action:none; }
+  .mstrip[hidden] { display:block !important; visibility:hidden; height:0; }
+  .sti { position:relative; flex:none; width:46px; height:46px; padding:0; border:0; border-radius:9px; overflow:hidden; background:var(--soft); transition:transform .15s; touch-action:none; }
+  .sti img { width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; }
+  .sti b { position:absolute; left:3px; top:3px; min-width:15px; height:15px; border-radius:8px; background:rgba(0,0,0,.6); color:#fff; font-size:10px; line-height:15px; text-align:center; }
+  .sti.on { box-shadow:inset 0 0 0 2px var(--accent); } .sti.on b { background:var(--accent); }
+  .sti.drag, .ocell.drag { z-index:5; transition:none; box-shadow:0 8px 20px rgba(0,0,0,.4); opacity:.95; }
+  .medit { flex:none; display:flex; align-items:center; gap:6px; height:36px; padding:0 12px; border:1px solid var(--line); border-radius:18px; background:none; color:var(--fg); font-size:13px; font-weight:700; margin-left:auto; }
+  .medit svg { width:16px; height:16px; } .medit:disabled { opacity:.35; }
+  /* 사진 편집기 */
+  .ied { position:fixed; inset:0; z-index:70; background:#000; color:#fff; display:flex; flex-direction:column; animation:fade .2s; }
+  .ied.out { opacity:0; transition:opacity .2s; }
+  .ied-h { display:flex; align-items:center; height:calc(52px + env(safe-area-inset-top)); padding:env(safe-area-inset-top) 14px 0; }
+  .ied-h b { flex:1; text-align:center; font-size:16px; } .ied-h button { background:none; border:0; color:#fff; font-size:15px; font-weight:600; min-width:56px; text-align:left; } .ied-h .ok { color:var(--accent); font-weight:800; text-align:right; }
+  .ied-st { position:relative; flex:1; overflow:hidden; touch-action:none; }
+  .ied-st img { position:absolute; user-select:none; -webkit-user-select:none; pointer-events:none; }
+  .ied-box { position:absolute; box-shadow:0 0 0 9999px rgba(0,0,0,.6); outline:1.5px solid #fff; cursor:move; touch-action:none; }
+  .ied-box .g { position:absolute; inset:0; pointer-events:none; background:linear-gradient(90deg, transparent calc(33.3% - .5px), rgba(255,255,255,.35) 33.3%, transparent calc(33.3% + .5px), transparent calc(66.6% - .5px), rgba(255,255,255,.35) 66.6%, transparent calc(66.6% + .5px)), linear-gradient(transparent calc(33.3% - .5px), rgba(255,255,255,.35) 33.3%, transparent calc(33.3% + .5px), transparent calc(66.6% - .5px), rgba(255,255,255,.35) 66.6%, transparent calc(66.6% + .5px)); }
+  .ied-box span { position:absolute; width:26px; height:26px; border:0 solid #fff; }
+  .ied-box [data-h="nw"] { left:-4px; top:-4px; border-width:4px 0 0 4px; } .ied-box [data-h="ne"] { right:-4px; top:-4px; border-width:4px 4px 0 0; }
+  .ied-box [data-h="sw"] { left:-4px; bottom:-4px; border-width:0 0 4px 4px; } .ied-box [data-h="se"] { right:-4px; bottom:-4px; border-width:0 4px 4px 0; }
+  .ied-box span::after { content:""; position:absolute; inset:-12px; } /* 손가락 잡기 쉽게 */
+  .ied-tools { padding:12px 14px calc(14px + env(safe-area-inset-bottom)); }
+  .ied-r { display:flex; gap:6px; justify-content:center; margin-bottom:12px; }
+  .ied-r button { padding:7px 12px; border-radius:16px; border:0; background:#1c1c1f; color:#aeaeb2; font-size:13px; font-weight:700; }
+  .ied-r button.on { background:#fff; color:#000; }
+  .ied-b { display:flex; justify-content:space-between; }
+  .ied-b button { display:flex; align-items:center; gap:6px; background:none; border:0; color:#fff; font-size:14px; font-weight:600; padding:8px 4px; }
+  .ied-b svg { width:20px; height:20px; }
+  /* 사진 정리(주인) */
+  .ogrid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; touch-action:none; }
+  .ocell { position:relative; aspect-ratio:1; border-radius:10px; overflow:hidden; background:var(--soft); touch-action:none; }
+  .ocell img { width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; }
+  .ocell.gone img { opacity:.25; filter:grayscale(1); }
+  .ocell .ox { position:absolute; right:4px; top:4px; width:24px; height:24px; border-radius:50%; border:0; background:rgba(0,0,0,.65); color:#fff; font-size:15px; line-height:24px; padding:0; }
+  .ocell .vplay { position:absolute; left:5px; bottom:5px; color:#fff; }
 </style>
 </head>
 <body>
@@ -1518,6 +1556,8 @@ const I = {
   reelsNav: dotIcon(false),
   // 선택된 하단 탭: 같은 모양을 면으로 채움(Instagram·Threads 방식)
   reelsOn: dotIcon(true),
+  crop: sv('<path d="M6 2v14a2 2 0 0 0 2 2h14M2 6h14a2 2 0 0 1 2 2v14"/>'),
+  rotate: sv('<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>'),
   trash: sv('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>'),
   flame: '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px;margin-right:2px"><path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5.3 1.8 1.2 2.6 2 3 .2-3.3-.5-6.3 1-9.5z"/></svg>',
   // 내 피드 탭: 피드 = 네 칸 격자, 대기 피드 = 받은편지함(+ 숫자)
@@ -1829,6 +1869,145 @@ async function checkPushPending() {
 }
 function clearPushPending() { try { window.caches?.open('candid-push').then(c => c.delete('candid-pending-open')); } catch {} }
 // 주소에 ?p=게시물 이 있으면(알림·링크) 화면이 그려진 뒤 그 게시물을 바로 열기
+// ---------- 끌어서 순서 바꾸기(작은 사진 줄·격자 공용) ----------
+// 자식 [data-i] 를 손가락으로 끌면 자리 바꿈. 끝나면 onDone(새 순서의 예전 번호 배열), 그냥 누르면 onTap(번호)
+function makeSortable(box, onDone, onTap) {
+  box.onpointerdown = e => {
+    const el = e.target.closest('[data-i]'); if (!el || e.target.closest('[data-x]')) return;
+    const r0 = el.getBoundingClientRect(), dx0 = e.clientX - r0.left, dy0 = e.clientY - r0.top, x0 = e.clientX, y0 = e.clientY;
+    let drag = false;
+    const mv = ev => {
+      if (!drag) { if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return; drag = true; el.classList.add('drag'); box.classList.add('sorting'); }
+      ev.preventDefault();
+      el.style.transform = 'none';
+      const over = [...box.querySelectorAll('[data-i]')].find(c => { if (c === el) return false; const r = c.getBoundingClientRect(); return ev.clientX > r.left && ev.clientX < r.right && ev.clientY > r.top && ev.clientY < r.bottom; });
+      if (over) { const kids = [...box.children]; box.insertBefore(el, kids.indexOf(over) < kids.indexOf(el) ? over : over.nextSibling); }
+      const r = el.getBoundingClientRect();
+      el.style.transform = `translate(${ev.clientX - dx0 - r.left}px, ${ev.clientY - dy0 - r.top}px) scale(1.08)`;
+    };
+    const up = () => {
+      removeEventListener('pointermove', mv); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
+      el.style.transform = ''; el.classList.remove('drag'); box.classList.remove('sorting');
+      const order = [...box.querySelectorAll('[data-i]')].map(c => +c.dataset.i);
+      if (drag) { if (order.some((v, i) => v !== i)) onDone(order); } else onTap?.(+el.dataset.i);
+    };
+    addEventListener('pointermove', mv, { passive: false }); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+  };
+  box.onclick = e => { if (e.target.closest('[data-i]')) e.preventDefault(); };
+}
+
+// ---------- 사진 자르기·회전 ----------
+// 9:16(가장 길쭉)~16:9(가장 넓음) 사이에서 자유롭게, 또는 9:16·4:5·1:1·16:9 고정. 90° 회전
+// edit(이전 상태)를 주면 그대로 이어서. 돌려주는 값: { main, thumb, previewUrl, edit } 또는 null(취소)
+async function openImageEditor(src, edit0) {
+  const img = await new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = src; }).catch(() => null);
+  if (!img) { toast(t('이 사진은 편집할 수 없어요')); return null; }
+  const MINR = 9 / 16, MAXR = 16 / 9;
+  let rot = edit0?.rot || 0, ratio = edit0?.ratio ?? 0, crop = edit0?.crop ? { ...edit0.crop } : null; // crop: 회전한 사진 기준 0~1
+  return new Promise(resolve => {
+    const el = document.createElement('div'); el.className = 'ied';
+    el.innerHTML = `<header class="ied-h"><button data-x>${t('취소')}</button><b>${t('자르기·회전')}</b><button data-ok class="ok">${t('완료')}</button></header>
+      <div class="ied-st"><img alt="" draggable="false"><div class="ied-box"><i class="g"></i><span data-h="nw"></span><span data-h="ne"></span><span data-h="sw"></span><span data-h="se"></span></div></div>
+      <div class="ied-tools"><div class="ied-r">${[[0, t('자유')], [9 / 16, '9:16'], [4 / 5, '4:5'], [1, '1:1'], [16 / 9, '16:9']].map(([v, l]) => `<button data-r="${v}">${l}</button>`).join('')}</div>
+        <div class="ied-b"><button data-rot>${I.rotate}<span>${t('회전')}</span></button><button data-reset>${t('원래대로')}</button></div></div>`;
+    document.body.appendChild(el);
+    const $ = q => el.querySelector(q), st = $('.ied-st'), view = $('.ied-st img'), box = $('.ied-box');
+    let rc = null, fit = null; // rc: 회전한 사진 캔버스, fit: 화면 안 사진 자리
+    const rotated = () => {
+      const sw = img.naturalWidth, sh = img.naturalHeight, k = Math.min(1, 2400 / Math.max(sw, sh)), w = Math.round(sw * k), h = Math.round(sh * k);
+      const c = document.createElement('canvas'), side = rot % 180 ? [h, w] : [w, h]; c.width = side[0]; c.height = side[1];
+      const x = c.getContext('2d'); x.translate(c.width / 2, c.height / 2); x.rotate(rot * Math.PI / 180); x.drawImage(img, -w / 2, -h / 2, w, h);
+      return c;
+    };
+    const ar = () => rc.width / rc.height; // 사진 비율
+    const clampCrop = () => { // 비율 제한 + 사진 안에
+      let { x, y, w, h } = crop; const A = ar();
+      const want = ratio || Math.max(MINR, Math.min(MAXR, (w * A) / h));
+      // 화면 비율(w*A/h) = want 가 되게 h 를 맞춤(넘치면 w 를 줄임)
+      h = (w * A) / want; if (h > 1) { h = 1; w = want / A; } if (w > 1) { w = 1; h = A / want; }
+      x = Math.max(0, Math.min(1 - w, x)); y = Math.max(0, Math.min(1 - h, y));
+      crop = { x, y, w, h };
+    };
+    const fullCrop = () => { crop = { x: 0, y: 0, w: 1, h: 1 }; const A = ar(), want = ratio || Math.max(MINR, Math.min(MAXR, A)); if (A > want) { crop.w = want / A; crop.x = (1 - crop.w) / 2; } else if (A < want) { crop.h = A / want; crop.y = (1 - crop.h) / 2; } };
+    const layout = () => {
+      const W = st.clientWidth - 32, H = st.clientHeight - 32, k = Math.min(W / rc.width, H / rc.height);
+      fit = { w: rc.width * k, h: rc.height * k }; fit.x = (st.clientWidth - fit.w) / 2; fit.y = (st.clientHeight - fit.h) / 2;
+      Object.assign(view.style, { left: fit.x + 'px', top: fit.y + 'px', width: fit.w + 'px', height: fit.h + 'px' });
+      paintBox();
+    };
+    const paintBox = () => Object.assign(box.style, { left: fit.x + crop.x * fit.w + 'px', top: fit.y + crop.y * fit.h + 'px', width: crop.w * fit.w + 'px', height: crop.h * fit.h + 'px' });
+    const redraw = (keep) => { rc = rotated(); view.src = rc.toDataURL('image/jpeg', .85); if (!keep || !crop) fullCrop(); else clampCrop(); layout(); };
+    const paintRatio = () => el.querySelectorAll('[data-r]').forEach(b => b.classList.toggle('on', +b.dataset.r === ratio));
+    redraw(!!crop); paintRatio();
+    el.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { ratio = +b.dataset.r; const cx = crop.x + crop.w / 2, cy = crop.y + crop.h / 2; crop.w = Math.min(1, crop.w); clampCrop(); crop.x = Math.max(0, Math.min(1 - crop.w, cx - crop.w / 2)); crop.y = Math.max(0, Math.min(1 - crop.h, cy - crop.h / 2)); paintBox(); paintRatio(); });
+    $('[data-rot]').onclick = () => { rot = (rot + 270) % 360; crop = null; redraw(false); };
+    $('[data-reset]').onclick = () => { rot = 0; ratio = 0; crop = null; redraw(false); paintRatio(); };
+    // 끌기: 안쪽 = 옮기기, 모서리 = 크기
+    box.onpointerdown = e => {
+      e.preventDefault(); const h = e.target.dataset.h, c0 = { ...crop }, x0 = e.clientX, y0 = e.clientY, A = ar();
+      const mv = ev => {
+        const dx = (ev.clientX - x0) / fit.w, dy = (ev.clientY - y0) / fit.h;
+        if (!h) { crop = { ...c0, x: c0.x + dx, y: c0.y + dy }; clampCrop(); return paintBox(); }
+        let { x, y, w, h: hh } = c0;
+        const right = x + w, bottom = y + hh;
+        if (h.includes('w')) x = Math.min(right - .05, Math.max(0, x + dx)); if (h.includes('e')) w = Math.max(.05, Math.min(1 - x, w + dx));
+        if (h.includes('n')) y = Math.min(bottom - .05, Math.max(0, y + dy)); if (h.includes('s')) hh = Math.max(.05, Math.min(1 - y, hh + dy));
+        if (h.includes('w')) w = right - x; if (h.includes('n')) hh = bottom - y;
+        // 비율: 고정이면 너비 기준으로 높이 맞춤, 자유면 9:16~16:9 사이로
+        const want = ratio || Math.max(MINR, Math.min(MAXR, (w * A) / hh));
+        const nh = (w * A) / want; if (h.includes('n')) y = bottom - nh; hh = nh;
+        if (y < 0) { hh += y; y = 0; w = hh * want / A; if (h.includes('w')) x = right - w; }
+        if (y + hh > 1) { hh = 1 - y; w = hh * want / A; if (h.includes('w')) x = right - w; }
+        crop = { x, y, w, h: hh }; paintBox();
+      };
+      const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); removeEventListener('pointercancel', up); };
+      addEventListener('pointermove', mv); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+    };
+    const onR = () => layout(); addEventListener('resize', onR);
+    const done = v => { removeEventListener('resize', onR); el.classList.add('out'); setTimeout(() => el.remove(), 200); resolve(v); };
+    $('[data-x]').onclick = () => done(null);
+    $('[data-ok]').onclick = async () => {
+      const sx = crop.x * rc.width, sy = crop.y * rc.height, sw = crop.w * rc.width, sh = crop.h * rc.height;
+      const out = (max, q) => { const k = Math.min(1, max / Math.max(sw, sh)), c = document.createElement('canvas'); c.width = Math.round(sw * k); c.height = Math.round(sh * k); c.getContext('2d').drawImage(rc, sx, sy, sw, sh, 0, 0, c.width, c.height); return new Promise(r => c.toBlob(r, 'image/jpeg', q)); };
+      const main = await out(1080, .85), thumb = await out(480, .72);
+      done({ main, thumb, previewUrl: URL.createObjectURL(main), edit: { rot, ratio, crop: { ...crop } } });
+    };
+  });
+}
+
+// ---------- 피드 주인: 승인한 사진 순서 바꾸기·빼기 (36 SQL) ----------
+function canOwnerEdit(p) { return !!me && !isText(p) && p.status === 'approved' && ((!p.group_id && p.owner_id === me.id) || (p.group_id && groupOf(p.group_id)?.owner_id === me.id)); }
+function canPin(p) { return !!me && p.status === 'approved' && ((!p.group_id && p.owner_id === me.id) || (p.group_id && groupOf(p.group_id)?.owner_id === me.id)); }
+function ownerEditMedia(id) {
+  closeSheet();
+  const p = findAny(id); if (!p) return;
+  const ms = mediaOf(p); let order = ms.map((_, i) => i); const gone = new Set();
+  setTimeout(() => {
+    const w = sheet(`<h3>${t('사진 정리')}<i class="pd">.</i></h3><p class="hint" style="margin:-4px 0 12px">${t('끌어서 순서를 바꾸고, ×로 뺄 사진을 골라요')}</p>
+      <div class="ogrid" id="ogrid"></div><button class="btn primary block" id="osave" style="margin-top:16px">${t('저장')}</button>`);
+    const g = w.querySelector('#ogrid');
+    const paint = () => {
+      g.innerHTML = order.map(i => `<div class="ocell${gone.has(i) ? ' gone' : ''}" data-i="${i}"><img src="${photoUrl(ms[i].t || ms[i].p)}" alt="" draggable="false">${ms[i].k === 'video' ? `<span class="vplay">${I.play}</span>` : ''}<button class="ox" data-x="${i}" aria-label="${t(gone.has(i) ? '다시 넣기' : '빼기')}">${gone.has(i) ? '+' : '×'}</button></div>`).join('');
+      makeSortable(g, o => { order = o; paint(); });
+    };
+    g.addEventListener('click', e => { const x = e.target.closest('[data-x]'); if (!x) return; const i = +x.dataset.x; gone.has(i) ? gone.delete(i) : gone.add(i); if (gone.size >= ms.length) { gone.delete(i); return toast(t('사진이 한 장은 남아야 해요')); } paint(); });
+    paint();
+    w.querySelector('#osave').onclick = async () => {
+      const keep = order.filter(i => !gone.has(i));
+      if (keep.every((v, i) => v === i) && keep.length === ms.length) return closeSheet();
+      const b = w.querySelector('#osave'); b.disabled = true;
+      const { error } = await sb.rpc('owner_edit_media', { p_post: id, p_keep: keep });
+      if (error) { b.disabled = false; return toast(/owner_edit_media/.test(error.message) && /does not exist|not find|42883|PGRST20/.test(error.message) ? t('사진 정리 기능 준비 중이에요(관리자: 36 SQL 실행 필요)') : gErr(error)); }
+      const nm = keep.map(i => ms[i]);
+      Object.assign(p, { media: nm.length > 1 ? nm : null, image_path: nm[0].p, thumb_path: nm[0].t, media_type: nm[0].k || 'image' });
+      loadStickers([id]).catch(() => {}); // 스티커 번호가 바뀌었을 수 있어 다시 받음
+      closeSheet(); toast(t('사진을 정리했어요'));
+      document.querySelectorAll('.oreel, .overlay.page').forEach(o => o.remove()); VIEWER = [];
+      if (p.group_id && G.g?.id === p.group_id) paintGroup(); else if (S.prof && !p.group_id) paintProfile();
+    };
+  }, 250);
+}
+
 // ---------- 사진 공유 링크 ----------
 // 그룹 사진: 내가 멤버면 그룹 초대 코드가 든 링크(?gi=코드&p=사진&s=1) → 받은 사람은 가입 → 그룹 초대 → 그 사진
 // 피드 사진: ?u=주인&p=사진&s=1 → 가입 → 그 피드의 그 사진(비공개 피드면 친구 신청 화면)
@@ -2536,7 +2715,7 @@ async function renderProfile(uid, fresh, quiet) { // quiet: 돌아왔을 때 뒤
 // 받아둔 데이터(S)로 화면만 다시 그림 — 탭 전환·승인·거절 때 네트워크 요청 없음
 function paintProfile() {
   const { uid, prof, isOwner } = S;
-  const approved = S.approved.sort((a, b) => new Date(b.approved_at) - new Date(a.approved_at));
+  const approved = S.approved.sort((a, b) => (!!b.pinned_at - !!a.pinned_at) || (a.pinned_at && b.pinned_at ? new Date(a.pinned_at) - new Date(b.pinned_at) : new Date(b.approved_at) - new Date(a.approved_at))); // 고정한 사진은 고정한 순서대로 맨 위
   const pending = S.pending;
   const friends = new Set(approved.map(p => p.author_name)).size;
   const y = scrollY;
@@ -2716,7 +2895,7 @@ function renderBody() {
     return;
   }
   if (approved.length) {
-    $b.innerHTML = `<div class="grid">${approved.map(p => `<button data-pid="${p.id}" onclick="openFeedViewer('${p.id}', this)" class=""${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${t('{name}가 보낸 사진', { name: aname(p.author_name) })}${p.text ? ': ' + esc(p.text) : ''}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">`}${gridStickers(p)}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}${tileFrom(p, !isOwner)}</button>`).join('')}</div>`;
+    $b.innerHTML = `<div class="grid">${approved.map(p => `<button data-pid="${p.id}" onclick="openFeedViewer('${p.id}', this)" class=""${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${t('{name}가 보낸 사진', { name: aname(p.author_name) })}${p.text ? ': ' + esc(p.text) : ''}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">`}${gridStickers(p)}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}${p.pinned_at ? `<span class="gpin" aria-label="${t('고정됨')}">${II.pin}</span>` : ''}${tileFrom(p, !isOwner)}</button>`).join('')}</div>`;
     fillTileFaces($b);
     S.justApproved = null;
     return;
@@ -2988,7 +3167,7 @@ const openFriends = openSearch;
 // ---------- 좋아요·댓글 (홈 릴스와 게시물 상세에서 공유) ----------
 const SOC = new Map(); // postId → { likes, liked, comments }
 // 게시물 조회 컬럼: select('*') 대신 화면에서 실제 쓰는 칸만 (media jsonb 등 큰 칸이 늘어도 영향 없게)
-const POST_COLS = 'id,owner_id,author_id,author_name,mission,text,image_path,thumb_path,media_type,media,poll_options,status,answer,answered_at,approved_at,created_at,hidden_at';
+const POST_COLS = 'id,owner_id,author_id,author_name,mission,text,image_path,thumb_path,media_type,media,poll_options,status,answer,answered_at,approved_at,created_at,hidden_at,pinned_at';
 async function loadSocial(ids) {
   if (!ids.length) return;
   ids.forEach(id => SOC.set(id, { likes: 0, liked: false, comments: 0 }));
@@ -4120,7 +4299,9 @@ function postMenu(id) {
         ${p.status === 'pending'
           ? (p.media_type === 'question' ? '' : `<button class="menu-item" onclick="approve('${id}')">${t('승인하기')}</button>`)
           : p.status === 'hidden' ? `<button class="menu-item" onclick="restorePost('${id}')">${t('다시 올리기')}</button>`
-          : `<button class="menu-item" onclick="makeStory('${id}')">${t('스토리 이미지 저장')}</button>`}
+          : `<button class="menu-item" onclick="makeStory('${id}')">${t('스토리 이미지 저장')}</button>
+             <button class="menu-item" onclick="pinPost('${id}', ${!p.pinned_at})">${t(p.pinned_at ? '고정 해제' : '피드 맨 위에 고정')}</button>
+             ${mediaOf(p).length > 1 ? `<button class="menu-item" onclick="ownerEditMedia('${id}')">${t('사진 순서 바꾸기·빼기')}</button>` : ''}`}
         ${p.status === 'approved'
           ? `<button class="menu-item danger" onclick="hidePost('${id}')">${t('피드에서 내리기')}</button>`
           : `<button class="menu-item danger" onclick="removePost('${id}')">${t(p.status === 'pending' ? '거절하기' : '완전히 삭제')}</button>`}`);
@@ -4142,6 +4323,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
       ${asked ? `<div class="asked">${t("{name}님이 <b>'{mission}'</b>을(를) 부탁했어요", { name, mission: esc(t(MISSIONS[mi])) })}</div>` : ''}
       <section data-sec="media">
         <label class="cmp-media" id="pick"><span class="cmp-empty">${I.camera}<b>${t('사진·영상 선택')}</b><small>${t('여러 장 가능(최대 10장) · 영상은 10초까지')}</small></span><input type="file" accept="image/*,video/*" id="file" multiple hidden></label>
+        <div class="mtools" id="mtools" hidden><div class="mstrip" id="mstrip"></div><button type="button" class="medit" id="medit">${I.crop}<span>${t('자르기·회전')}</span></button></div>
         ${IN_APP && window.Capacitor?.isPluginAvailable?.('MediaPicker') ? `<button type="button" class="camb" id="camb">${I.camera}<span>${t('카메라로 찍기')}</span></button>` : ''}
         <div class="trim" id="trim" hidden></div>
         <div class="caprow"><span class="capav" id="capav"></span>
@@ -4227,6 +4409,11 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
     if (ready.length < files.length) toast(t('{n}개는 열 수 없어서 뺐어요', { n: files.length - ready.length }));
     media = ready;
     media.forEach(m => { if (m.kind === 'video') { m.start = 0; m.end = Math.min(m.duration, MAX_VIDEO_SEC); } });
+    paintPicked();
+  };
+  // 고른 사진 그리기(순서 바꾸기·자르기 뒤에도 다시 부름)
+  function paintPicked(goIdx = 0) {
+    const pk = $('#pick');
     const one = m => m.kind === 'video'
       ? `<video src="${m.previewUrl}" poster="${URL.createObjectURL(m.thumb)}" muted playsinline autoplay loop></video>
          <span class="vbadge">${t('{s}초', { s: Math.round((m.end - m.start) * 10) / 10 })}</span>`
@@ -4237,6 +4424,8 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
          <span class="car-n">1/${media.length}</span><div class="car-dots">${media.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div></div><span class="repick">${t('다시 고르기')}</span>`;
     pk.appendChild($file);
     initCarousels(pk, () => false);
+    if (goIdx) { const car = pk.querySelector('[data-car]'); if (car) { car.scrollLeft = car.clientWidth * goIdx; pk.querySelector('.carwrap').dataset.idx = goIdx; } }
+    paintStrip();
     // 영상 구간 자르기: 지금 보이는 장이 영상이면 아래에 구간 선택 바 표시
     const curIdx = () => +(pk.querySelector('.carwrap')?.dataset.idx || 0);
     const curVideoEl = () => { const sl = pk.querySelectorAll('.slide'); return (sl.length ? sl[curIdx()] : pk).querySelector('video'); };
@@ -4273,6 +4462,28 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
       if (v && !v._trimLoop) { v._trimLoop = true; v.addEventListener('timeupdate', () => { const mm = media[curIdx()]; if (mm?.kind === 'video' && (v.currentTime >= mm.end || v.currentTime < mm.start - 0.3)) v.currentTime = mm.start; }); }
       paint();
     }
+  }
+  // 아래 줄: 작은 사진들(끌어서 순서 바꾸기, 누르면 그 장으로) + 자르기·회전
+  function paintStrip() {
+    const box = $('#mtools'), strip = $('#mstrip'), pk = $('#pick');
+    if (!media?.length) { box.hidden = true; return; }
+    box.hidden = false;
+    const cur = +(pk.querySelector('.carwrap')?.dataset.idx || 0);
+    strip.hidden = media.length < 2;
+    strip.innerHTML = media.length < 2 ? '' : media.map((m, i) => `<button type="button" class="sti${i === cur ? ' on' : ''}" data-i="${i}"><img src="${m.kind === 'video' ? (m._tu ||= URL.createObjectURL(m.thumb)) : m.previewUrl}" alt="" draggable="false"><b>${i + 1}</b></button>`).join('');
+    $('#medit').disabled = media[cur]?.kind !== 'image';
+    makeSortable(strip, order => { const c = media[+(pk.querySelector('.carwrap')?.dataset.idx || 0)]; media = order.map(i => media[i]); paintPicked(Math.max(0, media.indexOf(c))); },
+      i => { const car = pk.querySelector('[data-car]'); if (car) car.scrollTo({ left: car.clientWidth * i, behavior: 'smooth' }); });
+  }
+  $('#pick').addEventListener('scroll', () => {}, true);
+  document.addEventListener('scroll', e => { if (e.target?.matches?.('#pick [data-car]')) { clearTimeout(paintStrip._t); paintStrip._t = setTimeout(paintStrip, 120); } }, true);
+  $('#medit').onclick = async e => {
+    e.preventDefault();
+    const pk = $('#pick'), idx = +(pk.querySelector('.carwrap')?.dataset.idx || 0), m = media?.[idx]; if (!m || m.kind !== 'image') return;
+    m.src0 ||= m.previewUrl;
+    const r = await openImageEditor(m.src0, m.edit); if (!r) return;
+    Object.assign(m, { main: r.main, thumb: r.thumb, previewUrl: r.previewUrl, edit: r.edit, job: null });
+    paintPicked(idx);
   };
   $file.onchange = () => handlePick();
   // iOS 앱: 사진 칸을 누르면 웹 파일 선택 대신 iPhone 사진 선택창(빠른 HEIC 처리·줄이기는 iPhone 이 함)
@@ -5507,7 +5718,7 @@ function shareFeed() {
 // ---------- 그룹 (공유 앨범) ----------
 // 주소: ?g=그룹아이디 (그룹 페이지) · ?gi=초대코드 (초대 링크) — 규칙은 sql/18_groups.sql 맨 위 요약 참고
 const GCOLS = 'id,handle,name,bio,cover_path,owner_id,visibility,join_mode,closed,daily_limit,member_count,follower_count,created_at';
-const GPOST_COLS = POST_COLS + ',group_id,pinned_at,flagged';
+const GPOST_COLS = POST_COLS + ',group_id,flagged';
 const GROUP_MAX = 99, PIN_MAX = 9, GROUP_OWN_MAX = 30;
 const G = { g: null, posts: [], mem: null, fol: null, pendingN: 0, key: null };
 const MYG = { groups: new Map(), mem: new Map(), fol: new Map(), ok: null, at: 0 }; // 내가 멤버·신청·팔로우한 그룹
@@ -5618,7 +5829,7 @@ function paintGroup() {
   const isOwner = !!me && g.owner_id === me.id, isMember = mem?.status === 'active', isPending = mem?.status === 'pending';
   const canSee = g.visibility === 'public' || isMember;
   const posts = G.posts.filter(p => !p.flagged || isOwner || p.author_id === me?.id)
-    .sort((a, b) => (!!b.pinned_at - !!a.pinned_at) || (a.pinned_at && b.pinned_at ? new Date(b.pinned_at) - new Date(a.pinned_at) : new Date(b.created_at) - new Date(a.created_at)));
+    .sort((a, b) => (!!b.pinned_at - !!a.pinned_at) || (a.pinned_at && b.pinned_at ? new Date(a.pinned_at) - new Date(b.pinned_at) : new Date(b.created_at) - new Date(a.created_at)));
   const y = scrollY;
   const n = G.posts.length;
   let acts;
@@ -6042,6 +6253,8 @@ function reelMore(id) {
   const o = HOME.owners?.get(p.owner_id) || (S.prof?.id === p.owner_id ? S.prof : null);
   if (!p.group_id && p.owner_id === me?.id) return menu(`<button class="menu-item" onclick="closeSheet();toggleReelStickers()">${t(HIDE_STK ? '붙은 스티커 보이기' : '붙은 스티커 숨기기')}</button>
     <button class="menu-item" onclick="closeSheet();makeStory('${id}')">${t('스토리 이미지 저장')}</button>
+    <button class="menu-item" onclick="closeViewer();pinPost('${id}', ${!p.pinned_at})">${t(p.pinned_at ? '고정 해제' : '피드 맨 위에 고정')}</button>
+    ${mediaOf(p).length > 1 ? `<button class="menu-item" onclick="ownerEditMedia('${id}')">${t('사진 순서 바꾸기·빼기')}</button>` : ''}
     <button class="menu-item danger" onclick="closeSheet();closeViewer();setTimeout(() => hidePost('${id}'), 250)">${t('피드에서 내리기')}</button>`);
   menu(`<button class="menu-item" onclick="closeSheet();toggleReelStickers()">${t(HIDE_STK ? '붙은 스티커 보이기' : '붙은 스티커 숨기기')}</button>
     ${p.group_id ? groupPostItems(id) : `<button class="menu-item" onclick="closeSheet();go('${feedUrl(p.owner_id)}')">${t('{name} 피드로 가기', { name: esc(o?.name || t('친구')) })}</button>${isMine(p) ? myPostItems(id) : p.owner_id !== me?.id ? otherPostItems(id) : ''}`}`);
@@ -6163,6 +6376,7 @@ function groupPostItems(id) {
   const g = groupOf(p.group_id), owner = !!me && g?.owner_id === me.id, mine = !!me && p.author_id === me.id;
   return (`<button class="menu-item" onclick="savePhoto('${id}')">${t('사진 저장')}</button>
     ${owner ? `<button class="menu-item" onclick="pinPost('${id}', ${!p.pinned_at})">${t(p.pinned_at ? '고정 해제' : '맨 위에 고정')}</button>` : ''}
+    ${owner && mediaOf(p).length > 1 ? `<button class="menu-item" onclick="ownerEditMedia('${id}')">${t('사진 순서 바꾸기·빼기')}</button>` : ''}
     ${owner && p.flagged ? `<button class="menu-item" onclick="unflagPost('${id}')">${t('다시 보이게 하기 (신고 기록 지우기)')}</button>` : ''}
     ${me && !mine ? `<button class="menu-item danger" onclick="closeSheet();setTimeout(() => reportPost('${id}'), 250)">${t('신고하기')}</button>` : ''}
     ${me && !mine && p.author_id ? `<button class="menu-item danger" onclick="blockUser('${p.author_id}', '${esc(p.author_name).replace(/'/g, '&#39;')}')">${t('{name}님 차단', { name: esc(p.author_name) })}</button>` : ''}
@@ -6199,7 +6413,8 @@ async function pinPost(id, on) {
   const p = findAny(id); if (p) p.pinned_at = on ? new Date().toISOString() : null;
   document.querySelector('.overlay')?.remove();
   toast(t(!on ? '고정을 풀었어요' : groupOf(p?.group_id)?.visibility === 'public' ? '맨 위에 고정했어요 · 공개 그룹에서도 지워지지 않아요' : '맨 위에 고정했어요'));
-  if (G.g?.id === p?.group_id && !document.querySelector('.reels')) paintGroup();
+  document.querySelectorAll('.oreel').forEach(o => o.remove()); VIEWER = [];
+  if (p?.group_id && G.g?.id === p.group_id) paintGroup(); else if (!p?.group_id && S.prof?.id === p?.owner_id) paintProfile();
 }
 async function unflagPost(id) {
   closeSheet();
@@ -6497,7 +6712,8 @@ function demoClient() {
     if (fn === 'follow_group') { if (!db.group_follows.some(f => f.group_id === args.p_group && f.user_id === ME.id)) db.group_follows.push({ group_id: args.p_group, user_id: ME.id, notify: false }); recount(args.p_group); return ok(null); }
     if (fn === 'group_invite_code') { const g = G_(args.p_group); if (args.p_new) g.invite_code = Math.random().toString(36).slice(2, 14); return ok(g.invite_code); }
     if (fn === 'transfer_group') { const g = G_(args.p_group); mem(g.id, ME.id).role = 'member'; mem(g.id, args.p_user).role = 'owner'; g.owner_id = args.p_user; return ok(null); }
-    if (fn === 'pin_post') { const p = db.posts.find(x => x.id === args.p_post); if (args.p_on && db.posts.filter(x => x.group_id === p.group_id && x.pinned_at && x.id !== p.id).length >= 9) return no('pin_limit'); p.pinned_at = args.p_on ? new Date().toISOString() : null; return ok(null); }
+    if (fn === 'owner_edit_media') { const p = db.posts.find(x => x.id === args.p_post); const old = p.media?.length ? p.media : [{ p: p.image_path, t: p.thumb_path, k: p.media_type }]; const m = args.p_keep.map(i => old[i]); Object.assign(p, { media: m.length > 1 ? m : null, image_path: m[0].p, thumb_path: m[0].t, media_type: m[0].k || 'image' }); return ok(new Date().toISOString()); }
+    if (fn === 'pin_post') { const p = db.posts.find(x => x.id === args.p_post); if (args.p_on && db.posts.filter(x => (p.group_id ? x.group_id === p.group_id : !x.group_id && x.owner_id === p.owner_id) && x.pinned_at && x.id !== p.id).length >= 9) return no('pin_limit'); p.pinned_at = args.p_on ? new Date().toISOString() : null; return ok(null); }
     if (fn === 'block_user') { db.blocks = db.blocks || []; if (!db.blocks.some(b => b.blocked_id === args.p_user)) db.blocks.push({ blocker_id: ME.id, blocked_id: args.p_user }); db.follows = db.follows.filter(f => !((f.follower_id === ME.id && f.followee_id === args.p_user) || (f.follower_id === args.p_user && f.followee_id === ME.id))); return ok(null); }
     if (fn === 'unblock_user') { db.blocks = (db.blocks || []).filter(b => b.blocked_id !== args.p_user); return ok(null); }
     if (fn === 'report_content') { db.reports = db.reports || []; db.reports.push(args); return ok(db.reports.filter(r => r.p_target === args.p_target).length); }
