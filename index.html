@@ -1775,7 +1775,7 @@ function go(url, replace) {
   const u = new URL(url, location.href);
   if (PERF) console.log(`[candid] go +${Math.round(performance.now())}ms ${u.search}`);
   FEED_ADS.hide();
-  if (history.state?.post) replace = true; // 사진 페이지에서 다른 화면으로: 사진 페이지 기록은 새 화면으로 바꿈
+  if (history.state?.post || history.state?.oreel) replace = true; // 사진 페이지·Candids 보기에서 다른 화면으로: 그 기록은 새 화면으로 바꿈
   if (u.pathname + u.search === pageKey() && !replace) return;
   const d = history.state?.d || 0;
   history[replace ? 'replaceState' : 'pushState']({ d: replace ? d : d + 1 }, '', u.pathname + u.search);
@@ -1832,6 +1832,7 @@ document.addEventListener('click', e => {
   if (u.origin !== location.origin || u.pathname !== location.pathname) return;
   e.preventDefault();
   if (a.closest('.overlay, .sheet-wrap')) { document.querySelector('.overlay')?.remove(); closeSheet(); } // 게시물·시트 안의 링크(작성자·댓글 단 사람 등): 닫고 이동
+  if (a.closest('.oreel')) { FEED_ADS.hide(); document.querySelectorAll('.oreel').forEach(o => o.remove()); VIEWER = []; } // Candids 보기 안의 링크(from 이름 등): 보기를 닫고 이동
   go(u.href);
 });
 
