@@ -1331,7 +1331,12 @@
   .head { grid-template-areas:"name av" "handle av" "desc av" "dots dots" "stats stats"; align-items:start; }
   .head > .name { align-self:end; }
   .head > .desc, .head > .bio-empty { margin:8px 0 0; }
-  .head > .stats { justify-content:space-between; gap:8px; margin-top:16px; }
+  .head > .stats { justify-content:stretch; gap:8px; margin-top:16px; }
+  /* 숫자 칸: 좌우 폭을 똑같이 나눠 꽉 채우고, 숫자는 크게 위·이름은 아래 */
+  .head > .stats > div, .head > .stats > .stat-btn { flex:1 1 0; flex-direction:column; align-items:center; gap:3px; text-align:center; padding:10px 0 !important; border-radius:14px; background:var(--soft); }
+  .head > .stats b { font-size:22px; line-height:1; }
+  .head > .stats span { font-size:12px; }
+  .head > .stats > .stat-btn:active { transform:scale(.96); }
 </style>
 </head>
 <body>
