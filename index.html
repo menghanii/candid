@@ -1252,10 +1252,8 @@
   .orb.new .oface { box-shadow:0 0 0 3px #000, 0 0 0 6px var(--gc), 0 0 26px 6px color-mix(in srgb, var(--gc) 50%, transparent); }
   .orb.new .oface::after { border-color:var(--gc); }
   .orb .on { background:var(--gc); }
-  .ostars { position:absolute; inset:-20%; pointer-events:none; opacity:.55; background:
-    radial-gradient(1px 1px at 12% 22%, #fff, transparent), radial-gradient(1px 1px at 78% 14%, #fff, transparent), radial-gradient(1.5px 1.5px at 33% 68%, #fff, transparent),
-    radial-gradient(1px 1px at 62% 48%, #fff, transparent), radial-gradient(1px 1px at 88% 76%, #fff, transparent), radial-gradient(1.5px 1.5px at 22% 88%, #fff, transparent),
-    radial-gradient(1px 1px at 50% 8%, #fff, transparent), radial-gradient(1px 1px at 6% 52%, #fff, transparent), radial-gradient(1px 1px at 94% 40%, #fff, transparent); }
+  .ostars { position:absolute; inset:-20%; pointer-events:none; opacity:.6; background:radial-gradient(1.4px 1.4px at 43% 21%, #fff, transparent), radial-gradient(1px 1px at 85% 8%, #fff, transparent), radial-gradient(1px 1px at 70% 14%, #fff, transparent), radial-gradient(1.8px 1.8px at 76% 9%, #fff, transparent), radial-gradient(1px 1px at 29% 6%, #fff, transparent), radial-gradient(1px 1px at 57% 55%, #fff, transparent), radial-gradient(1.8px 1.8px at 32% 13%, #fff, transparent), radial-gradient(1.8px 1.8px at 56% 9%, #fff, transparent), radial-gradient(1.8px 1.8px at 17% 30%, #fff, transparent), radial-gradient(1.8px 1.8px at 9% 75%, #fff, transparent), radial-gradient(1px 1px at 52% 8%, #fff, transparent), radial-gradient(1px 1px at 7% 73%, #fff, transparent), radial-gradient(1px 1px at 39% 55%, #fff, transparent), radial-gradient(1.8px 1.8px at 71% 17%, #fff, transparent), radial-gradient(1px 1px at 41% 73%, #fff, transparent), radial-gradient(1.8px 1.8px at 15% 76%, #fff, transparent), radial-gradient(1px 1px at 83% 26%, #fff, transparent), radial-gradient(1px 1px at 14% 72%, #fff, transparent), radial-gradient(1.8px 1.8px at 74% 9%, #fff, transparent), radial-gradient(1.8px 1.8px at 28% 65%, #fff, transparent), radial-gradient(1.4px 1.4px at 56% 42%, #fff, transparent), radial-gradient(1px 1px at 76% 60%, #fff, transparent), radial-gradient(1px 1px at 40% 33%, #fff, transparent), radial-gradient(1px 1px at 91% 33%, #fff, transparent), radial-gradient(1.8px 1.8px at 75% 40%, #fff, transparent), radial-gradient(1.4px 1.4px at 65% 45%, #fff, transparent), radial-gradient(1px 1px at 38% 79%, #fff, transparent), radial-gradient(1.4px 1.4px at 17% 67%, #fff, transparent), radial-gradient(1px 1px at 23% 98%, #fff, transparent), radial-gradient(1.4px 1.4px at 21% 64%, #fff, transparent), radial-gradient(1px 1px at 7% 87%, #fff, transparent), radial-gradient(1px 1px at 73% 75%, #fff, transparent), radial-gradient(1px 1px at 45% 90%, #fff, transparent), radial-gradient(1.8px 1.8px at 78% 65%, #fff, transparent); animation:twinkle 3.2s ease-in-out infinite alternate; }
+  .ostars::after { content:""; position:absolute; inset:0; background:radial-gradient(1.6px 1.6px at 60% 10%, rgba(255,255,255,.95), transparent), radial-gradient(2.4px 2.4px at 36% 62%, rgba(255,255,255,.95), transparent), radial-gradient(1.6px 1.6px at 87% 10%, rgba(255,255,255,.95), transparent), radial-gradient(2px 2px at 95% 91%, rgba(255,255,255,.95), transparent), radial-gradient(2.4px 2.4px at 84% 75%, rgba(255,255,255,.95), transparent), radial-gradient(2.4px 2.4px at 59% 38%, rgba(255,255,255,.95), transparent), radial-gradient(2px 2px at 51% 87%, rgba(255,255,255,.95), transparent), radial-gradient(2px 2px at 4% 61%, rgba(255,255,255,.95), transparent), radial-gradient(1.6px 1.6px at 23% 80%, rgba(255,255,255,.95), transparent), radial-gradient(1.6px 1.6px at 65% 9%, rgba(255,255,255,.95), transparent), radial-gradient(2.4px 2.4px at 38% 18%, rgba(255,255,255,.95), transparent), radial-gradient(2px 2px at 33% 52%, rgba(255,255,255,.95), transparent), radial-gradient(1.6px 1.6px at 65% 12%, rgba(255,255,255,.95), transparent), radial-gradient(2.4px 2.4px at 59% 53%, rgba(255,255,255,.95), transparent), radial-gradient(2px 2px at 37% 19%, rgba(255,255,255,.95), transparent), radial-gradient(2.4px 2.4px at 72% 37%, rgba(255,255,255,.95), transparent); animation:twinkle 2.1s ease-in-out infinite alternate-reverse; }
   .orbitv.warping .ogal { transition:transform .3s cubic-bezier(.5,0,.9,.4), opacity .3s; transform:translateX(calc(var(--wd) * -30%)) scale(.35); opacity:0; }
   .orbitv.warping .ostars { transition:transform .3s ease-in, opacity .3s; transform:scale(2.6, 1.15); opacity:1; filter:blur(.4px); }
   .orbitv.warpin .ogal { animation:galIn .5s cubic-bezier(.2,.9,.3,1) both; }
@@ -1343,7 +1341,6 @@
   .who-ic.anon, .gfrom.anon, .av:has(> .anonav) { overflow:hidden; border-radius:50%; background:#26262b !important; padding:0 !important; } /* 익명 닷 칸은 배경까지 같은 색 동그라미 */
   .who-ic.anon .anonav, .av:has(> .anonav) .anonav { width:100%; height:100%; }
   /* Candids 보기 다듬기: 빈 검은 띠 대신 그 사진을 흐리게 깐 배경, 한마디 크게·from·시간 한 줄 */
-  .reel .ramb { inset:-80px; filter:blur(40px) saturate(1.3) brightness(.42); transform:scale(1.15); }
   .rinfo .rtext { margin:0 0 8px; }
   .rfrom .rago { opacity:.7; font-weight:400; margin-left:2px; }
   .rtc { padding-right:78px; } /* 투표·질문 카드가 오른쪽 버튼에 가리지 않게 */
@@ -2560,7 +2557,7 @@ function renderBody() {
     return;
   }
   if (approved.length) {
-    $b.innerHTML = `<div class="grid">${approved.map(p => `<button onclick="openPost('${p.id}')" class="${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${t('{name}가 보낸 사진', { name: aname(p.author_name) })}${p.text ? ': ' + esc(p.text) : ''}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">`}${gridStickers(p)}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}${tileFrom(p, !isOwner)}</button>`).join('')}</div>`;
+    $b.innerHTML = `<div class="grid">${approved.map(p => `<button data-pid="${p.id}" onclick="openFeedViewer('${p.id}', this)" class=""${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${t('{name}가 보낸 사진', { name: aname(p.author_name) })}${p.text ? ': ' + esc(p.text) : ''}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">`}${gridStickers(p)}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}${tileFrom(p, !isOwner)}</button>`).join('')}</div>`;
     fillTileFaces($b);
     S.justApproved = null;
     return;
@@ -3198,29 +3195,48 @@ function warpTo(ng, dir) {
 function openOrbitStack(x, extraOwner) {
   if (!x?.posts.length) return;
   const seen = lsGet(SEEN_KEY), list = [...x.posts].sort((a, b) => (!!seen[a.id] - !!seen[b.id]) || new Date(b.approved_at) - new Date(a.approved_at));
+  openReelViewer({ list, title: x.name, face: x.g ? gAv(x.g, 'xs') : avatar(x.o || { name: x.name }, 'xs'), link: x.g ? gUrl(x.g) : feedUrl(x.o?.id || list[0].owner_id), extraOwner });
+}
+// 피드·그룹 격자에서 사진을 누르면: 그 사진부터 Candids 보기(위아래로 그 피드의 다음·이전 사진)
+function openFeedViewer(id, btn) {
+  const grid = btn?.closest('.grid');
+  const ids = grid ? [...grid.querySelectorAll('button[data-pid]')].map(b => b.dataset.pid) : [id];
+  const list = ids.map(i => findPost(i)).filter(p => p && p.status === 'approved');
+  if (!list.length) return openPost(id);
+  const g = G.g && list[0].group_id === G.g.id ? G.g : null, prof = !g ? S.prof : null;
+  if (g) HOME.groups.set(g.id, g);
+  openReelViewer({ list, startId: id, title: g ? g.name : prof?.name || '', face: g ? gAv(g, 'xs') : avatar(prof || {}, 'xs'), link: g ? gUrl(g) : feedUrl(list[0].owner_id), extraOwner: prof });
+}
+let VIEWER = []; // 지금 열린 Candids 보기의 게시물(⋯ 메뉴 등에서 찾기용)
+function openReelViewer({ list, title, face, link, extraOwner, startId }) {
+  VIEWER = list;
   const owners = new Map(CACHE.home?.owners || HOME.owners || []); if (extraOwner) owners.set(extraOwner.id, extraOwner);
-  const face = x.g ? gAv(x.g, 'xs') : avatar(x.o || { name: x.name }, 'xs');
   const ov = document.createElement('div'); ov.className = 'oreel';
   ov.innerHTML = `<div class="reels" id="sreels"><header class="rtop oreel-h"><button class="icon-btn" data-x aria-label="${t('뒤로')}">${I.back}</button>
-      <a class="oreel-who" href="${x.g ? gUrl(x.g) : feedUrl(x.o?.id || list[0].owner_id)}">${face}<b>${esc(x.name)}</b></a><div class="sp"></div>
+      <a class="oreel-who" href="${link}">${face}<b>${esc(title)}</b></a><div class="sp"></div>
       <button class="icon-btn" data-more aria-label="${t('더보기')}">${I.more}</button></header>
     ${FEED_ADS.weave(list, p => reelSection(p, owners))}</div>`;
   document.body.appendChild(ov);
   const $r = ov.querySelector('#sreels');
   $r.classList.toggle('hide-stk', HIDE_STK);
+  if (startId) { const st = $r.querySelector(`.reel[data-id="${startId}"]`); if (st) $r.scrollTop = st.offsetTop; }
   wireReels($r);
   loadSocial(list.map(p => p.id)).then(() => list.forEach(p => paintSoc(p.id))).catch(() => {});
   loadStickers(list.map(p => p.id)).then(() => list.forEach(p => refreshStickerLayers(p.id))).catch(() => {});
-  // 뒤로가기(제스처·버튼)로 닫힘 → 궤도(숫자 갱신)
+  // 뒤로가기(제스처·버튼)로 닫힘
   history.pushState({ ...(history.state || {}), oreel: 1 }, '');
-  const close = () => { if (!ov.isConnected) return; FEED_ADS.hide(); ov.querySelectorAll('video').forEach(v => v.pause()); ov.classList.add('out'); setTimeout(() => ov.remove(), 200); if (CACHE.home && document.getElementById('orbitv')) paintHome(CACHE.home); };
+  const close = () => { if (!ov.isConnected) return; FEED_ADS.hide(); ov.querySelectorAll('video').forEach(v => v.pause()); ov.classList.add('out'); setTimeout(() => ov.remove(), 200); VIEWER = [];
+    if (CACHE.home && document.getElementById('orbitv')) paintHome(CACHE.home);
+    if (document.querySelector('.grid .gnew')) document.querySelectorAll('.grid button[data-pid]').forEach(b => { if (lsGet(SEEN_KEY)[b.dataset.pid]) b.querySelector('.gnew')?.remove(); }); };
   const onPop = () => { if (!history.state?.oreel && !document.querySelector('.overlay.page')) { removeEventListener('popstate', onPop); close(); } };
   addEventListener('popstate', onPop);
-  ov.querySelector('[data-x]').onclick = () => history.state?.oreel ? history.back() : close();
+  ov._close = () => history.state?.oreel ? history.back() : close();
+  ov.querySelector('[data-x]').onclick = ov._close;
   ov.querySelector('[data-more]').onclick = () => { const R = $r.getBoundingClientRect(); const cur = [...$r.querySelectorAll('.reel[data-id]')].find(e => Math.abs(e.getBoundingClientRect().top - R.top) < 40); if (cur) reelMore(cur.dataset.id); };
-  ov.querySelector('.oreel-who').addEventListener('click', () => { removeEventListener('popstate', onPop); ov.remove(); });
-  edgeSwipeBack(ov, () => history.state?.oreel ? history.back() : close());
+  ov.querySelector('.oreel-who').addEventListener('click', () => { removeEventListener('popstate', onPop); FEED_ADS.hide(); ov.remove(); });
+  edgeSwipeBack(ov, ov._close);
 }
+const closeViewer = () => document.querySelector('.oreel')?._close?.();
 function fillHomeExtras(posts) {
   posts.forEach(p => {
     paintSoc(p.id); refreshStickerLayers(p.id);
@@ -3288,7 +3304,7 @@ function reelSection(p, owners) {
     const gg = p.group_id ? HOME.groups.get(p.group_id) : null; // 그룹 사진: 오른쪽 위 아바타 = 그룹, 아래에 그룹 이름 배지
     return `<section class="reel" data-id="${p.id}">
       ${isText(p) ? `<div class="rbg rbg-${p.media_type}"></div><div class="rmedia rtc">${textStage(p)}</div>` : ''}
-      ${isText(p) ? '' : `<div class="rbg ramb" style="background-image:url('${thumbUrl(p)}')"></div><div class="rmedia rcar">${mediaCarousel(p, 'reel')}</div>
+      ${isText(p) ? '' : `<div class="rmedia rcar">${mediaCarousel(p, 'reel')}</div>
         ${mediaOf(p).some(m => m.k === 'video') ? `<button class="rmute" aria-label="${t('소리 켜기/끄기')}">${muted ? I.mute : I.sound}</button>` : ''}`}
       <div class="rburst">${I.heartOn}</div>
       <div class="rinfo">
@@ -3484,7 +3500,7 @@ function openAnswer(id) {
     paintProfile(); toast(t('답을 올렸어요'));
   };
 }
-const HOME = { posts: [] };
+const HOME = { posts: [], groups: new Map() }; // groups: 홈을 아직 안 그렸어도(그룹 화면에서 바로 열기 등) 쓸 수 있게
 // 격자 칸: 글자 대신 보낸 친구의 작은 프로필 사진(왼쪽 아래) + 아직 안 본 사진은 블루닷(오른쪽 아래)
 function tileFrom(p, dotNew) {
   const face = p.author_id ? `<span class="gfrom" data-au="${p.author_id}">${DEFAULT_AV}</span>` : (isAnonName(p.author_name) ? `<span class="gfrom anon">${ANON_AV}</span>` : `<span class="gfrom">${DEFAULT_AV}</span>`);
@@ -3535,7 +3551,7 @@ const findAny = id => findPost(id) || HOME.posts.find(x => x.id === id);
 })();
 
 // ---------- 게시물 상세 ----------
-const findPost = id => [...(G.g && !document.querySelector('.reels') ? G.posts : []), ...(S.approved || []), ...(S.pending || []), ...(S.hidden || [])].find(x => x.id === id);
+const findPost = id => [...(G.g && !document.querySelector('#reels') ? G.posts : []), ...(S.approved || []), ...(S.pending || []), ...(S.hidden || [])].find(x => x.id === id);
 
 function openPost(id) {
   const fromHome = !findPost(id);
@@ -5405,7 +5421,7 @@ function paintGroup() {
   else if (g.visibility === 'public' && g.join_mode === 'open') acts = `<button class="btn primary" onclick="joinGroup()">${t('참여하기')}</button>`;
   else if (g.visibility === 'public') acts = `<button class="btn ${fol ? '' : 'add'}" onclick="toggleGroupFollow()">${fol ? II.check + t('팔로잉') : t('팔로우')}</button><button class="btn primary" onclick="joinGroup()">${t('멤버 신청')}</button>`;
   else acts = `<button class="btn" disabled>${t('초대받은 멤버만 참여할 수 있어요')}</button>`;
-  const tile = p => `<button onclick="openPost('${p.id}')" class="${p.flagged ? 'gflagged' : ''}" aria-label="${t('{name}님이 올린 사진', { name: esc(p.author_name) })}">
+  const tile = p => `<button data-pid="${p.id}" onclick="openFeedViewer('${p.id}', this)" class="${p.flagged ? 'gflagged' : ''}" aria-label="${t('{name}님이 올린 사진', { name: esc(p.author_name) })}">
       <img src="${thumbUrl(p)}" alt="" loading="lazy">${gridStickers(p)}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}
       ${p.pinned_at ? `<span class="gpin" aria-label="${t('고정됨')}">${II.pin}</span>` : ''}${p.flagged ? `<span class="gflag">${t('신고로 가려짐')}</span>` : ''}
       ${tileFrom(p, true)}</button>`;
@@ -5811,8 +5827,11 @@ async function openGroupManage() {
 // ---------- 그룹 게시물: 메뉴 · 고정 · 신고 · 저장 · 삭제 ----------
 // 릴스 ⋯: 스티커 보이기/숨기기 + (그룹 사진이면) 그룹 게시물 메뉴
 function reelMore(id) {
-  const p = HOME.posts.find(x => x.id === id); if (!p) return;
-  const o = HOME.owners?.get(p.owner_id);
+  const p = HOME.posts.find(x => x.id === id) || VIEWER.find(x => x.id === id); if (!p) return;
+  const o = HOME.owners?.get(p.owner_id) || (S.prof?.id === p.owner_id ? S.prof : null);
+  if (!p.group_id && p.owner_id === me?.id) return menu(`<button class="menu-item" onclick="closeSheet();toggleReelStickers()">${t(HIDE_STK ? '붙은 스티커 보이기' : '붙은 스티커 숨기기')}</button>
+    <button class="menu-item" onclick="closeSheet();makeStory('${id}')">${t('스토리 이미지 저장')}</button>
+    <button class="menu-item danger" onclick="closeSheet();closeViewer();setTimeout(() => hidePost('${id}'), 250)">${t('피드에서 내리기')}</button>`);
   menu(`<button class="menu-item" onclick="closeSheet();toggleReelStickers()">${t(HIDE_STK ? '붙은 스티커 보이기' : '붙은 스티커 숨기기')}</button>
     ${p.group_id ? groupPostItems(id) : `<button class="menu-item" onclick="closeSheet();go('${feedUrl(p.owner_id)}')">${t('{name} 피드로 가기', { name: esc(o?.name || t('친구')) })}</button>${isMine(p) ? myPostItems(id) : p.owner_id !== me?.id ? otherPostItems(id) : ''}`}`);
 }
