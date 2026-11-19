@@ -1490,6 +1490,8 @@
   .crot { position:absolute; right:10px; top:10px; z-index:3; width:36px; height:36px; border-radius:50%; border:0; background:rgba(0,0,0,.55); color:#fff; display:flex; align-items:center; justify-content:center; }
   .crot svg { width:19px; height:19px; }
   .cmp-media.has .repick { z-index:3; }
+  /* 궤도를 곧바로 다시 그릴 때(시작 직후 데이터가 이어서 올 때): 등장 효과 없이 그대로 */
+  .orbitv.still .orb, .orbitv.still.allseen .orb.seen { animation:ofloat var(--d,6s) ease-in-out infinite !important; animation-delay:var(--dl,0s) !important; opacity:1; }
 </style>
 </head>
 <body>
@@ -3413,6 +3415,7 @@ function galaxyLayout(shape, n, W, H, topY) {
   }
   return { pts, lines, cx, cy };
 }
+let ORBIT_LAST = { at: 0, order: null };
 function paintOrbit(posts, owners, top) {
   ORBIT_G = Math.max(0, Math.min(ORBIT_G, GALAXIES.length - 1));
   const gi = ORBIT_G, G = GALAXIES[gi];
@@ -3420,13 +3423,20 @@ function paintOrbit(posts, owners, top) {
   const mine = orbitSources(posts, owners);
   if (!INTER.map) loadInteractions().then(() => { if (document.getElementById('orbitv') && ORBIT_G === 0 && CACHE.home) paintHome(CACHE.home); });
   if (!TREND.list) loadTrending().then(() => { if (document.getElementById('orbitv') && ORBIT_G === 1 && CACHE.home) paintHome(CACHE.home); });
-  const here = gi === 0 ? mine : gi === 1 ? (TREND.list || []) : [];
+  let here = gi === 0 ? mine : gi === 1 ? (TREND.list || []) : [];
   const src = [...mine, ...(TREND.list || [])];
   const W = Math.min(innerWidth, 480), H = innerHeight;
+  // 시작할 때 저장해 둔 화면 → 서버 응답 → 친한 순서 → 트렌딩 순으로 여러 번 다시 그려짐: 깜빡이지 않게
+  //  · 보이는 게 같으면 다시 그리지 않음 · 같은 은하를 잠깐 사이(8초)에 다시 그리면 자리 순서를 유지하고 등장 효과 없이
+  const prev = document.getElementById('orbitv'), recent = prev && +prev.dataset.g === gi && Date.now() - ORBIT_LAST.at < 8000;
+  if (recent && ORBIT_LAST.order?.length) { const pos = new Map(ORBIT_LAST.order.map((k, i) => [k, i])); here = [...here].sort((a, b) => (pos.get(a.k) ?? 1e3) - (pos.get(b.k) ?? 1e3)); }
+  const sig = [gi, W, H, ...here.map(x => `${x.k}:${x.fresh}:${x.posts?.length || 0}:${x.trend?.posts || ''}`)].join('|');
+  if (prev && prev.dataset.sig === sig && !prev.classList.contains('warping')) return;
+  ORBIT_LAST = { at: recent ? ORBIT_LAST.at : Date.now(), order: here.map(x => x.k) };
   const freshHere = here.reduce((n, x) => n + x.fresh, 0), freshMine = mine.reduce((n, x) => n + x.fresh, 0), allSeen = gi === 0 && !freshMine;
   const gdots = `<div class="gdots">${GALAXIES.map((GG, i) => `<button class="${i === gi ? 'on' : ''}${i === 0 && freshMine && gi !== 0 ? ' f' : ''}" style="--gc:${GG.c}" data-g="${i}" aria-label="${t(GG.name)}"></button>`).join('')}</div>`;
   // 1) 틀(상단·은하 이름·은하 점) 먼저 → 은하 이름이 실제로 어디까지 내려왔는지 잼
-  $app.innerHTML = `<div class="orbitv${allSeen ? ' allseen' : ''}" id="orbitv" data-th="${G.th}" style="--gc:${G.c};--gc2:${G.c2 || G.c}">${top}<i class="ostars"></i><i class="oneb"></i>
+  $app.innerHTML = `<div class="orbitv${allSeen ? ' allseen' : ''}${recent ? ' still' : ''}" id="orbitv" data-g="${gi}" data-sig="${sig}" data-th="${G.th}" style="--gc:${G.c};--gc2:${G.c2 || G.c}">${top}<i class="ostars"></i><i class="oneb"></i>
     <p class="ohint"><b>${t(G.name)}</b><span>${t(G.sub)}</span></p><div class="ogal" id="ogal"></div>${gdots}</div>${navBar('reels')}`;
   const hintBottom = document.querySelector('#orbitv .ohint')?.getBoundingClientRect().bottom;
   const { pts, lines, cx, cy } = galaxyLayout(G.shape, gi === 2 ? 10 : here.length, W, H, hintBottom ? hintBottom + 44 : undefined);
