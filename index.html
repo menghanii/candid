@@ -3543,10 +3543,11 @@ const ADS = {
 // 1) Google AdMob 전면 광고(iOS 앱): 미리 받아 두었다가 보여 주고, 닫히면 다음 것을 미리 받음
 ADS.register({
   name: 'admob', priority: 10, ready: false, npa: true,
+  testing() { return ADS.cfg.admob.testing ?? !cfg.RELEASE; }, // 개발용 앱에서 실제 광고를 누르면 AdMob 정책 위반 → 시험 광고
   available() { return IN_APP && !!window.Capacitor?.isPluginAvailable?.('AdMob') && !!ADS.cfg.admob?.iosInterstitial; },
   async init() {
     const A = capPlugin('AdMob');
-    await A.initialize({ initializeForTesting: !!ADS.cfg.admob.testing });
+    await A.initialize({ initializeForTesting: this.testing() });
     // 맞춤 광고 동의(앱 추적 투명성, iOS 14+): 아직 안 물어봤으면 한 번 물어봄. 거절해도 일반 광고는 나옴
     let st = (await A.trackingAuthorizationStatus().catch(() => ({})))?.status;
     if (st === 'notDetermined') { await A.requestTrackingAuthorization().catch(() => {}); st = (await A.trackingAuthorizationStatus().catch(() => ({})))?.status; }
@@ -3556,7 +3557,7 @@ ADS.register({
     await this.prepare();
   },
   async prepare() {
-    try { await capPlugin('AdMob').prepareInterstitial({ adId: ADS.cfg.admob.iosInterstitial, isTesting: !!ADS.cfg.admob.testing, npa: this.npa }); this.ready = true; }
+    try { await capPlugin('AdMob').prepareInterstitial({ adId: ADS.cfg.admob.iosInterstitial, isTesting: this.testing(), npa: this.npa }); this.ready = true; }
     catch (e) { this.ready = false; console.log('[candid] admob load ' + (e?.message || e?.code || e)); }
   },
   async show() {
