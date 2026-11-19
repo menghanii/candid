@@ -20,9 +20,28 @@ export default {
     const url = new URL(req.url);
     if (url.pathname.startsWith('/p/')) return media(req, url, env.MEDIA_ORIGIN || DEFAULT_ORIGIN); // MEDIA_ORIGIN: 로컬 시험용
     if (url.pathname === '/.well-known/apple-app-site-association' || url.pathname === '/apple-app-site-association') return Response.json(AASA, { headers: { 'Cache-Control': 'public, max-age=3600' } });
-    return env.ASSETS.fetch(req);
+    const res = await env.ASSETS.fetch(req);
+    const og = ogFor(url.searchParams);
+    if (!og || !(res.headers.get('content-type') || '').includes('text/html')) return res;
+    // 링크 종류에 맞는 미리보기 문구(카톡·메시지에 뜨는 제목·설명). 보내는 메시지와 같은 말투
+    const set = v => ({ element(e) { e.setAttribute('content', v); } });
+    return new HTMLRewriter()
+      .on('meta[property="og:title"]', set(og.title)).on('meta[name="twitter:title"]', set(og.title))
+      .on('meta[property="og:description"]', set(og.desc)).on('meta[name="twitter:description"]', set(og.desc))
+      .transform(res);
   },
 };
+
+// 미리보기 문구: 앱 초대 · 앨범 초대 · 사진 공유 · 앨범 · 피드 부탁 · 피드
+function ogFor(q) {
+  if (q.has('invite')) return { title: 'candid. 같이 하자 📸', desc: '서로 찍어 준 사진으로 피드를 채우는 앱. 이 링크로 들어오면 바로 친구가 돼요.' };
+  if (q.has('gi')) return { title: '앨범에 초대받았어요 📸', desc: '링크를 누르면 바로 참여해서 같이 사진을 모을 수 있어요.' };
+  if (q.has('p') && q.has('s')) return { title: '친구가 사진을 공유했어요 👀', desc: 'candid.에서 열어 보세요.' };
+  if (q.has('g')) return { title: 'candid. 공유 앨범 📸', desc: '함께 찍은 사진을 한곳에 모아요.' };
+  if (q.has('u') && q.has('m')) return null; // 피드 부탁: 기본 문구(내 피드 좀 채워줘!) 그대로
+  if (q.has('u')) return { title: '친구의 candid. 피드 👀', desc: '친구들이 채워 준 사진을 구경해 보세요.' };
+  return null;
+}
 
 async function media(req, url, ORIGIN) {
   if (req.method !== 'GET' && req.method !== 'HEAD') return new Response('Method Not Allowed', { status: 405 });

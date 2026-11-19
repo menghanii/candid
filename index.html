@@ -118,7 +118,6 @@
   .row .meta small { color:var(--sub); }
   .row .ab { display:flex; flex-direction:column; gap:6px; }
   .row .ab .btn { padding:7px 14px; flex:none; font-size:13px; }
-  .mtag { display:inline-block; font-size:11px; font-weight:600; color:var(--accent); letter-spacing:.02em; }
   /* 게시물 상세 */
   .overlay { position:fixed; inset:0; z-index:20; background:rgba(0,0,0,.62); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; animation:fade .2s; }
   @keyframes fade { from { opacity:0; } }
@@ -1233,11 +1232,11 @@
   .mtools { display:flex; align-items:center; gap:10px; margin:10px 0 2px; }
   .mstrip { flex:1; display:flex; gap:6px; overflow:hidden; min-height:0; touch-action:none; }
   .mstrip[hidden] { display:block !important; visibility:hidden; height:0; }
-  .sti { position:relative; flex:none; width:46px; height:46px; padding:0; border:0; border-radius:9px; overflow:hidden; background:var(--soft); transition:transform .15s; touch-action:none; }
-  .sti img { width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; }
-  .sti b { position:absolute; left:3px; top:3px; min-width:15px; height:15px; border-radius:8px; background:rgba(0,0,0,.6); color:#fff; font-size:10px; line-height:15px; text-align:center; }
-  .sti.on { box-shadow:inset 0 0 0 2px var(--accent); } .sti.on b { background:var(--accent); }
-  .sti.drag { z-index:5; transition:none; box-shadow:0 8px 20px rgba(0,0,0,.4); opacity:.95; }
+  .pki { position:relative; flex:none; width:46px; height:46px; padding:0; border:0; border-radius:9px; overflow:hidden; background:var(--soft); transition:transform .15s; touch-action:none; }
+  .pki img { width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; }
+  .pki b { position:absolute; left:3px; top:3px; min-width:15px; height:15px; border-radius:8px; background:rgba(0,0,0,.6); color:#fff; font-size:10px; line-height:15px; text-align:center; }
+  .pki.on { box-shadow:inset 0 0 0 2px var(--accent); } .pki.on b { background:var(--accent); }
+  .pki.drag { z-index:5; transition:none; box-shadow:0 8px 20px rgba(0,0,0,.4); opacity:.95; }
   /* 사진 편집기 */
   /* 사진 정리(주인) */
   .ogrid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; touch-action:none; }
@@ -1360,7 +1359,6 @@
 <script>/* 데모 모드(서버 설정이 비어 있을 때)만 샘플 데이터 흉내 파일을 불러옴 — 출시 파일에는 안 쓰임 */ if (!(window.FG_CONFIG || {}).SUPABASE_URL || !(window.FG_CONFIG || {}).SUPABASE_ANON_KEY) document.write('<script src="demo.js?v=1"><\/script>');</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 <script>
-const MISSIONS = ['제일 웃긴 사진', '제일 잘 나온 사진', '몰래 찍은 사진', '우리만 아는 흑역사', '나를 한 단어로', '자유'];
 // ---------- 다국어 ----------
 // t('한국어 원문', { 변수 }) → 지금 언어의 번역(없으면 원문). 원문 안의 {name} 같은 자리에 값을 넣음
 const LANG = window.CANDID_LANG || 'ko', LANGS = window.CANDID_LANGS || { ko: '한국어' };
@@ -1376,7 +1374,6 @@ async function setLang(k) {
 }
 const LOGO = 'candid<i>.</i>';
 const aname = n => esc(n === '익명의 친구' || n === '탈퇴한 친구' ? t(n) : n); // 보낸 사람 이름(익명·탈퇴만 번역)
-const mname = m => esc(m ? t(m) : ''); // 미션 이름
 function dotIcon(on) {
   const body = (() => { let d = 'M12 50 A38 38 0 0 1 88 50 L88 80'; const n = 5, w = 76 / n; for (let i = 0; i < n; i++) { const x = 88 - w * i; d += ` Q${x - w / 2} 87 ${x - w} 80`; } return d + ' Z'; })();
   return `<svg width="31" height="28" viewBox="0 -4 118 104" aria-hidden="true"><path d="${body}" fill="none" stroke="currentColor" stroke-width="${on ? 9.5 : 8}" stroke-linejoin="round"/>`
@@ -1921,7 +1918,8 @@ async function shareUrlFor(p) {
 async function sharePost(id) {
   const p = findAny(id); if (!p) return;
   const url = await shareUrlFor(p); if (!url) return toast(t('이 사진은 공유할 수 없어요'));
-  shareLink({ text: t('candid.에서 이 사진 봐!'), url });
+  const where = p.group_id ? `'${groupOf(p.group_id)?.name || t('앨범')}'` : t('{name}님 피드', { name: (HOME.owners?.get(p.owner_id) || (S.prof?.id === p.owner_id ? S.prof : null))?.name || t('친구') });
+  shareLink({ text: t('{where}에 올라온 사진 봐 👀', { where }), url });
 }
 // 공유 링크를 열었을 때: true 를 돌려주면 이 화면이 대신 처리함
 function shareGate(qs) {
@@ -2610,7 +2608,7 @@ async function renderProfile(uid, fresh, quiet) { // quiet: 돌아왔을 때 뒤
   paintProfile();
   // 공유 링크(?m=미션번호)로 들어온 친구: 사진 보내기 시트를 바로 열어줌 (한 번만)
   const m = new URLSearchParams(location.search).get('m');
-  if (!S.isOwner && m !== null && !S.autoOpened) { S.autoOpened = true; openCompose(Math.max(0, Math.min(MISSIONS.length - 1, +m || 0)), true, 'media', false); }
+  if (!S.isOwner && m !== null && !S.autoOpened) { S.autoOpened = true; openCompose(0, true, 'media', false); } // 부탁 링크(&m=)로 오면 바로 보내기 화면
 }
 
 // 받아둔 데이터(S)로 화면만 다시 그림 — 탭 전환·승인·거절 때 네트워크 요청 없음
@@ -2779,7 +2777,6 @@ function renderBody() {
           <div class="row">
             <button class="thumb" onclick="openPost('${p.id}')" aria-label="${t('크게 보기')}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="${t('{name}가 보낸 사진', { name: aname(p.author_name) })}">`}</button>
             <div class="meta">
-              ${p.mission ? `<span class="mtag">${mname(p.mission)}</span>` : ''}
               <div class="t">${esc(p.text) || '<span style="color:var(--sub)">코멘트 없음</span>'}</div>
               <small>${aname(p.author_name)} · ${ago(p.created_at)}</small>
             </div>
@@ -2812,9 +2809,8 @@ function renderBody() {
   let ref = null; try { ref = JSON.parse(localStorage.getItem('candid_ref')); } catch {}
   $b.innerHTML = isOwner
     ? `<div class="empty"><div class="empty-dot">${DOT('look', { cls: 'blink' })}</div><h2>Nothing here, <em>yet.</em></h2>
-        <p>${t('이 피드는 친구들만 채울 수 있어요.<br>이렇게 부탁해 보세요.')}</p>
+        <p>${t('이 피드는 친구들이 채워 줘요.<br>링크를 보내서 첫 사진을 부탁해 보세요.')}</p>
         ${ref && ref.uid !== uid ? `<div class="asked" style="margin:0 0 16px;text-align:left">${t('방금 사진을 보내준 <b>{name}</b>에게도 부탁해 보세요. 받은 만큼 돌려줄 거예요', { name: esc(ref.name) })}</div>` : ''}
-        <div class="ideas">${MISSIONS.slice(0, 3).map((m, i) => `<div class="idea"><span class="k">${i + 1}</span><span class="it">${t('내 {m} 하나만 보내줘', { m: t(m) })}</span></div>`).join('')}</div>
         <button class="btn primary block" onclick="shareFeed()">${t('친구에게 첫 사진 부탁하기')}</button></div>`
     : `<div class="empty"><div class="empty-dot">${DOT('wow', { cls: 'float' })}</div><h2>Be the <em>first.</em></h2>
         <p>${t('{name}의 피드가 아직 비어 있어요.<br>첫 사진을 보내주세요.', { name: esc(prof.name) })}</p>
@@ -3590,7 +3586,7 @@ function reelSection(p, owners) {
         ${gg ? '' : `<a class="rgroup rowner" href="${feedUrl(p.owner_id)}" aria-label="${t('{name} 피드로 가기', { name: esc(o.name) })}">${avatar(o, 'xs')}<span>${esc(o.name)}</span></a>`}
         ${gg ? `<a class="rgroup" href="${gUrl(gg)}">${gAv(gg, 'xs')}<span>${esc(gg.name)}</span></a>${p._more ? `<a class="rmore" href="${gUrl(gg)}">${t('+{n}장 더 올라왔어요', { n: p._more })}</a>` : ''}` : ''}
         ${p.text && !isText(p) ? `<div class="rtext">“${esc(p.text)}”</div>` : ''}
-        <div class="rfrom">from<i class="pd">.</i> ${p.author_id ? `<a class="rname" href="${feedUrl(p.author_id)}"><b>${gg ? esc(p.author_name) : aname(p.author_name)}</b></a>` : `<b>${gg ? esc(p.author_name) : aname(p.author_name)}</b>`} <span class="rago">· ${ago(p.approved_at)}</span> ${p.mission ? `<span class="mchip">${mname(p.mission)}</span>` : ''}</div>
+        <div class="rfrom">from<i class="pd">.</i> ${p.author_id ? `<a class="rname" href="${feedUrl(p.author_id)}"><b>${gg ? esc(p.author_name) : aname(p.author_name)}</b></a>` : `<b>${gg ? esc(p.author_name) : aname(p.author_name)}</b>`} <span class="rago">· ${ago(p.approved_at)}</span></div>
 
       </div>
       <div class="rside">
@@ -3664,7 +3660,7 @@ function decorateFromReel(postId, el) {
 }
 function shareOther(uid, handle) {
   const url = `${shareUrl(handle ? { handle } : { id: uid })}&m=0`;
-  shareLink({ url, copied: t('피드 링크를 복사했어요') });
+  shareLink({ text: t('candid.에서 이 피드 구경해 봐 👀'), url, copied: t('피드 링크를 복사했어요') });
 }
 
 // ---------- 투표·질문 ----------
@@ -3813,7 +3809,7 @@ function openPost(id) {
         <button class="icon-btn" data-close aria-label="${t('뒤로')}">${I.back}</button>
         ${p.author_id ? `<a class="ph-av" href="${feedUrl(p.author_id)}" aria-label="${t('{name} 피드로 가기', { name: esc(p.author_name) })}"><div class="av sm av-def" data-pav>${DEFAULT_AV}</div></a>` : `<div class="av sm av-def">${isAnonName(p.author_name) ? ANON_AV : DEFAULT_AV}</div>`}
         <div class="who"><b>${(() => { const nm = gp ? esc(p.author_name) : aname(p.author_name), n = p.author_id ? `<a class="ph-name" href="${feedUrl(p.author_id)}">${nm}</a>` : nm;
-          return gp ? t('{name}<span style="font-weight:400;color:var(--sub)">님이 올림</span>', { name: n }) : t('{name}<span style="font-weight:400;color:var(--sub)">님이 보냄</span>', { name: n }); })()}</b>${gp && p.pinned_at ? `<span class="mchip">${II.pin} ${t('고정됨')}</span>` : ''}${p.mission ? `<span class="mchip">${mname(p.mission)}</span>` : ''}</div>
+          return gp ? t('{name}<span style="font-weight:400;color:var(--sub)">님이 올림</span>', { name: n }) : t('{name}<span style="font-weight:400;color:var(--sub)">님이 보냄</span>', { name: n }); })()}</b>${gp && p.pinned_at ? `<span class="mchip">${II.pin} ${t('고정됨')}</span>` : ''}</div>
       </div>
       ${gp && p.flagged ? `<div class="gflagnote">${t('신고가 3건 이상 들어와 다른 사람에게는 가려져 있어요.')}${gg?.owner_id === me?.id ? ` <button class="linkish" onclick="unflagPost('${p.id}')">${t('다시 보이게')}</button>` : ''}</div>` : ''}
       ${isText(p) ? textStage(p) : `<div class="post-media">${mediaCarousel(p, 'post')}</div>`}
@@ -4214,7 +4210,6 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
     <header class="pov-h cmp-h"><button class="icon-btn" data-x aria-label="${t('닫기')}">${I.close}</button><b class="cmp-to">${GT ? gAv(GT, 'xs') : avatar(S.prof, 'xs')}<span>${GT ? name : t('{name}에게', { name })}</span></b><span class="cmp-hsp"></span></header>
     <div class="cmp-body">
       <nav class="cmp-modes top" role="tablist"${GT ? ' style="display:none"' : ''}><button data-mode="media" role="tab">${t('사진·영상')}</button><button data-mode="poll" role="tab">${t('투표')}</button><button data-mode="question" role="tab">${t('질문')}</button></nav>
-      ${asked ? `<div class="asked">${t("{name}님이 <b>'{mission}'</b>을(를) 부탁했어요", { name, mission: esc(t(MISSIONS[mi])) })}</div>` : ''}
       <section data-sec="media">
         <label class="cmp-media" id="pick"><span class="cmp-empty">${I.camera}<b>${t('사진·영상 선택')}</b><small>${t('여러 장 가능(최대 10장) · 영상은 10초까지')}</small></span><input type="file" accept="image/*,video/*" id="file" multiple hidden></label>
         <div class="mtools" id="mtools" hidden><div class="mstrip" id="mstrip"></div></div>
@@ -4363,7 +4358,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
     const box = $('#mtools'), strip = $('#mstrip');
     if (!media?.length || media.length < 2) { box.hidden = true; return; }
     box.hidden = false;
-    strip.innerHTML = media.map((m, i) => `<button type="button" class="sti${i === curPick ? ' on' : ''}" data-i="${i}"><img src="${m.kind === 'video' || m.edited ? (m._tu ||= URL.createObjectURL(m.thumb)) : m.previewUrl}" alt="" draggable="false"><b>${i + 1}</b></button>`).join('');
+    strip.innerHTML = media.map((m, i) => `<button type="button" class="pki${i === curPick ? ' on' : ''}" data-i="${i}"><img src="${m.kind === 'video' || m.edited ? (m._tu ||= URL.createObjectURL(m.thumb)) : m.previewUrl}" alt="" draggable="false"><b>${i + 1}</b></button>`).join('');
     makeSortable(strip, order => { const c = media[curPick]; media = order.map(i => media[i]); paintPicked(Math.max(0, media.indexOf(c))); }, i => paintPicked(i));
   }
   // 자르기 틀을 만지는 동안에는 사진 칸을 눌러도 사진첩이 열리지 않게
@@ -4450,7 +4445,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
         }) : await sb.from('posts').insert({
           owner_id: S.uid, image_path: list[0].p, thumb_path: list[0].t, media_type: list[0].k,
           ...(n > 1 ? { media: list } : {}), // 1장은 media 칸 없이 (09 SQL 실행 전에도 동작)
-          mission: asked ? MISSIONS[mi] : null, text: $('#text').value.trim(), ...by,
+          mission: null, text: $('#text').value.trim(), ...by,
         });
       }
     } catch (err) { ins = { error: err }; }
@@ -4832,8 +4827,8 @@ async function applyInvite() {
 // 초대 보내기
 function openInvite() {
   if (!me) return;
-  const msg = t('candid. 같이 하자! 📸\n친구들이 내 피드를 채워주는 앱이야. 링크 누르면 바로 설치할 수 있어!');
-  msgShareSheet({ head: 'Invite friends', hint: t('링크를 받은 친구는 바로 앱을 설치할 수 있고, 가입하면 자동으로 나와 친구가 돼요.'), msg, url: inviteUrl });
+  const msg = t('candid. 같이 하자 📸\n서로 찍어 준 사진으로 피드를 채우는 앱이야. 이 링크로 들어오면 우리 바로 친구 돼!');
+  msgShareSheet({ head: 'Invite friends', hint: t('이 링크로 가입하면 나와 자동으로 친구가 돼요.'), msg, url: inviteUrl });
 }
 
 // ---------- 가입 직후 홈 화면 추가 ----------
@@ -5450,18 +5445,10 @@ async function removePost(id) {
   } });
 }
 function shareFeed() {
-  let mi = 0;
-  const name = S.prof.name;
-  const url = () => `${shareUrl(S.prof)}&m=${mi}`;
-  const msgFor = i => t("내 피드 좀 채워줘! 🙏\n네 폰에 있는 내 '{m}' 하나만 보내줘! 로그인 없이 10초면 돼!", { m: t(MISSIONS[i]) });
-  const w = msgShareSheet({ head: 'Ask your friends', hint: t('무엇을 부탁할지 고르면 메시지를 만들어 드려요. 받은 친구는 로그인 없이 바로 보낼 수 있어요.'), msg: msgFor(0), url,
-    top: `<div class="label">${t('부탁할 것')}</div><div class="chips" role="radiogroup">${MISSIONS.slice(0, 5).map((m, i) => `<button class="chip ${i ? '' : 'on'}" role="radio" aria-checked="${!i}" data-i="${i}">${t(m)}</button>`).join('')}</div>`,
+  const url = `${shareUrl(S.prof)}&m=0`;
+  msgShareSheet({ head: 'Ask friends', hint: t('받은 친구는 로그인 없이 바로 사진을 보낼 수 있어요. 내가 승인한 사진만 피드에 올라가요.'), url,
+    msg: t('내 candid. 피드 좀 채워 줘 📸\n네 폰에 있는 내 사진 하나만 보내 줘. 로그인 없이 바로 돼!'),
     extra: me ? `<button class="btn block" style="margin-top:8px;border:0;background:var(--soft)" onclick="closeSheet();setTimeout(openInvite,250)">${t('앱에 친구 초대하기')}</button>` : '' });
-  w.querySelectorAll('.chip').forEach(c => c.onclick = () => {
-    w.querySelectorAll('.chip').forEach(x => { x.classList.remove('on'); x.setAttribute('aria-checked', 'false'); });
-    c.classList.add('on'); c.setAttribute('aria-checked', 'true');
-    mi = +c.dataset.i; w.$msg.value = msgFor(mi);
-  });
 }
 
 // ---------- 그룹 (공유 앨범) ----------
@@ -5660,7 +5647,7 @@ async function toggleGroupNotify() {
 function shareGroupLink() {
   const g = G.g, url = `${SITE}${location.pathname}?g=${g.handle}&v=${OGV}`;
   if (g.visibility === 'private') return openGroupInvite();
-  shareLink({ title: g.name, url, copied: t('그룹 링크를 복사했어요') });
+  shareLink({ title: g.name, text: t("'{name}' 앨범 구경해 봐 📸", { name: g.name }), url, copied: t('그룹 링크를 복사했어요') });
 }
 function groupMenu() {
   const g = G.g, isOwner = me && g.owner_id === me.id, isMember = G.mem?.status === 'active';
@@ -5857,7 +5844,7 @@ async function openGroupInvite(justMade) {
     if (error) return toast(kerr(error));
     url = gInviteUrl(data);
   }
-  const msg = t("'{name}' 앨범에 초대할게! 📸\n찍은 사진 여기 다 같이 모으자!", { name: g.name });
+  const msg = t("'{name}' 앨범에 초대할게 📸\n우리 찍은 사진 여기 다 같이 모으자! 링크 누르면 바로 들어와져.", { name: g.name });
   const w = msgShareSheet({ head: justMade ? 'Invite members' : 'Invite', title: g.name, msg, url: () => url,
     hint: t('링크를 받은 사람은 참여하기 한 번이면 바로 멤버가 돼요.'),
     top: `<button class="crow2 hl" id="gipick" style="margin:4px 0 14px"><span class="cic">${I.user}</span><span class="ctx"><b>${t('친구 골라서 초대')}</b><small>${t('앱에 가입한 친구에게 바로 초대를 보내요')}</small></span>${I.chevron}</button>`,

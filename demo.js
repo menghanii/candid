@@ -15,16 +15,16 @@ function demoClient() {
   };
   const H = 3600e3, now = Date.now(), t = h => new Date(now - h * H).toISOString();
   const seed = [
-    ['지수', MISSIONS[0], '이 표정 레전드 ㅋㅋㅋ'], ['민호', MISSIONS[1], '인생샷 인정합니다'], ['익명의 친구', MISSIONS[2], '자는 척하더니 결국 잠'],
-    ['서연', MISSIONS[3], '고1 수학여행.. 기억나지?'], ['태윤', MISSIONS[4], '걸어다니는 텐션'], ['지수', MISSIONS[5], '제주도 그날'],
-    ['하린', MISSIONS[1], '이건 프사 해야 됨'], ['민호', MISSIONS[0], ''], ['익명의 친구', MISSIONS[2], '집중력 1000%'],
+    ['지수', null, '이 표정 레전드 ㅋㅋㅋ'], ['민호', null, '인생샷 인정합니다'], ['익명의 친구', null, '자는 척하더니 결국 잠'],
+    ['서연', null, '고1 수학여행.. 기억나지?'], ['태윤', null, '걸어다니는 텐션'], ['지수', null, '제주도 그날'],
+    ['하린', null, '이건 프사 해야 됨'], ['민호', null, ''], ['익명의 친구', null, '집중력 1000%'],
   ].map(([author_name, mission, text], i) => ({ id: 'a' + i, owner_id: 'demo', author_name, mission, text, image_path: art(i),
       status: 'approved', created_at: t(i * 20 + 30), approved_at: t(i * 20 + 5) }));
-  const pend = [['서연', MISSIONS[0], '이거 올려도 되지? ㅎㅎ'], ['익명의 친구', MISSIONS[3], '중2 때 사진 발견함'], ['하린', MISSIONS[1], '우리 학교 축제 때']]
+  const pend = [['서연', null, '이거 올려도 되지? ㅎㅎ'], ['익명의 친구', null, '중2 때 사진 발견함'], ['하린', null, '우리 학교 축제 때']]
     .map(([author_name, mission, text], i) => ({ id: 'p' + i, owner_id: 'demo', author_name, mission, text, image_path: art(9 + i),
       status: 'pending', created_at: t(i * 2 + .3), approved_at: null }));
   // 친구 2명(f1, f2)의 피드 — 홈 릴스 데모용
-  const fposts = [['f1', '지수', MISSIONS[0], '오늘 지수 표정 실화냐', 0.5], ['f2', '태윤', MISSIONS[2], '몰래 찍었는데 너무 잘 나옴', 2], ['f1', '민수', MISSIONS[1], '이건 인정이지', 5], ['f2', '하린', MISSIONS[3], '중학교 졸업식 ㅋㅋ', 9]]
+  const fposts = [['f1', '지수', null, '오늘 지수 표정 실화냐', 0.5], ['f2', '태윤', null, '몰래 찍었는데 너무 잘 나옴', 2], ['f1', '민수', null, '이건 인정이지', 5], ['f2', '하린', null, '중학교 졸업식 ㅋㅋ', 9]]
     .map(([owner_id, author_name, mission, text, h], i) => ({ id: 'f' + i, owner_id, author_name, mission, text, image_path: art(3 + i * 2), status: 'approved', created_at: t(h + 1), approved_at: t(h) }));
   let db; try { db = JSON.parse(ss.get('demo_db2')); } catch {}
   db = db || {
