@@ -2975,15 +2975,24 @@ const GALAXIES = [
   { kind: 'purple', c: '#a374ff', shape: 'rings', moods: ['down', 'happy'] },
   { kind: 'coral', c: '#ff8a5c', shape: 'tilt', moods: ['sleepy', 'happy'] },
 ];
-const PER_GALAXY = 18;
+const PER_GALAXY = 20;
 let ORBIT_G = 0;
 // 궤도 위 자리(화면 크기 기준): 은하 모양마다 다르게. 반환: [{X, Y}], 그리고 궤도선 SVG
+// 화면 위·아래 안전 영역(노치·홈 바) 높이: 한 번 재서 기억
+let SAFE = null;
+function safeArea() {
+  if (SAFE) return SAFE;
+  const d = document.createElement('div'); d.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:env(safe-area-inset-top);visibility:hidden';
+  const e = document.createElement('div'); e.style.cssText = 'position:fixed;left:0;bottom:0;width:1px;height:env(safe-area-inset-bottom);visibility:hidden';
+  document.body.append(d, e); SAFE = { top: d.offsetHeight, bottom: e.offsetHeight }; d.remove(); e.remove(); return SAFE;
+}
 function galaxyLayout(shape, n, W, H) {
-  const top = 112, bottom = H - 128, cx = W / 2, cy = (top + bottom) / 2;
+  // 위: 안내 글(안전 영역 + 64px 에서 시작) 아래부터 / 아래: 은하 점·하단 메뉴 위까지
+  const sa = safeArea(), top = sa.top + 64 + 44, bottom = H - sa.bottom - 116, cx = W / 2, cy = (top + bottom) / 2;
   const RX = W / 2 - 46, RY = Math.min((bottom - top) / 2 - 34, RX * 2.1);
   const pts = [], lines = [];
   const ring = (count, f, rot, off) => { for (let i = 0; i < count; i++) { const a = off + i * 2 * Math.PI / count, x = RX * f * Math.cos(a), y = RY * f * Math.sin(a); pts.push({ X: cx + x * Math.cos(rot) - y * Math.sin(rot), Y: cy + x * Math.sin(rot) + y * Math.cos(rot) }); } lines.push(`<ellipse cx="${cx}" cy="${cy}" rx="${RX * f}" ry="${RY * f}" transform="rotate(${rot * 180 / Math.PI} ${cx} ${cy})"/>`); };
-  const split = [Math.min(n, 4), Math.min(Math.max(n - 4, 0), 6), Math.max(n - 10, 0)];
+  const split = [Math.min(n, 4), Math.min(Math.max(n - 4, 0), 7), Math.max(n - 11, 0)]; // 안쪽 4 · 가운데 7 · 바깥 9 (최대 20)
   if (shape === 'rings' || shape === 'tilt') {
     const rot = shape === 'tilt' ? -0.38 : 0, fs = shape === 'tilt' ? [0.46, 0.72, 0.96] : [0.46, 0.74, 1];
     if (split[0]) ring(split[0], fs[0], rot, -Math.PI / 2 + 0.4);
