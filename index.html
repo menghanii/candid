@@ -4268,7 +4268,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
   el.querySelectorAll('.cmp-seg button').forEach(b => b.addEventListener('click', capAv));
   setWho('name'); capAv();
   setMode(mode);
-  if (mode === 'media' && pick) { if (LIB_ON()) openLibrary(10).then(items => { if (items?.length) handlePick(items); }); else $file.click(); } // 누르자마자 사진첩 (웹은 버튼 터치 안에서만 열 수 있음)
+  if (mode === 'media' && (pick || LIB_ON())) { if (LIB_ON()) openLibrary(10).then(items => { if (items?.length) handlePick(items); }); else $file.click(); } // 누르자마자 사진첩 (웹은 버튼 터치 안에서만 열 수 있음)
 
   $send.onclick = async () => {
     if (mode === 'media') unlockMedia(media); // iPhone: 누른 순간에 재생 권한 확보(소리 포함 압축용)
