@@ -1371,6 +1371,11 @@
   .rcar .carwrap.multi, .rcar .car { height:auto !important; }
   .rcar .stage { width:100% !important; }
   .rcar .stage.fit { width:min(100%, calc(var(--fw) * 16 / 9 * var(--ar))) !important; }
+  /* 하단 캡슐 바: 반투명 + 뒤 흐림 */
+  .bnav { background:color-mix(in srgb, var(--bg) 62%, transparent) !important; backdrop-filter:blur(18px) saturate(1.6) !important; -webkit-backdrop-filter:blur(18px) saturate(1.6) !important; }
+  .bnav.dark { background:rgba(0,0,0,.5) !important; border-color:rgba(255,255,255,.12) !important; }
+  .bnav button.on { background:color-mix(in srgb, var(--fg) 14%, transparent) !important; }
+  .bnav.dark button.on { background:rgba(255,255,255,.16) !important; }
 </style>
 </head>
 <body>
