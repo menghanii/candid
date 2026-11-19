@@ -3616,10 +3616,25 @@ const FEED_ADS = {
     finally { this.loading = false; }
   },
   // 게시물 목록 HTML 사이에 광고 자리 끼우기
+  // 광고 자리는 매번 무작위: 첫 광고는 first±1 장 뒤, 그다음은 every-1 ~ every+2 장 간격
   weave(list, render) {
     const f = ADS.cfg.feed; if (!ADS.on || !me || !f) return list.map(render).join('');
-    const first = f.first ?? 3, every = f.every ?? 5;
-    return list.map((p, i) => render(p) + (i + 1 >= first && (i + 1 - first) % every === 0 && i < list.length - 1 ? `<section class="reel adslot"><div class="adph"><span>${t('광고')}</span></div></section>` : '')).join('');
+    const first = f.first ?? 3, every = f.every ?? 5, rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+    let next = Math.max(1, first + rnd(-1, 1));
+    return list.map((p, i) => {
+      let h = render(p);
+      if (i + 1 === next && i < list.length - 1) { h += `<section class="reel adslot"><div class="adph"><span>${t('광고')}</span></div></section>`; next += Math.max(2, every + rnd(-1, 2)); }
+      return h;
+    }).join('');
+  },
+  // 한 번 본 광고는 지나가면 없앰(다시 올라와도 안 보임). 위쪽 광고를 없앨 땐 지금 보던 사진이 움직이지 않게 스크롤을 같이 당김
+  drop(sec, $reels) {
+    if (!sec.isConnected) return;
+    const above = sec.offsetTop < $reels.scrollTop, h = sec.offsetHeight;
+    if (sec.dataset.kind === 'native') this.hide();
+    const snap = $reels.style.scrollSnapType; $reels.style.scrollSnapType = 'none';
+    const top = $reels.scrollTop; sec.remove(); if (above) $reels.scrollTo({ top: top - h, behavior: 'instant' });
+    requestAnimationFrame(() => { $reels.style.scrollSnapType = snap; });
   },
   async bind(sec) {
     if (sec.dataset.kind) return; sec.dataset.kind = 'wait';
@@ -3648,7 +3663,15 @@ const FEED_ADS = {
     const slots = $reels.querySelectorAll('.adslot'); if (!slots.length) return;
     this.fill();
     const near = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { near.unobserve(e.target); this.bind(e.target); } }), { root: $reels, rootMargin: '150% 0px' });
-    const vis = new IntersectionObserver(es => es.forEach(e => { if (e.intersectionRatio >= 0.9) this.show(e.target); else if (e.target.dataset.kind === 'native') this.hide(); }), { root: $reels, threshold: [0, 0.9] });
+    const gone = new Set(); let idle;
+    const vis = new IntersectionObserver(es => es.forEach(e => {
+      const sl = e.target;
+      if (e.intersectionRatio >= 0.9) { sl._seen = 1; return this.show(sl); }
+      if (sl.dataset.kind === 'native') this.hide();
+      if (sl._seen && (!e.isIntersecting || e.intersectionRatio < 0.02)) { gone.add(sl); later(); } // 봤고 화면에서 벗어남 → 스크롤이 멈추면 없앰
+    }), { root: $reels, threshold: [0, 0.02, 0.9] });
+    const later = () => { clearTimeout(idle); idle = setTimeout(() => { gone.forEach(sl => { const R = sl.getBoundingClientRect(), V = $reels.getBoundingClientRect(); if (R.bottom <= V.top + 2 || R.top >= V.bottom - 2) { vis.unobserve(sl); gone.delete(sl); this.drop(sl, $reels); } }); }, 220); };
+    $reels.addEventListener('scroll', later, { passive: true });
     slots.forEach(sl => { near.observe(sl); vis.observe(sl); });
   },
 };
