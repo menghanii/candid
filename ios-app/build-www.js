@@ -9,4 +9,10 @@ if (process.argv.includes('--demo')) {
   fs.writeFileSync(path.join(out, 'config.js'), "window.FG_CONFIG = { SUPABASE_URL: '', SUPABASE_ANON_KEY: '', PROVIDERS: ['kakao', 'google'], DEMO_AUTO_LOGIN: true };\n");
   console.log('개발용 데모 모드로 준비');
 }
+// 출시용(node build-www.js --release): 개발 점검 기록 끄기
+if (process.argv.includes('--release')) {
+  const f = path.join(out, 'config.js');
+  fs.writeFileSync(f, fs.readFileSync(f, 'utf8') + "\nwindow.FG_CONFIG.RELEASE = true;\n");
+  console.log('출시용으로 준비(점검 기록 끔)');
+}
 console.log('www 준비 완료:', fs.readdirSync(out).join(', '));

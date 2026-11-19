@@ -1513,7 +1513,7 @@ const SPLASH_MORPH = !/[#&?](access_token|code|error_description)=/.test(locatio
 })();
 // 다른 앱에 갔다 돌아오면 휴대폰 네트워크가 깨어나는 동안 요청이 끝없이 매달릴 수 있음 → 시간 제한(파일 올리기는 넉넉히)
 // 로그인 토큰 갱신 잠금은 이 화면 안에서만(브라우저 공용 잠금이 돌아온 직후 오래 붙잡혀 모든 버튼이 멈추던 문제)
-const PERF = location.protocol === 'capacitor:' || !!window.Capacitor?.isNativePlatform?.(); // 앱: 서버 요청마다 걸린 시간을 콘솔에(속도 점검용)
+const PERF = (location.protocol === 'capacitor:' || !!window.Capacitor?.isNativePlatform?.()) && !(window.FG_CONFIG || {}).RELEASE; // 개발용 앱: 서버 요청·탭 시간을 콘솔에(속도 점검용). 출시용(npm run release)은 끔
 const fetchT = (url, opts = {}) => {
   if (opts.signal) return fetch(url, opts);
   const c = new AbortController(), ms = /\/storage\/v1\/object\//.test(String(url)) && opts.method && opts.method !== 'GET' ? 120000 : 15000;

@@ -27,4 +27,9 @@ post_install do |installer|
   installer.pods_project.targets.each do |t|
     t.build_configurations.each { |c| c.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0' }
   end
+  # 최신 Xcode 에서 Archive 가 'Capacitor.framework: No such file' 로 실패하는 CocoaPods 문제: 링크를 끝까지 따라가게
+  Dir.glob(File.join(installer.sandbox.target_support_files_root.to_s, 'Pods-*', '*-frameworks.sh')).each do |f|
+    text = File.read(f)
+    File.write(f, text.gsub('source="$(readlink "${source}")"', 'source="$(readlink -f "${source}")"'))
+  end
 end
