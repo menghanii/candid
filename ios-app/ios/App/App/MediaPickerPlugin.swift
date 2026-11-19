@@ -28,7 +28,7 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
     private var pending: CAPPluginCall?
     private var camCall: CAPPluginCall?
 
-    private lazy var dir: URL = {
+    private let dir: URL = {
         let d = FileManager.default.temporaryDirectory.appendingPathComponent("candid-media", isDirectory: true)
         try? FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
         return d
@@ -269,6 +269,9 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
         }
     }
     @objc func libThumbs(_ call: CAPPluginCall) {
+        DispatchQueue.main.async { self.libThumbsMain(call) } // byId 는 main 에서만 만짐(동시 접근으로 튕기지 않게)
+    }
+    private func libThumbsMain(_ call: CAPPluginCall) {
         let ids = call.getArray("ids", String.self) ?? []
         let px = CGFloat(call.getInt("size") ?? 240)
         var out = [String: String](), lock = NSLock(); let g = DispatchGroup()
@@ -287,6 +290,9 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
         g.notify(queue: .main) { call.resolve(["paths": out]) }
     }
     @objc func libExport(_ call: CAPPluginCall) {
+        DispatchQueue.main.async { self.libExportMain(call) }
+    }
+    private func libExportMain(_ call: CAPPluginCall) {
         let ids = call.getArray("ids", String.self) ?? []
         if let old = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) { old.forEach { try? FileManager.default.removeItem(at: $0) } }
         let g = DispatchGroup(), lock = NSLock(); var out = [Int: [String: Any]]()
