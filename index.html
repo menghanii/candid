@@ -1777,7 +1777,7 @@ function go(url, replace) {
   const u = new URL(url, location.href);
   if (PERF) console.log(`[candid] go +${Math.round(performance.now())}ms ${u.search}`);
   FEED_ADS.hide();
-  if (history.state?.post || history.state?.oreel) replace = true; // 사진 페이지·Candids 보기에서 다른 화면으로: 그 기록은 새 화면으로 바꿈
+  if (!replace) saveViewState(); // 뒤로 오면 그대로 돌아오게: 스크롤·탭·은하(·열려 있던 보기)를 지금 기록에 저장
   if (u.pathname + u.search === pageKey() && !replace) return;
   const d = history.state?.d || 0;
   history[replace ? 'replaceState' : 'pushState']({ d: replace ? d : d + 1 }, '', u.pathname + u.search);
@@ -1819,12 +1819,28 @@ function edgeSwipeBack(el, back) {
   });
 }
 // 뒤로가기/앞으로가기: 주소가 바뀐 경우에만 화면 다시 그림(시트 닫기용 히스토리는 무시)
+// ---------- 뒤로가기: 그 전 모습 그대로 ----------
+// 다른 화면으로 가기 직전의 스크롤·탭·은하·열려 있던 Candids 보기(보던 사진)·사진 페이지를 그 기록에 적어 두고, 돌아오면 되살림
+function saveViewState(extra) {
+  const st = { ...(history.state || {}), y: Math.round(scrollY), tab: S.tab, og: ORBIT_G, ...extra };
+  try { history.replaceState(st, ''); } catch {}
+}
+function restoreViewState(st) {
+  if (!st) return;
+  if (Number.isInteger(st.og)) ORBIT_G = st.og;
+  if (st.y > 0) { const t0 = Date.now(); const tryY = () => { if (pageKey() !== CUR) return; if (document.documentElement.scrollHeight >= st.y + innerHeight - 4 || Date.now() - t0 > 2500) return scrollTo(0, st.y); requestAnimationFrame(tryY); }; requestAnimationFrame(tryY); }
+  if (st.viewer && !document.querySelector('.oreel')) setTimeout(() => openReelViewer({ ...st.viewer, restore: true }), 60);
+  else if (st.postId && !document.querySelector('.overlay.page')) { const t0 = Date.now(); const iv = setInterval(() => { if (findAny(st.postId) || Date.now() - t0 > 4000) { clearInterval(iv); if (findAny(st.postId)) openPost(st.postId); } }, 120); }
+}
 addEventListener('popstate', () => {
   if (pageKey() === CUR) return;
-  closeSheet(); document.querySelector('.overlay')?.remove();
+  closeSheet(); document.querySelector('.overlay')?.remove(); document.querySelectorAll('.oreel').forEach(o => o.remove()); FEED_ADS.hide();
   S.autoOpened = true; // 뒤로 와서 시트가 다시 열리지 않게
-  S.tab = tabOf(new URLSearchParams(location.search).get('tab'));
+  const st = history.state;
+  S.tab = st?.tab || tabOf(new URLSearchParams(location.search).get('tab'));
+  if (Number.isInteger(st?.og)) ORBIT_G = st.og;
   CUR = pageKey(); route();
+  restoreViewState(st);
 });
 // 앱 안의 링크(<a href="?u=...">)도 새로고침 없이 이동
 document.addEventListener('click', e => {
@@ -1833,8 +1849,11 @@ document.addEventListener('click', e => {
   const u = new URL(a.href, location.href);
   if (u.origin !== location.origin || u.pathname !== location.pathname) return;
   e.preventDefault();
+  const pg = a.closest('.overlay.page'), ore = a.closest('.oreel');
+  if (ore?._desc) { const R = ore.querySelector('#sreels'), V = R.getBoundingClientRect(); const cur = [...R.querySelectorAll('.reel[data-id]')].find(e => Math.abs(e.getBoundingClientRect().top - V.top) < 40); saveViewState({ viewer: { ...ore._desc, startId: cur?.dataset.id || ore._desc.startId } }); }
+  else if (pg?.dataset.pid) saveViewState({ postId: pg.dataset.pid });
   if (a.closest('.overlay, .sheet-wrap')) { document.querySelector('.overlay')?.remove(); closeSheet(); } // 게시물·시트 안의 링크(작성자·댓글 단 사람 등): 닫고 이동
-  if (a.closest('.oreel')) { FEED_ADS.hide(); document.querySelectorAll('.oreel').forEach(o => o.remove()); VIEWER = []; } // Candids 보기 안의 링크(from 이름 등): 보기를 닫고 이동
+  if (ore) { FEED_ADS.hide(); document.querySelectorAll('.oreel').forEach(o => o.remove()); VIEWER = []; } // Candids 보기 안의 링크(from 이름 등): 보기를 닫고 이동(뒤로 오면 다시 열림)
   go(u.href);
 });
 
@@ -3211,7 +3230,7 @@ function openFeedViewer(id, btn) {
   openReelViewer({ list, startId: id, title: g ? g.name : prof?.name || '', face: g ? gAv(g, 'xs') : avatar(prof || {}, 'xs'), link: g ? gUrl(g) : feedUrl(list[0].owner_id), extraOwner: prof });
 }
 let VIEWER = []; // 지금 열린 Candids 보기의 게시물(⋯ 메뉴 등에서 찾기용)
-function openReelViewer({ list, title, face, link, extraOwner, startId }) {
+function openReelViewer({ list, title, face, link, extraOwner, startId, restore }) {
   VIEWER = list;
   const owners = new Map(CACHE.home?.owners || HOME.owners || []); if (extraOwner) owners.set(extraOwner.id, extraOwner);
   const ov = document.createElement('div'); ov.className = 'oreel';
@@ -3219,6 +3238,7 @@ function openReelViewer({ list, title, face, link, extraOwner, startId }) {
       <a class="oreel-who" href="${link}">${face}<b>${esc(title)}</b></a><div class="sp"></div>
       <button class="icon-btn" data-more aria-label="${t('더보기')}">${I.more}</button></header>
     ${FEED_ADS.weave(list, p => reelSection(p, owners))}</div>`;
+  ov._desc = { list, title, face, link, extraOwner, startId }; // 링크로 떠났다가 뒤로 오면 이걸로 다시 엶
   document.body.appendChild(ov);
   const $r = ov.querySelector('#sreels');
   $r.classList.toggle('hide-stk', HIDE_STK);
@@ -3227,7 +3247,7 @@ function openReelViewer({ list, title, face, link, extraOwner, startId }) {
   loadSocial(list.map(p => p.id)).then(() => list.forEach(p => paintSoc(p.id))).catch(() => {});
   loadStickers(list.map(p => p.id)).then(() => list.forEach(p => refreshStickerLayers(p.id))).catch(() => {});
   // 뒤로가기(제스처·버튼)로 닫힘
-  history.pushState({ ...(history.state || {}), oreel: 1 }, '');
+  if (!restore || !history.state?.oreel) history.pushState({ ...(history.state || {}), oreel: 1, viewer: undefined }, '');
   const close = () => { if (!ov.isConnected) return; FEED_ADS.hide(); ov.querySelectorAll('video').forEach(v => v.pause()); ov.classList.add('out'); setTimeout(() => ov.remove(), 200); VIEWER = [];
     if (CACHE.home && document.getElementById('orbitv')) paintHome(CACHE.home);
     if (document.querySelector('.grid .gnew')) document.querySelectorAll('.grid button[data-pid]').forEach(b => { if (lsGet(SEEN_KEY)[b.dataset.pid]) b.querySelector('.gnew')?.remove(); }); };
@@ -3564,7 +3584,7 @@ function openPost(id) {
   markSeen(id); document.querySelectorAll(`[onclick="openPost('${id}')"] .gnew`).forEach(e => e.remove());
   const gp = !!p.group_id, gg = gp ? groupOf(p.group_id) : null, own = !gp && (fromHome ? p.owner_id === me?.id : S.isOwner); // 그룹 게시물: 주인 대신 방장·올린 사람
   const ov = document.createElement('div');
-  ov.className = 'overlay page';
+  ov.className = 'overlay page'; ov.dataset.pid = p.id;
   ov.innerHTML = `
     <article class="post">
       <div class="post-h">
