@@ -1342,7 +1342,7 @@
   try { l = localStorage.getItem('candid_lang'); } catch (e) {}
   if (!L[l]) { l = 'en'; var a = navigator.languages || [navigator.language]; for (var i = 0; i < a.length; i++) { var b = String(a[i] || '').toLowerCase().split('-')[0]; if (L[b]) { l = b; break; } } }
   window.CANDID_LANG = l; document.documentElement.lang = l;
-  if (l !== 'ko') document.write('<script src="i18n/' + l + '.js?v=1"><\/script>');
+  if (l !== 'ko') document.write('<script src="i18n/' + l + '.js?v=2"><\/script>');
 })();
 </script>
 <script src="config.js"></script>
@@ -6436,6 +6436,7 @@ function libDateLabel(sec) {
   const n = Math.round((d0 - x0) / day);
   if (n <= 0) return t('오늘'); if (n === 1) return t('어제'); if (n < 7) return t('{n}일 전', { n });
   if (n < 14) return t('일주일 전'); if (n < 28) return t('{n}주 전', { n: Math.floor(n / 7) });
+  if (LANG !== 'ko') return d.toLocaleDateString(LANG, d.getFullYear() === now.getFullYear() ? { month: 'long' } : { year: 'numeric', month: 'long' }); // 영어 November · 일본어 11月
   return d.getFullYear() === now.getFullYear() ? t('{m}월', { m: d.getMonth() + 1 }) : t('{y}년 {m}월', { y: d.getFullYear(), m: d.getMonth() + 1 });
 }
 const libDur = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;

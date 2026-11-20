@@ -48,7 +48,7 @@ Contact: contact@candid-feed.com
 ## Keywords (100)
 photo,feed,friends,shared album,group album,candid,sticker,travel,wedding,anonymous,poll,selfie
 
-## Screenshot captions (if you make English screenshots)
+## Screenshots — `appstore/screenshots/en/01~05.png`
 1. Friends' new photos, in orbit
 2. Swipe, like, comment, decorate
 3. Your feed, filled by friends
