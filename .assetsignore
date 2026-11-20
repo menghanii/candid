@@ -8,3 +8,4 @@ wrangler.jsonc
 secrets.local.env
 tools
 supabase
+appstore
