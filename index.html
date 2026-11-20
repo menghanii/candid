@@ -1304,6 +1304,13 @@
     html.noscroll .landing h1 { font-size:42px; }
     html.noscroll .landing .tagline { margin-bottom:20px; }
   }
+  /* 영상 재생 바: 칸 맨 아래 얇은 회색 바(누르는 곳은 위아래로 넉넉히) */
+  .vbar { position:absolute; left:16px; right:16px; bottom:calc(8px + env(safe-area-inset-bottom)); height:16px; z-index:5; opacity:0; pointer-events:none; transition:opacity .2s; display:flex; align-items:flex-end; touch-action:none; cursor:pointer; }
+  .vbar::before { content:""; position:absolute; left:0; right:0; bottom:0; height:2px; background:rgba(255,255,255,.22); }
+  .vbar i { position:relative; display:block; width:100%; height:2px; background:rgba(235,235,240,.85); transform-origin:left center; transform:scaleX(0); }
+  .vbar.cur { opacity:1; pointer-events:auto; }
+  .vbar::before, .vbar i { border-radius:2px; }
+  .vbar.on::before, .vbar.on i { height:4px; }
 </style>
 </head>
 <body>
@@ -2705,15 +2712,16 @@ function onResume() {
     if (document.visibilityState !== 'visible') return;
     if (document.querySelector('.sheet-wrap, .overlay, .composer, .pov') || Date.now() - LAST_TOUCH < 1500) return;
     const myKey = pageKey();
-    if (document.querySelector('.reels')) {
+    const qs = new URLSearchParams(location.search);
+    if (document.getElementById('orbitv') || document.querySelector('#reels, .reels > .rempty')) { // 홈(궤도)
       if (Date.now() - (S.homeAt || 0) < 60000) return; S.homeAt = Date.now();
       fetchHome().then(d => {
-        const same = CACHE.home && sameSet(d.posts, CACHE.home.posts);
-        CACHE.home = d; const r = document.querySelector('.reels');
-        if (!same && pageKey() === myKey && r && r.scrollTop < 10 && !document.querySelector('.sheet-wrap, .overlay')) paintHome(d);
+        const same = CACHE.home && sameSet(d.posts, CACHE.home.posts) && d.owners.size === CACHE.home.owners?.size && d.groups.size === CACHE.home.groups?.size;
+        CACHE.home = d;
+        if (!same && pageKey() === myKey && !document.querySelector('.sheet-wrap, .overlay, .oreel, .ostack')) paintHome(d);
       }).catch(() => {});
-    } else if (G.g && new URLSearchParams(location.search).get('g')) { if (Date.now() - (G.at || 0) > 60000) renderGroup(G.key, true); }
-    else if (S.uid && Date.now() - (S.fetchedAt || 0) > 60000) renderProfile(S.uid, false, true);
+    } else if (G.g && qs.get('g')) { if (Date.now() - (G.at || 0) > 60000) renderGroup(G.key, true); }
+    else if (S.uid && (qs.get('u') || location.search.startsWith('?@')) && Date.now() - (S.fetchedAt || 0) > 60000) renderProfile(S.uid, false, true); // 피드 화면일 때만
     if (me) refreshNotiDot();
   }, 800);
 }
@@ -3202,7 +3210,7 @@ function saveHomeCache(d) {
   try {
     const ps = d.posts, ids = new Set(ps.map(p => p.id)); // 다 저장해야 새로 받은 것과 같은지 비교돼 다시 그리지 않음
     localStorage.setItem(HOME_KEY, JSON.stringify({ uid: me.id, at: Date.now(), prof: myProf, posts: ps,
-      owners: [...d.owners].filter(([id]) => ps.some(p => p.owner_id === id)), groups: [...d.groups].filter(([id]) => ps.some(p => p.group_id === id)),
+      owners: [...d.owners], groups: [...d.groups], // 궤도는 사진이 없는 친구·그룹도 보여 주므로 전부 저장(일부만 저장하면 시작할 때 나머지가 늦게 나타남)
       soc: [...SOC].filter(([id]) => ids.has(id)), stk: [...STK].filter(([id]) => ids.has(id)) }));
   } catch {}
 }
@@ -3497,10 +3505,10 @@ async function renderHome(fresh) {
   CUR = pageKey(); const myKey = CUR;
   $app.classList.remove('has-nav');
   if (CACHE.home && !fresh) {
-    if (PREPAINTED && document.querySelector('.reels')) PREPAINTED = false; // 이미 저장본으로 그려져 있음 → 다시 그리지 않고 새로 받기만
+    if (PREPAINTED && document.querySelector('.reels, #orbitv')) PREPAINTED = false; // 이미 저장본으로 그려져 있음(궤도 포함) → 다시 그리지 않고 새로 받기만
     else paintHome(CACHE.home);
     fetchHome().then(d => {
-      const same = sameSet(d.posts, CACHE.home.posts);
+      const same = sameSet(d.posts, CACHE.home.posts) && d.owners.size === CACHE.home.owners?.size && d.groups.size === CACHE.home.groups?.size;
       CACHE.home = d;
       const r = document.querySelector('.reels');
       if (!same && pageKey() === myKey && ((r && r.scrollTop < 10) || (document.getElementById('orbitv') && !document.querySelector('.ostack, .oreel')))) paintHome(d); // 맨 위에 있을 때(궤도는 사진 더미를 보고 있지 않을 때)만 조용히 교체
@@ -3602,6 +3610,7 @@ function wireReels($reels) {
   initCarousels($reels, () => true);
   $reels.querySelectorAll('.rcar .stage').forEach(st => enableZoom(st, { snap: true })); // 사진만 잠깐 확대
   $reels.querySelectorAll('.rcar .stage').forEach(watchReelRatio);
+  $reels.querySelectorAll('.rcar video').forEach(addVideoBar);
   cardDots($reels);
   $reels.querySelectorAll('.reel[data-id]').forEach(r => {
     io.observe(r);
@@ -5018,6 +5027,26 @@ function edgeColors(url) {
 function paintFill(st, url) {
   const box = st.closest('.slide') || st.closest('.carwrap'); if (!box || !url || !st.closest('.rcar')) return;
   edgeColors(url).then(c => { if (!c) return; const rgb = a => `rgb(${a.join(',')})`; box.style.setProperty('--fill', `linear-gradient(180deg, ${rgb(c.top)}, ${rgb(c.mid)} 50%, ${rgb(c.bot)})`); box.classList.add('filled'); });
+}
+// 영상 재생 바: 9:16 칸 맨 아래 얇은 회색 바(재생 위치), 끌거나 누르면 그 위치로
+function addVideoBar(v) {
+  const reel = v.closest('.reel'); if (!reel || v._bar) return;
+  reel.insertAdjacentHTML('beforeend', '<div class="vbar" role="slider" aria-label="' + t('재생 위치') + '"><i></i></div>');
+  const bar = v._bar = reel.lastElementChild, fill = bar.firstElementChild;
+  const show = () => { reel.querySelectorAll(':scope > .vbar').forEach(b => b.classList.toggle('cur', b === bar)); }; // 여러 장이면 지금 재생 중인 영상의 바만
+  let raf = 0;
+  const paint = () => { if (v.duration) fill.style.transform = `scaleX(${Math.min(1, v.currentTime / v.duration)})`; };
+  const loop = () => { paint(); raf = v.paused ? 0 : requestAnimationFrame(loop); };
+  const start = () => { show(); if (!raf) raf = requestAnimationFrame(loop); };
+  v.addEventListener('play', start); v.addEventListener('playing', start);
+  if (!v.paused) start(); // 이미 재생 중이면 바로
+  v.addEventListener('pause', () => { cancelAnimationFrame(raf); raf = 0; paint(); });
+  v.addEventListener('loadedmetadata', paint);
+  const seek = e => { const r = bar.getBoundingClientRect(); if (v.duration) { v.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * v.duration; paint(); } };
+  bar.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); bar.classList.add('on'); seek(e);
+    const mv = ev => seek(ev), up = () => { bar.classList.remove('on'); removeEventListener('pointermove', mv); removeEventListener('pointerup', up); removeEventListener('pointercancel', up); };
+    addEventListener('pointermove', mv); addEventListener('pointerup', up); addEventListener('pointercancel', up); });
+  bar.addEventListener('click', e => e.stopPropagation());
 }
 // 스티커 위치는 가운데 4:5 영역(꾸미기 화면 기준)에 저장됨 → 원본 비율 화면에서도 같은 자리에 오도록 그 영역에 맞춤
 function fitStickerLayer(st) {
