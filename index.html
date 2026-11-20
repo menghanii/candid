@@ -3530,7 +3530,8 @@ function openReelViewer({ list, title, face, link, extraOwner, startId, restore,
   loadSocial(list.map(p => p.id)).then(() => list.forEach(p => paintSoc(p.id))).catch(() => {});
   loadStickers(list.map(p => p.id)).then(() => list.forEach(p => refreshStickerLayers(p.id))).catch(() => {});
   // 뒤로가기(제스처·버튼)로 닫힘
-  const close = () => { dropLayer('oreel'); if (!ov.isConnected) return; $r._io?.disconnect(); clearTimeout($r._seenT); $r._settle?.(); $r._flush?.(); clearTimeout($r._seenT); $r.querySelectorAll('.reel').forEach(x => clearTimeout(x._seenT)); // 닫을 때 지나온 칸·지금 칸을 바로 '본 것'으로(닫은 뒤 몰래 기록되지는 않게) FEED_ADS.hide(); ov.querySelectorAll('video').forEach(v => v.pause()); ov.classList.add('out'); setTimeout(() => ov.remove(), 200); VIEWER = [];
+  // 닫을 때 지나온 칸·지금 칸을 바로 '본 것'으로(닫은 뒤 몰래 기록되지는 않게)
+  const close = () => { dropLayer('oreel'); if (!ov.isConnected) return; $r._io?.disconnect(); clearTimeout($r._seenT); try { $r._settle?.(); $r._flush?.(); } catch {} clearTimeout($r._seenT); $r.querySelectorAll('.reel').forEach(x => clearTimeout(x._seenT)); FEED_ADS.hide(); ov.querySelectorAll('video').forEach(v => v.pause()); ov.classList.add('out'); setTimeout(() => ov.remove(), 200); VIEWER = [];
     if (CACHE.home && document.getElementById('orbitv')) paintHome(CACHE.home);
     if (document.querySelector('.grid .gnew')) document.querySelectorAll('.grid button[data-pid]').forEach(b => { if (lsGet(SEEN_KEY)[b.dataset.pid]) b.querySelector('.gnew')?.remove(); }); };
   if (restore && history.state?.oreel) pushLayer('oreel', close, true); else { history.replaceState({ ...(history.state || {}), viewer: undefined }, ''); pushLayer('oreel', close); }
