@@ -3530,7 +3530,7 @@ function openReelViewer({ list, title, face, link, extraOwner, startId, restore,
   loadSocial(list.map(p => p.id)).then(() => list.forEach(p => paintSoc(p.id))).catch(() => {});
   loadStickers(list.map(p => p.id)).then(() => list.forEach(p => refreshStickerLayers(p.id))).catch(() => {});
   // 뒤로가기(제스처·버튼)로 닫힘
-  const close = () => { dropLayer('oreel'); if (!ov.isConnected) return; $r._io?.disconnect(); clearTimeout($r._seenT); $r.querySelectorAll('.reel').forEach(x => clearTimeout(x._seenT)); // 닫은 뒤에 '본 것'이 몰래 기록되지 않게 FEED_ADS.hide(); ov.querySelectorAll('video').forEach(v => v.pause()); ov.classList.add('out'); setTimeout(() => ov.remove(), 200); VIEWER = [];
+  const close = () => { dropLayer('oreel'); if (!ov.isConnected) return; $r._io?.disconnect(); clearTimeout($r._seenT); $r._settle?.(); $r._flush?.(); clearTimeout($r._seenT); $r.querySelectorAll('.reel').forEach(x => clearTimeout(x._seenT)); // 닫을 때 지나온 칸·지금 칸을 바로 '본 것'으로(닫은 뒤 몰래 기록되지는 않게) FEED_ADS.hide(); ov.querySelectorAll('video').forEach(v => v.pause()); ov.classList.add('out'); setTimeout(() => ov.remove(), 200); VIEWER = [];
     if (CACHE.home && document.getElementById('orbitv')) paintHome(CACHE.home);
     if (document.querySelector('.grid .gnew')) document.querySelectorAll('.grid button[data-pid]').forEach(b => { if (lsGet(SEEN_KEY)[b.dataset.pid]) b.querySelector('.gnew')?.remove(); }); };
   if (restore && history.state?.oreel) pushLayer('oreel', close, true); else { history.replaceState({ ...(history.state || {}), viewer: undefined }, ''); pushLayer('oreel', close); }
@@ -3659,11 +3659,18 @@ function wireReels($reels) {
   }), { root: $reels, threshold: 0.6 }); // 기준을 이 스크롤 칸으로(iPhone 은 기준이 화면이면 안쪽 스크롤 때 안 알려 주는 경우가 있음)
   // 예비: 스크롤이 멈추면 지금 화면의 칸을 1초 뒤 '본 것'으로(관찰이 놓쳐도 새 사진 숫자가 줄도록)
   let stopT;
+  // 지나온 사진은 모두 '본 것': 처음 연 칸부터 지금 멈춘 칸까지(위로 올라가도) 사이를 전부 셈. 지금 칸만 SEEN_MS 뒤에
   const settle = () => { clearTimeout($reels._seenT);
-    const mid = $reels.scrollTop + $reels.clientHeight / 2;
-    const cur = [...$reels.querySelectorAll('.reel[data-id]')].find(r => r.offsetTop <= mid && r.offsetTop + r.offsetHeight > mid);
-    if (cur) $reels._seenT = setTimeout(() => { if (cur.isConnected && Math.abs(cur.offsetTop - $reels.scrollTop) < cur.offsetHeight / 2) markSeen(cur.dataset.id); }, SEEN_MS); };
+    const rs = [...$reels.querySelectorAll('.reel[data-id]')], mid = $reels.scrollTop + $reels.clientHeight / 2;
+    const ci = rs.findIndex(r => r.offsetTop <= mid && r.offsetTop + r.offsetHeight > mid); if (ci < 0) return;
+    const cur = rs[ci], ids = rs.map(r => r.dataset.id);
+    const lo = $reels._lo = Math.min($reels._lo ?? ci, ids.indexOf($reels._loId ?? cur.dataset.id), ci), hi = Math.max($reels._hiIdx ?? ci, ids.indexOf($reels._hiId ?? cur.dataset.id), ci);
+    $reels._loId = ids[lo]; $reels._hiId = ids[hi]; $reels._hiIdx = hi;
+    rs.slice(lo, hi + 1).forEach(r => { if (r !== cur) markSeen(r.dataset.id); });
+    $reels._flush = () => rs.slice(lo, hi + 1).forEach(r => markSeen(r.dataset.id)); // 닫을 때: 지금 칸까지 전부
+    $reels._seenT = setTimeout(() => { if (cur.isConnected && Math.abs(cur.offsetTop - $reels.scrollTop) < cur.offsetHeight / 2) markSeen(cur.dataset.id); }, SEEN_MS); };
   $reels.addEventListener('scroll', () => { clearTimeout(stopT); clearTimeout($reels._seenT); stopT = setTimeout(settle, 120); }, { passive: true });
+  $reels._settle = settle;
   requestAnimationFrame(settle); // 처음 열렸을 때 보이는 칸도
   initCarousels($reels, () => true);
   $reels.querySelectorAll('.rcar .stage').forEach(st => enableZoom(st, { snap: true })); // 사진만 잠깐 확대
