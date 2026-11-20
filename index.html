@@ -2260,7 +2260,9 @@ async function nativeOAuth(provider, link) {
   if (error) throw error;
   // iPhone 로그인 전용 창(AuthSession 플러그인): candid:// 로 돌아오면 창이 닫히고 그 주소를 돌려줌
   const auth = capPlugin('AuthSession');
-  try { const r = await auth.start({ url: data.url, scheme: 'candid' }); return finishNativeOAuth(r.url); }
+  // 우리 주소(candid-feed.com/auth/go)로 시작 → iPhone 확인 창에 supabase.co 대신 candid-feed.com 이 보임(워커가 Supabase 로 넘김)
+  const start = data.url.startsWith(cfg.SUPABASE_URL + '/auth/v1/authorize?') ? `${SITE}/auth/go?u=${encodeURIComponent(data.url)}` : data.url;
+  try { const r = await auth.start({ url: start, scheme: 'candid' }); return finishNativeOAuth(r.url); }
   catch (e) { if (/canceled/.test(e?.message || e?.code || '')) return cancelAuthWait(); if (!/not implemented|UNIMPLEMENTED/i.test(e?.message || e?.code || '')) throw e; }
   await capPlugin('Browser').open({ url: data.url, presentationStyle: 'popover' }); // 예전 앱(플러그인 없음) 대비
 }

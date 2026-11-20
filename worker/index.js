@@ -10,14 +10,21 @@ const PATH_OK = /^[0-9a-zA-Z_-]{1,64}\/[0-9a-zA-Z_-]{1,80}\.(webp|jpe?g|png|mp4|
 
 // iPhone 앱 링크(유니버설 링크): candid-feed.com 링크를 누르면 앱이 설치돼 있으면 앱으로 열림
 // 사진 중계(/p/), 이미지·번역 파일, 약관 페이지는 제외
+const AUTH_ORIGIN = 'https://erlrviaqnnlfeehizlxc.supabase.co'; // 로그인 넘김을 허용할 Supabase 주소(다른 곳으로는 안 넘김)
 const AASA = { applinks: { details: [{ appIDs: ['92KNXMVFG4.com.candidfeed.app'], components: [
   { '/': '/p/*', exclude: true }, { '/': '/brand/*', exclude: true }, { '/': '/i18n/*', exclude: true },
-  { '/': '/terms*', exclude: true }, { '/': '/privacy*', exclude: true }, { '/': '/support*', exclude: true }, { '/': '/legal.css', exclude: true }, { '/': '/' }, { '/': '/*' },
+  { '/': '/terms*', exclude: true }, { '/': '/privacy*', exclude: true }, { '/': '/support*', exclude: true }, { '/': '/legal.css', exclude: true }, { '/': '/auth/*', exclude: true }, { '/': '/' }, { '/': '/*' },
 ] }] } };
 
 export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
+    // 앱 로그인 시작(/auth/go?u=…): iPhone 의 "○○을(를) 사용하여 로그인" 창에 supabase.co 대신 candid-feed.com 이 보이도록, 우리 주소에서 Supabase 로그인 주소로 넘김
+    if (url.pathname === '/auth/go') {
+      const u = url.searchParams.get('u') || '';
+      if (!u.startsWith(AUTH_ORIGIN + '/auth/v1/authorize?')) return new Response('bad request', { status: 400 });
+      return Response.redirect(u, 302);
+    }
     if (url.pathname.startsWith('/p/')) return media(req, url, env.MEDIA_ORIGIN || DEFAULT_ORIGIN); // MEDIA_ORIGIN: 로컬 시험용
     if (url.pathname === '/.well-known/apple-app-site-association' || url.pathname === '/apple-app-site-association') return Response.json(AASA, { headers: { 'Cache-Control': 'public, max-age=3600' } });
     const res = await env.ASSETS.fetch(req);
