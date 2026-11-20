@@ -3,21 +3,19 @@
 ## 1. 앱 심사 정보 (App Review Information)
 
 ### 로그인 정보
-- "로그인 필요" 체크
-- 사용자 이름 / 암호: **심사용 Google 계정**(또는 카카오)을 하나 만들어 적기
-  - 미리 친구 1~2명(내 다른 계정)과 사진 몇 장, 그룹 1개를 만들어 두면 심사원이 바로 기능을 볼 수 있음
-  - Apple 로그인이 TestFlight 에서 잘 되면 "Sign in with Apple 로도 가능"이라고 메모에 같이 적기
+- "로그인 필요" 체크 해제(심사용 계정 없이 진행) — 대신 메모에 Apple 로그인으로 가입하는 방법을 적음
+- ⚠️ 그 전에 꼭: TestFlight 에서 Apple 로그인이 되는지 확인, 그리고 **공개 그룹 하나에 사진을 미리 채워 두기**(새 계정은 빈 화면이라 심사원이 볼 것이 필요)
 
 ### 연락처
-- 이름: MYUNGHAN YANG · 이메일: contact@candid-feed.com · 전화: (본인 번호)
+- 이름: MYUNGHAN YANG(심사 연락용, 공개 안 됨) · 이메일: contact@candid-feed.com · 전화: (본인 번호)
 
 ### 메모 (영어로 붙여넣기)
 ```
-Sign in: use the demo account above (Google), or "Continue with Apple" on the first screen.
+Sign in: tap "Continue with Apple" (Apple로 계속하기) on the first screen to create an account. No demo account is needed.
 
 What the app does: friends send photos to each other's feeds and the feed owner approves which photos appear. Users can also create shared group albums. The home screen ("Candids") shows friends and groups orbiting around the user; tapping one opens their photos full screen.
 
-The demo account already has friends, photos and a group. A brand-new account starts empty: tap the search icon (top right) to find friends or public groups, or tap ＋ (bottom) to create a group.
+A new account starts with no friends. To see content right away, tap the search icon (top right) and open the public group "candid. 둘러보기" (or any public group), or swipe to the Pink galaxy on the home screen. Tap ＋ (bottom) to create your own group or send a photo to a friend's feed.
 
 User-generated content safeguards (Guideline 1.2):
 - Terms of Service (shown on sign-in) prohibit objectionable content: https://candid-feed.com/terms.html
