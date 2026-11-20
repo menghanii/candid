@@ -4,7 +4,7 @@
 
 ### 로그인 정보
 - "로그인 필요" 체크 해제(심사용 계정 없이 진행) — 대신 메모에 Apple 로그인으로 가입하는 방법을 적음
-- ⚠️ 그 전에 꼭: TestFlight 에서 Apple 로그인이 되는지 확인, 그리고 **공개 그룹 하나에 사진을 미리 채워 두기**(새 계정은 빈 화면이라 심사원이 볼 것이 필요)
+- ⚠️ 그 전에 꼭: TestFlight 에서 Apple 로그인이 되는지 확인, 그리고 **공개 그룹에 사진이 있는지 확인**(메모에는 "전국~우리강아지자랑대회🫶"를 안내함 — 이미 사진 있음)
 
 ### 연락처
 - 이름: MYUNGHAN YANG(심사 연락용, 공개 안 됨) · 이메일: contact@candid-feed.com · 전화: (본인 번호)
@@ -15,7 +15,7 @@ Sign in: tap "Continue with Apple" (Apple로 계속하기) on the first screen t
 
 What the app does: friends send photos to each other's feeds and the feed owner approves which photos appear. Users can also create shared group albums. The home screen ("Candids") shows friends and groups orbiting around the user; tapping one opens their photos full screen.
 
-A new account starts with no friends. To see content right away, tap the search icon (top right) and open the public group "candid. 둘러보기" (or any public group), or swipe to the Pink galaxy on the home screen. Tap ＋ (bottom) to create your own group or send a photo to a friend's feed.
+A new account starts with no friends. To see content right away, tap the search icon (top right) and search "강아지" to open the public group "전국~우리강아지자랑대회🫶" (@album_dqtgh), or swipe to the Pink galaxy on the home screen to see trending public groups. Tap ＋ (bottom) to create your own group or send a photo to a friend's feed.
 
 User-generated content safeguards (Guideline 1.2):
 - Terms of Service (shown on sign-in) prohibit objectionable content: https://candid-feed.com/terms.html
