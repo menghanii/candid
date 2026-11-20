@@ -21,26 +21,42 @@ export default {
     if (url.pathname.startsWith('/p/')) return media(req, url, env.MEDIA_ORIGIN || DEFAULT_ORIGIN); // MEDIA_ORIGIN: 로컬 시험용
     if (url.pathname === '/.well-known/apple-app-site-association' || url.pathname === '/apple-app-site-association') return Response.json(AASA, { headers: { 'Cache-Control': 'public, max-age=3600' } });
     const res = await env.ASSETS.fetch(req);
-    const og = ogFor(url.searchParams);
+    const og = ogFor(url);
     if (!og || !(res.headers.get('content-type') || '').includes('text/html')) return res;
-    // 링크 종류에 맞는 미리보기 문구(카톡·메시지에 뜨는 제목·설명). 보내는 메시지와 같은 말투
+    // 링크 종류에 맞는 미리보기(카톡·메시지에 뜨는 제목·설명·썸네일)
     const set = v => ({ element(e) { e.setAttribute('content', v); } });
     return new HTMLRewriter()
       .on('meta[property="og:title"]', set(og.title)).on('meta[name="twitter:title"]', set(og.title))
       .on('meta[property="og:description"]', set(og.desc)).on('meta[name="twitter:description"]', set(og.desc))
+      .on('meta[property="og:image"]', set(og.image)).on('meta[name="twitter:image"]', set(og.image))
+      .on('meta[property="og:image:width"]', set(og.w)).on('meta[property="og:image:height"]', set(og.h))
       .transform(res);
   },
 };
 
-// 미리보기 문구: 앱 초대 · 앨범 초대 · 사진 공유 · 앨범 · 피드 부탁 · 피드
-function ogFor(q) {
-  if (q.has('invite')) return { title: 'candid. 같이 하자 📸', desc: '서로 찍어 준 사진으로 피드를 채우는 앱. 이 링크로 들어오면 바로 친구가 돼요.' };
-  if (q.has('gi')) return { title: '앨범에 초대받았어요 📸', desc: '링크를 누르면 바로 참여해서 같이 사진을 모을 수 있어요.' };
-  if (q.has('p') && q.has('s')) return { title: '친구가 사진을 공유했어요 👀', desc: 'candid.에서 열어 보세요.' };
-  if (q.has('g')) return { title: 'candid. 공유 앨범 📸', desc: '함께 찍은 사진을 한곳에 모아요.' };
-  if (q.has('u') && q.has('m')) return null; // 피드 부탁: 기본 문구(내 피드 좀 채워줘!) 그대로
-  if (q.has('u')) return { title: '친구의 candid. 피드 👀', desc: '친구들이 채워 준 사진을 구경해 보세요.' };
-  return null;
+// 미리보기: 링크 종류(o) · 보낸 사람 언어(l)
+//  o: ask(피드 부탁) · invite(앱 초대) · gi(그룹 초대) · photo(사진 공유) · feed(친구 피드) · group(공개 그룹)
+const OG = {
+  ko: { ask: ['candid. · 사진 보내기', '링크를 누르면 로그인 없이 바로 사진을 보낼 수 있어요.'], invite: ['candid. · 친구가 채우는 피드', '링크로 가입하면 초대한 친구와 바로 친구가 돼요.'],
+        gi: ['candid. · 그룹 초대', '링크를 누르면 바로 그룹에 들어갈 수 있어요.'], photo: ['candid. · 공유된 사진', '링크를 눌러 사진을 열어 보세요.'],
+        feed: ['candid. · 친구 피드', '피드를 구경하고, 로그인 없이 사진을 보낼 수 있어요.'], group: ['candid. · 공개 그룹', '누구나 구경하고 참여할 수 있어요.'] },
+  en: { ask: ['candid. · Send a photo', 'Tap the link to send a photo — no sign-in needed.'], invite: ['candid. · Your feed, filled by friends', "Sign up with this link and you'll be friends right away."],
+        gi: ['candid. · Group invite', 'Tap the link to join the group right away.'], photo: ['candid. · Shared photo', 'Tap the link to open the photo.'],
+        feed: ["candid. · A friend's feed", 'Look around, and send a photo without signing in.'], group: ['candid. · Public group', 'Anyone can look around and join.'] },
+  ja: { ask: ['candid.・写真を送る', 'リンクを押せば、ログインなしですぐ写真を送れます。'], invite: ['candid.・友だちが埋めるフィード', 'このリンクから登録すると、すぐ友だちになれます。'],
+        gi: ['candid.・グループ招待', 'リンクを押せば、すぐグループに参加できます。'], photo: ['candid.・共有された写真', 'リンクを押して写真を開いてください。'],
+        feed: ['candid.・友だちのフィード', 'フィードを見て、ログインなしで写真を送れます。'], group: ['candid.・公開グループ', '誰でも見て、参加できます。'] },
+};
+function ogFor(url) {
+  const q = url.searchParams, raw = url.search;
+  let o = q.get('o');
+  if (!o) { // 예전 링크(꼬리표 없음)
+    if (q.has('invite')) o = 'invite'; else if (q.has('gi')) o = 'gi'; else if (q.has('p') && q.has('s')) o = 'photo';
+    else if (q.has('g')) o = 'group'; else if ((q.has('u') || raw.startsWith('?@')) && q.has('m')) o = 'ask'; else if (q.has('u') || raw.startsWith('?@')) o = 'feed';
+  }
+  const l = OG[q.get('l')] ? q.get('l') : 'ko', t = o && OG[l][o]; if (!t) return null;
+  // 썸네일은 6종 모두 같은 디자인(블루닷 캐릭터)으로 — 링크 종류·언어별 그림
+  return { title: t[0], desc: t[1], image: `${url.origin}/brand/og/${o}-${l}.jpg?v=1`, w: '1200', h: '630' };
 }
 
 async function media(req, url, ORIGIN) {

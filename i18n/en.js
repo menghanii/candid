@@ -918,4 +918,12 @@
  "추가 {n}": "Add {n}",
  "최대 {n}장까지 고를 수 있어요": "You can pick up to {n}",
  "사진첩이 비어 있어요": "Your photo library is empty",
+ // ---- 초대·공유 메시지(2026-11 확정) ----
+ "내 피드 좀 채워 줘 📸\n네 폰에 있는 내 사진 한 장만 보내 줘! 로그인 없이 바로 보낼 수 있어.": "Help fill my feed 📸\nJust send me one photo of me from your phone! No sign-in needed.",
+ "우리 서로 피드 채워 주자 📸\ncandid.는 친구가 내 피드를 채우는 앱이야. 이 링크로 들어와서 나랑 친구 맺자!": "Let's fill each other's feeds 📸\ncandid. is an app where friends fill your feed. Join with this link and let's be friends!",
+ "'{name}' 우리끼리 같이 채우자 📸\n각자 찍은 사진 여기 다 모아 두자! 링크 누르면 바로 들어올 수 있어.": "Let's fill '{name}' together 📸\nLet's put everyone's photos here! Tap the link to join right away.",
+ "이 사진 봤어? 👀 {name} 피드에 올라왔어!": "Did you see this photo? 👀 It's on {name}'s feed!",
+ "이 사진 봤어? 👀 '{name}' 그룹에 올라왔어!": "Did you see this photo? 👀 It's in the '{name}' group!",
+ "{name} 피드 같이 채워 주자! 📸 링크 누르면 로그인 없이 바로 보낼 수 있어.": "Let's fill {name}'s feed together! 📸 Tap the link to send a photo — no sign-in needed.",
+ "누구나 같이 채우는 '{name}' 그룹이야 📸 너도 와서 구경해봐👀": "'{name}' is a group anyone can fill 📸 Come take a look 👀",
 };

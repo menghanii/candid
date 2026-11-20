@@ -1342,7 +1342,7 @@
   try { l = localStorage.getItem('candid_lang'); } catch (e) {}
   if (!L[l]) { l = 'en'; var a = navigator.languages || [navigator.language]; for (var i = 0; i < a.length; i++) { var b = String(a[i] || '').toLowerCase().split('-')[0]; if (L[b]) { l = b; break; } } }
   window.CANDID_LANG = l; document.documentElement.lang = l;
-  if (l !== 'ko') document.write('<script src="i18n/' + l + '.js?v=2"><\/script>');
+  if (l !== 'ko') document.write('<script src="i18n/' + l + '.js?v=3"><\/script>');
 })();
 </script>
 <script src="config.js"></script>
@@ -1624,7 +1624,7 @@ const MEDIA_BASE = IN_APP ? 'https://candid-feed.com' : location.origin;
 const photoUrl = path => /^(https?|data|blob):/.test(path) ? path : MEDIA_PROXY ? `${MEDIA_BASE}/p/${path}` : sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
 // 밖으로 보내는 링크(카톡 공유·초대)는 항상 새 주소로 — 예전 주소로 설치한 홈 화면 앱에서 공유해도 candid-feed.com 링크가 나감
 // 카톡은 같은 주소의 미리보기(이미지·제목)를 오래 저장해 둠 → 미리보기를 바꿀 때마다 이 숫자를 올려 공유 링크 주소를 바꿈(카톡이 새로 읽어 감)
-const OGV = '6';
+const OGV = '7';
 const SITE = IN_APP || location.hostname === 'candid.candidcrew.workers.dev' ? 'https://candid-feed.com' : location.origin;
 const feedUrl = id => `${location.origin}${location.pathname}?u=${id}`;
 let me = null, myProf = null, BOOTED = false;
@@ -1687,7 +1687,7 @@ function route() {
   // 로그인하러 가기 전 보던 그룹·초대 화면으로 돌아오기 (로그인은 첫 화면 주소로 돌아옴)
   if (me && myProf?.onboarded && !location.search) {
     let back = null; try { back = localStorage.getItem('candid_return'); localStorage.removeItem('candid_return'); } catch {}
-    if (back && /^\?(g|gi|u)=[A-Za-z0-9_-]{3,40}(&p=[A-Za-z0-9_-]{1,40})?(&s=1)?$/.test(back)) history.replaceState(history.state, '', location.pathname + back);
+    if (back && /^\?(g|gi|u)=[A-Za-z0-9_-]{3,40}(&[a-z]=[A-Za-z0-9_.%/-]{0,200})*$/.test(back)) history.replaceState(history.state, '', location.pathname + back); // 공유 링크 꼬리표(p·s·v·o·l·i)는 그대로
   }
   CUR = pageKey();
   document.documentElement.classList.remove('noscroll', 'paperbg'); document.getElementById('tcpaper')?.remove();
@@ -1928,21 +1928,23 @@ function msgShareSheet({ head, hint, msg, url, title = 'candid.', top = '', extr
 // 그룹 사진: 내가 멤버면 그룹 초대 코드가 든 링크(?gi=코드&p=사진&s=1) → 받은 사람은 가입 → 그룹 초대 → 그 사진
 // 피드 사진: ?u=주인&p=사진&s=1 → 가입 → 그 피드의 그 사진(비공개 피드면 친구 신청 화면)
 async function shareUrlFor(p) {
-  let q;
+  let q, pub = false;
   if (p.group_id) {
     const g = HOME.groups?.get(p.group_id) || (G.g?.id === p.group_id ? G.g : null);
     q = g?.handle ? `g=${g.handle}` : null; // 사진 링크는 사진 보기 전용(그룹 초대는 '초대하기'로 따로)
+    pub = g?.visibility === 'public';
   } else {
     const o = HOME.owners?.get(p.owner_id) || (S.prof?.id === p.owner_id ? S.prof : null);
     q = `u=${p.owner_id}`;
+    pub = o && !o.is_private;
   }
-  return q && `${SITE}/?${q}&p=${p.id}&s=1`;
+  return q && `${SITE}/?${q}&p=${p.id}&s=1&v=${OGV}${ogTag('photo')}`;
 }
 async function sharePost(id) {
   const p = findAny(id); if (!p) return;
   const url = await shareUrlFor(p); if (!url) return toast(t('이 사진은 공유할 수 없어요'));
-  const where = p.group_id ? `'${groupOf(p.group_id)?.name || t('앨범')}'` : t('{name}님 피드', { name: (HOME.owners?.get(p.owner_id) || (S.prof?.id === p.owner_id ? S.prof : null))?.name || t('친구') });
-  shareLink({ text: t('{where}에 올라온 사진 봐 👀', { where }), url });
+  const ownerName = (HOME.owners?.get(p.owner_id) || (S.prof?.id === p.owner_id ? S.prof : null))?.name || t('친구');
+  shareLink({ text: p.group_id ? t("이 사진 봤어? 👀 '{name}' 그룹에 올라왔어!", { name: groupOf(p.group_id)?.name || '' }) : t('이 사진 봤어? 👀 {name} 피드에 올라왔어!', { name: ownerName }), url });
 }
 // 공유 링크를 열었을 때: true 를 돌려주면 이 화면이 대신 처리함
 function shareGate(qs) {
@@ -1994,6 +1996,7 @@ async function renderHandle(h) {
   renderProfile(id);
 }
 // 공유용 짧은 링크: 아이디가 있으면 ?@아이디, 없으면 기존 ?u=ID
+const ogTag = o => `&o=${o}${LANG !== 'ko' ? `&l=${LANG}` : ''}`; // 링크 종류·보낸 사람 언어 → 워커가 카톡 미리보기(제목·설명·썸네일)를 맞춤
 const shareUrl = p => p?.handle ? `${SITE}${location.pathname}?@${p.handle}&v=${OGV}` : `${SITE}${location.pathname}?u=${p.id}&v=${OGV}`;
 
 // ---------- 화면 전환 (페이지 새로고침 없이) ----------
@@ -3681,8 +3684,9 @@ function decorateFromReel(postId, el) {
   openDecorate(postId, idx);
 }
 function shareOther(uid, handle) {
-  const url = `${shareUrl(handle ? { handle } : { id: uid })}&m=0`;
-  shareLink({ text: t('candid.에서 이 피드 구경해 봐 👀'), url, copied: t('피드 링크를 복사했어요') });
+  const url = `${shareUrl(handle ? { handle } : { id: uid })}&m=0${ogTag('feed')}`;
+  const name = S.prof?.id === uid ? S.prof.name : t('친구');
+  shareLink({ text: t('{name} 피드 같이 채워 주자! 📸 링크 누르면 로그인 없이 바로 보낼 수 있어.', { name }), url, copied: t('피드 링크를 복사했어요') });
 }
 
 // ---------- 투표·질문 ----------
@@ -4834,7 +4838,7 @@ const INVITE = (() => {
 })();
 // 메시지+링크 복사용: 메시지 바로 다음 줄에 링크. (카톡으로 보내기는 글에 링크를 넣지 않고 url 로 따로 넘겨 미리보기 카드로만)
 const withLink = (msg, url) => `${msg.trim()}\n${url}`;
-const inviteUrl = () => `${SITE}${location.pathname}?invite=${encodeURIComponent(myProf?.handle || me.id)}&v=${OGV}`;
+const inviteUrl = () => `${SITE}${location.pathname}?invite=${encodeURIComponent(myProf?.handle || me.id)}&v=${OGV}${ogTag('invite')}`;
 async function findInviter(key) {
   const isId = /^[0-9a-f-]{36}$/i.test(key);
   const { data } = await sb.from('profiles').select('id, name, handle, avatar_url').eq(isId ? 'id' : 'handle', isId ? key : key.toLowerCase()).maybeSingle();
@@ -4868,7 +4872,7 @@ async function applyInvite() {
 // 초대 보내기
 function openInvite() {
   if (!me) return;
-  const msg = t('candid. 같이 하자 📸\n서로 찍어 준 사진으로 피드를 채우는 앱이야. 이 링크로 들어오면 우리 바로 친구 돼!');
+  const msg = t('우리 서로 피드 채워 주자 📸\ncandid.는 친구가 내 피드를 채우는 앱이야. 이 링크로 들어와서 나랑 친구 맺자!');
   msgShareSheet({ head: 'Invite friends', hint: t('이 링크로 가입하면 나와 자동으로 친구가 돼요.'), msg, url: inviteUrl });
 }
 
@@ -5506,9 +5510,9 @@ async function removePost(id) {
   } });
 }
 function shareFeed() {
-  const url = `${shareUrl(S.prof)}&m=0`;
+  const url = `${shareUrl(S.prof)}&m=0${ogTag('ask')}`;
   msgShareSheet({ head: 'Ask friends', hint: t('받은 친구는 로그인 없이 바로 사진을 보낼 수 있어요. 내가 승인한 사진만 피드에 올라가요.'), url,
-    msg: t('내 candid. 피드 좀 채워 줘 📸\n네 폰에 있는 내 사진 하나만 보내 줘. 로그인 없이 바로 돼!'),
+    msg: t('내 피드 좀 채워 줘 📸\n네 폰에 있는 내 사진 한 장만 보내 줘! 로그인 없이 바로 보낼 수 있어.'),
     extra: me ? `<button class="btn block" style="margin-top:8px;border:0;background:var(--soft)" onclick="closeSheet();setTimeout(openInvite,250)">${t('앱에 친구 초대하기')}</button>` : '' });
 }
 
@@ -5520,7 +5524,7 @@ const GROUP_MAX = 99, PIN_MAX = 9, GROUP_OWN_MAX = 30;
 const G = { g: null, posts: [], mem: null, fol: null, pendingN: 0, key: null };
 const MYG = { groups: new Map(), mem: new Map(), fol: new Map(), ok: null, at: 0 }; // 내가 멤버·신청·팔로우한 그룹
 const gUrl = g => `${location.origin}${location.pathname}?g=${g.handle}`;
-const gInviteUrl = code => `${SITE}${location.pathname}?gi=${code}&v=${OGV}`;
+const gInviteUrl = code => `${SITE}${location.pathname}?gi=${code}&v=${OGV}${ogTag('gi')}`;
 // 그룹 표지: 대표 사진 > 최근 사진 모자이크(4장 이상 2×2, 1~3장은 최신 1장) > 첫 글자
 const GTHUMBS = new Map(); // group_id → 최근 사진 썸네일 경로들
 const gAv = (g, cls = '') => {
@@ -5700,9 +5704,9 @@ async function toggleGroupNotify() {
   if (on && !DEMO && await pushState().catch(() => 'off') !== 'on') setTimeout(openPush, 400); // 기기 알림이 꺼져 있으면 켜기 안내
 }
 function shareGroupLink() {
-  const g = G.g, url = `${SITE}${location.pathname}?g=${g.handle}&v=${OGV}`;
+  const g = G.g, url = `${SITE}${location.pathname}?g=${g.handle}&v=${OGV}${ogTag('group')}`;
   if (g.visibility === 'private') return openGroupInvite();
-  shareLink({ title: g.name, text: t("'{name}' 앨범 구경해 봐 📸", { name: g.name }), url, copied: t('그룹 링크를 복사했어요') });
+  shareLink({ title: g.name, text: t("누구나 같이 채우는 '{name}' 그룹이야 📸 너도 와서 구경해봐👀", { name: g.name }), url, copied: t('그룹 링크를 복사했어요') });
 }
 function groupMenu() {
   const g = G.g, isOwner = me && g.owner_id === me.id, isMember = G.mem?.status === 'active';
@@ -5899,7 +5903,7 @@ async function openGroupInvite(justMade) {
     if (error) return toast(kerr(error));
     url = gInviteUrl(data);
   }
-  const msg = t("'{name}' 앨범에 초대할게 📸\n우리 찍은 사진 여기 다 같이 모으자! 링크 누르면 바로 들어와져.", { name: g.name });
+  const msg = t("'{name}' 우리끼리 같이 채우자 📸\n각자 찍은 사진 여기 다 모아 두자! 링크 누르면 바로 들어올 수 있어.", { name: g.name });
   const w = msgShareSheet({ head: justMade ? 'Invite members' : 'Invite', title: g.name, msg, url: () => url,
     hint: t('링크를 받은 사람은 참여하기 한 번이면 바로 멤버가 돼요.'),
     top: `<button class="crow2 hl" id="gipick" style="margin:4px 0 14px"><span class="cic">${I.user}</span><span class="ctx"><b>${t('친구 골라서 초대')}</b><small>${t('앱에 가입한 친구에게 바로 초대를 보내요')}</small></span>${I.chevron}</button>`,
