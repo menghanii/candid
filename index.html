@@ -1311,6 +1311,12 @@
   .vbar.cur { opacity:1; pointer-events:auto; }
   .vbar::before, .vbar i { border-radius:2px; }
   .vbar.on::before, .vbar.on i { height:4px; }
+  /* 받기 설정 · 로그인 없이 보냄 표시 */
+  .crow2.tog { width:100%; justify-content:space-between; }
+  .crow2.tog .sw { flex:none; width:44px; height:26px; border-radius:13px; background:var(--line); position:relative; transition:background .2s; }
+  .crow2.tog .sw::after { content:""; position:absolute; left:3px; top:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform .2s; }
+  .crow2.tog.on .sw { background:var(--accent); } .crow2.tog.on .sw::after { transform:translateX(18px); }
+  .unv { color:#ff9f0a; }
 </style>
 </head>
 <body>
@@ -1445,6 +1451,10 @@ function toast(msg, action) {
 function kerr(e) {
   const m = `${e?.message || e || ''} ${e?.code || ''}`;
   if (/does not exist|not find|42P01|42883|PGRST20[0-9]/i.test(m)) return t('이 기능은 준비 중이에요. 잠시 후 다시 시도해 주세요');
+  if (/send_login_required/.test(m)) return t('이 친구는 로그인한 사람에게만 사진을 받아요');
+  if (/send_friends_only/.test(m)) return t('이 친구는 친구로 추가한 사람에게만 사진을 받아요');
+  if (/send_no_anon/.test(m)) return t('이 친구는 익명으로 받지 않아요. 이름으로 보내 주세요');
+  if (/send_blocked/.test(m)) return t('이 피드에는 보낼 수 없어요');
   if (/group_limit/.test(m)) return t('그룹은 1인당 {n}개까지 만들 수 있어요', { n: GROUP_OWN_MAX });
   if (/daily_limit/.test(m)) return t('오늘은 더 올릴 수 없어요 · 이 그룹은 하루 {n}개까지예요', { n: e?.hint || G.g?.daily_limit || 10 });
   if (/invite_required/.test(m)) return t('초대 링크로만 참여할 수 있는 그룹이에요');
@@ -1821,6 +1831,27 @@ function mountFramer(host, src, edit0, onChange) {
 // 고른 사진·영상의 미리보기 주소(blob:) 해제 — 작성 화면을 닫거나 다시 고를 때
 function freeMedia(list) { (list || []).forEach(m => [m.previewUrl, m.src0, m._tu].forEach(u => { if (typeof u === 'string' && u.startsWith('blob:')) try { URL.revokeObjectURL(u); } catch {} })); }
 addEventListener('unhandledrejection', e => console.log('[candid] unhandled ' + (e.reason?.message || e.reason)));
+// ---------- 친구 피드로 보내기(받기 설정·차단은 서버가 확인, 40 SQL) ----------
+// 이 앱·브라우저의 무작위 표시: 로그인 없이 보낸 사람도 받은 사람이 '보낸 사람 차단'을 할 수 있게(서버에만 기록, 받는 사람에게 안 보임)
+function devId() {
+  try { let v = localStorage.getItem('candid_dev'); if (!v) { v = crypto.randomUUID(); localStorage.setItem('candid_dev', v); } return v; } catch { return null; }
+}
+async function sendPost(row) {
+  const r = await sb.from('posts').insert({ ...row, sender_device: devId() });
+  if (r.error && /sender_device/.test(r.error.message || '')) return sb.from('posts').insert(row); // 서버 준비 전(40 SQL)이면 기기 표시 없이
+  return r;
+}
+// 받기 설정 확인: 이 피드에 보낼 수 있나(보내기 화면을 열기 전) → 안 되면 이유를 알려 주고 false
+async function canSendTo(prof) {
+  const pol = prof?.send_policy || 'anyone';
+  if (pol === 'login' && !me) { loginSheet(t('{name}님은 로그인한 친구에게만 사진을 받아요', { name: esc(prof.name) })); return false; }
+  if (pol === 'friends' && prof.id !== me?.id) {
+    if (!me) { loginSheet(t('{name}님은 친구에게만 사진을 받아요', { name: esc(prof.name) })); return false; }
+    const { data } = await sb.from('follows').select('follower_id').eq('follower_id', prof.id).eq('followee_id', me.id).maybeSingle();
+    if (!data) { toast(t('{name}님은 친구로 추가한 사람에게만 사진을 받아요', { name: prof.name })); return false; }
+  }
+  return true;
+}
 // ---------- 앱 안 확인창: 브라우저 기본 confirm·prompt 대신(가운데 카드) ----------
 // ask(문구, { ok, cancel, danger, input }) → 확인 true / 취소 false / input 이 있으면 입력한 글(취소 null)
 function ask(msg, o = {}) {
@@ -2757,7 +2788,7 @@ function renderBody() {
             <button class="thumb" onclick="openPost('${p.id}')" aria-label="${t('크게 보기')}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="${t('{name}가 보낸 사진', { name: aname(p.author_name) })}">`}</button>
             <div class="meta">
               <div class="t">${esc(p.text) || '<span style="color:var(--sub)">코멘트 없음</span>'}</div>
-              <small>${aname(p.author_name)} · ${ago(p.created_at)}</small>
+              <small>${aname(p.author_name)}${!p.author_id && !isAnonName(p.author_name) ? ` · <span class="unv">${t('로그인 없이 보냄')}</span>` : ''} · ${ago(p.created_at)}</small>
             </div>
             <div class="ab">
               <button class="btn" onclick="removePost('${p.id}')">${t('거절')}</button>
@@ -4099,9 +4130,27 @@ function openPrivacy() {
       <button data-p="0" role="radio"><b>${II.globe} ${t('전체 공개')}</b><small>${t('누구나 내 피드를 볼 수 있어요')}</small></button>
       <button data-p="1" role="radio"><b>${II.lock} ${t('비공개')}</b><small>${t('내가 친구로 추가한 사람만 볼 수 있어요. 상대가 나를 추가했어도, 나도 추가해야 보여요')}</small></button>
     </div>
-    <p class="hint" style="margin-top:12px">${t('비공개여도 피드 채워주기(사진 보내기)는 누구나 할 수 있어요. 내가 승인한 것만 올라가요.')}</p>`);
-  const paint = () => w.querySelectorAll('[data-p]').forEach(b => { const on = (b.dataset.p === '1') === !!myProf?.is_private; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+    <div class="label" style="margin-top:20px">${t('누가 내 피드에 사진을 보낼 수 있나요?')}</div>
+    <div class="gvis" role="radiogroup">
+      <button data-s="anyone" role="radio"><b>${t('누구나')}</b><small>${t('링크를 받은 친구는 로그인 없이도 보낼 수 있어요')}</small></button>
+      <button data-s="login" role="radio"><b>${t('로그인한 사람만')}</b><small>${t('candid. 계정이 있는 사람만 보낼 수 있어요')}</small></button>
+      <button data-s="friends" role="radio"><b>${t('내 친구만')}</b><small>${t('내가 친구로 추가한 사람만 보낼 수 있어요')}</small></button>
+    </div>
+    <button class="crow2 tog" id="anontog" style="margin-top:10px"><span class="ctx"><b>${t('익명으로 받기')}</b><small>${t('끄면 이름을 밝힌 사진만 받아요')}</small></span><i class="sw"></i></button>
+    <p class="hint" style="margin-top:12px">${t('어떻게 받든 내가 승인한 사진만 피드에 올라가요. 불쾌한 사진은 ⋯ 메뉴에서 보낸 사람을 차단할 수 있어요.')}</p>`);
+  const paint = () => {
+    w.querySelectorAll('[data-p]').forEach(b => { const on = (b.dataset.p === '1') === !!myProf?.is_private; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+    w.querySelectorAll('[data-s]').forEach(b => { const on = b.dataset.s === (myProf?.send_policy || 'anyone'); b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+    w.querySelector('#anontog').classList.toggle('on', myProf?.allow_anon !== false);
+  };
   paint();
+  const saveRecv = async patch => {
+    const { error } = await sb.from('profiles').update(patch).eq('id', me.id);
+    if (error) return toast(/send_policy|allow_anon/.test(error.message) ? t('이 기능은 준비 중이에요. 잠시 후 다시 시도해 주세요') : kerr(error));
+    Object.assign(myProf, patch); CACHE.prof.delete(me.id); if (S.isOwner && S.prof) Object.assign(S.prof, patch); paint(); toast(t('받기 설정을 바꿨어요'));
+  };
+  w.querySelectorAll('[data-s]').forEach(b => b.onclick = () => b.dataset.s !== (myProf?.send_policy || 'anyone') && saveRecv({ send_policy: b.dataset.s }));
+  w.querySelector('#anontog').onclick = () => saveRecv({ allow_anon: myProf?.allow_anon === false });
   w.querySelectorAll('[data-p]').forEach(b => b.onclick = async () => {
     const v = b.dataset.p === '1'; if (v === !!myProf?.is_private) return;
     const { error } = await sb.from('profiles').update({ is_private: v }).eq('id', me.id);
@@ -4160,7 +4209,7 @@ function postItems(id) {
     owner && st === 'hidden' ? it(t('다시 올리기'), `restorePost('${id}')`) : '',
     !author && !owner && st === 'approved' ? it(t('신고하기'), later(p.group_id ? `reportPost('${id}')` : `reportContent('post', '${id}')`), true) : '',
     p.group_id && !author && p.author_id ? it(t('{name}님 차단', { name: esc(p.author_name) }), `blockUser('${p.author_id}', '${name}')`, true) : '',
-    !p.group_id && owner && !p.author_id && isAnonName(p.author_name) ? it(t('이 익명 친구 차단'), `blockAnon('${id}')`, true) : '',
+    !p.group_id && owner && !p.author_id && p.author_name !== '탈퇴한 친구' ? it(t(isAnonName(p.author_name) ? '이 익명 친구 차단' : '보낸 사람 차단'), `blockAnon('${id}')`, true) : '',
     p.group_id ? (owner || author ? it(t('삭제'), `deleteGroupPost('${id}')`, true) : '')
       : owner ? (st === 'approved' ? it(t('피드에서 내리기'), `closeSheet();closeViewer();setTimeout(() => hidePost('${id}'), 250)`, true) : it(t(st === 'pending' ? '거절하기' : '완전히 삭제'), `removePost('${id}')`, true))
       : author ? it(t('보낸 사진 삭제'), `deleteMyPost('${id}')`, true) : '',
@@ -4170,15 +4219,16 @@ function postMenu(id) { const h = postItems(id); if (h) menu(h); }
 // 익명으로 보낸 친구 차단: 누군지는 알려주지 않고, 그 사람이 더는 내 피드에 못 보내게(38 SQL)
 async function blockAnon(id) {
   closeSheet();
-  if (!(await ask(t('이 사진을 보낸 익명 친구를 차단할까요? 누군지는 알려주지 않아요. 차단하면 그 친구는 내 피드에 더 보낼 수 없어요.'), { ok: t('차단'), danger: true }))) return;
+  if (!(await ask(t('이 사진을 보낸 사람을 차단할까요? 누군지는 알려주지 않아요. 차단하면 그 사람은 내 피드에 더 보낼 수 없어요.'), { ok: t('차단'), danger: true }))) return;
   const { data, error } = await sb.rpc('block_anon_sender', { p_post: id });
   if (error) return toast(t('지금은 차단할 수 없어요. 잠시 후 다시 해 주세요'));
-  toast(data ? t('익명 친구를 차단했어요') : t('로그인 없이 보낸 사진이라 차단할 사람을 찾을 수 없어요'));
+  toast(data ? t('보낸 사람을 차단했어요') : t('예전에 보낸 사진이라 보낸 사람을 찾을 수 없어요. 신고하거나 사진을 거절해 주세요'));
 }
 
 // 업로드: 인스타·유튜브처럼 누르면 바로 사진첩이 열리고, 고르면 전체 화면 작성 화면
 // mi/asked: 공유 링크(&m=)로 부탁받은 내용(안내 문구용), mode: media | poll | question, pick: 열자마자 사진첩 열기
-function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
+async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
+  if (!S.group && S.prof && !(await canSendTo(S.prof))) return; // 받기 설정(누구나·로그인한 사람만·친구만)
   let media = null;
   let saved = ''; try { saved = localStorage.getItem('candid_author') || ''; } catch {}
   const nick = (myProf?.name || saved).slice(0, 12);
@@ -4210,7 +4260,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
       </section>
       <div class="cmp-who"${GT ? ' style="display:none"' : ''}>
         <div class="cmp-whohead"><span>${t('보내는 사람')}</span>
-          <div class="cmp-seg" role="radiogroup"><button data-who="name" role="radio">${t('이름')}</button><button data-who="anon" role="radio">${II.mask} ${t('익명')}</button></div></div>
+          <div class="cmp-seg" role="radiogroup"${S.prof?.allow_anon === false && !GT ? ' hidden' : ''}><button data-who="name" role="radio">${t('이름')}</button><button data-who="anon" role="radio">${II.mask} ${t('익명')}</button></div></div>
         <div class="cmp-whoval" id="whoval"></div>
       </div>
     </div>
@@ -4395,10 +4445,10 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
       if (mode === 'poll') {
         status(t('보내는 중…'));
         const opts = [...el.querySelectorAll('#opts input')].map(i => i.value.trim()).filter(Boolean);
-        ins = await sb.from('posts').insert({ owner_id: S.uid, media_type: 'poll', mission: '투표', text: $('#pq').value.trim(), poll_options: opts, ...by });
+        ins = await sendPost({ owner_id: S.uid, media_type: 'poll', mission: '투표', text: $('#pq').value.trim(), poll_options: opts, ...by });
       } else if (mode === 'question') {
         status(t('보내는 중…'));
-        ins = await sb.from('posts').insert({ owner_id: S.uid, media_type: 'question', mission: '질문', text: $('#qq').value.trim(), ...by });
+        ins = await sendPost({ owner_id: S.uid, media_type: 'question', mission: '질문', text: $('#qq').value.trim(), ...by });
       } else {
         // 한 장씩 (영상은 줄인 뒤) 올리고 media 배열로 저장. 첫 장은 image_path 에도 넣어 예전 화면과 호환
         const list = [], n = media.length;
@@ -4421,7 +4471,7 @@ function openCompose(mi = 0, asked = false, mode = 'media', pick = false) {
         ins = GT ? await sb.from('posts').insert({
           group_id: GT.id, author_id: me.id, author_name: (myProf?.name || '친구').slice(0, 12), status: 'approved',
           image_path: list[0].p, thumb_path: list[0].t, media_type: list[0].k, ...(n > 1 ? { media: list } : {}), text: $('#text').value.trim(),
-        }) : await sb.from('posts').insert({
+        }) : await sendPost({
           owner_id: S.uid, image_path: list[0].p, thumb_path: list[0].t, media_type: list[0].k,
           ...(n > 1 ? { media: list } : {}), // 1장은 media 칸 없이 (09 SQL 실행 전에도 동작)
           mission: null, text: $('#text').value.trim(), ...by,
