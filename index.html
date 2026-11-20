@@ -285,8 +285,6 @@
  .bnav.dark button { color:#8e8e93; } .bnav.dark button.on { color:#fff; }
  /* 릴스는 화면 끝까지(하단 메뉴는 위에 겹침) */
   /* 데스크톱 웹(마우스 휠): 한 칸(≈120px)이 화면 절반보다 작아 스냅이 매번 되돌리던 문제 → 휠은 자유 스크롤 */
-  @media (hover:hover) and (pointer:fine) {
-  }
   /* 검색 */
   .sbox { position:relative; margin-bottom:8px; }
   .sbox svg { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--sub); pointer-events:none; }
@@ -466,8 +464,6 @@
   .idea .it { flex:1; min-width:0; line-height:1.5; word-break:keep-all; }
   .idea .it b { white-space:nowrap; }
   /* 첫 화면: 스크롤 없이 한 화면에 고정 */
-  @media (max-height:740px) {
-  }
   /* 지난번 로그인: 버튼 위에 떠 있는 말풍선 */
   .last-badge { top:auto; bottom:calc(100% + 8px); right:14px; transform:none; padding:7px 12px; border-radius:14px; font-size:12px; white-space:nowrap;
     background:var(--accent); color:#fff; box-shadow:0 6px 18px color-mix(in srgb, var(--accent) 45%, transparent); animation:floaty 2.4s ease-in-out infinite; pointer-events:none; z-index:2; }
@@ -1115,9 +1111,9 @@
   .rcar .stage.pinching { overflow:visible; z-index:30; }
   .rcar .stage.pinching .stk-layer { opacity:0; }
   .rcar .stage.zoomed .stk-layer { opacity:0; }
-  .reels { position:fixed; inset:0 0 auto 0; top:0; z-index:10; overflow-y:auto; background:#000; color:#fff; overscroll-behavior:contain; scrollbar-width:none; scroll-snap-type:none; bottom:0; }
+  .reels { position:fixed; inset:0 0 auto 0; top:0; z-index:10; overflow-y:auto; background:#000; color:#fff; overscroll-behavior:contain; scrollbar-width:none; scroll-snap-type:y mandatory; bottom:0; }
   .reels::-webkit-scrollbar { display:none; }
-  .reel { position:relative; max-width:480px; margin:0 auto; overflow:hidden; scroll-snap-align:start; background:#000; height:100%; scroll-snap-stop:normal; content-visibility:auto; contain-intrinsic-size:auto 100vh; }
+  .reel { position:relative; max-width:480px; margin:0 auto; overflow:hidden; scroll-snap-align:start; background:#000; height:100%; scroll-snap-stop:always; content-visibility:auto; contain-intrinsic-size:auto 100vh; }
   .rbg { position:absolute; inset:-60px; background-size:cover; background-position:center; filter:blur(36px) brightness(.5); transform:translateZ(0); }
   .rmedia { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
   .reel::after { content:""; position:absolute; inset:auto 0 0; pointer-events:none; height:220px; background:linear-gradient(transparent, rgba(0,0,0,.6) 55%); }
@@ -1290,8 +1286,6 @@
   html.noscroll { height:100%; overflow:hidden; overscroll-behavior:none; }
   html.noscroll body { height:100%; overflow:hidden; overscroll-behavior:none; }
   html.noscroll .landing { height:100dvh; min-height:0; overflow:hidden; padding-top:calc(20px + env(safe-area-inset-top)); }
-  html.noscroll .landing h1 { font-size:42px; }
-  html.noscroll .landing .tagline { margin-bottom:20px; }
   .app.has-nav { padding-bottom:calc(84px + env(safe-area-inset-bottom)); }
   body:has(.bnav) .toast { bottom:calc(84px + env(safe-area-inset-bottom)); }
   /* ===== Candids 투표·질문 배경 (한 곳에 모음) ===== */
@@ -1301,6 +1295,15 @@
   /* ===== 보내기 버튼 (한 곳에 모음) ===== */
   .cmp-go { height:52px; font-size:16px; font-weight:800; }
   .cmp-go:disabled { opacity:.35; }
+  /* 조건부 규칙(합친 규칙보다 뒤에 있어야 이김): 데스크톱 마우스 휠은 자유 스크롤 · 낮은 화면의 첫 화면 글씨 */
+  @media (hover:hover) and (pointer:fine) {
+    .reels { scroll-snap-type:none; }
+    .reel { scroll-snap-stop:normal; }
+  }
+  @media (max-height:740px) {
+    html.noscroll .landing h1 { font-size:42px; }
+    html.noscroll .landing .tagline { margin-bottom:20px; }
+  }
 </style>
 </head>
 <body>
@@ -1841,7 +1844,7 @@ function listRow({ face, title, sub = '', href, right = '', cls = '', attrs = ''
 }
 const personSub = p => [p?.handle ? '@' + esc(p.handle) : '', esc(p?.bio || '')].filter(Boolean).join(' · '); // @아이디 · 소개
 const groupSub = g => `@${esc(g.handle)} · ${t('멤버 {n}명', { n: g.member_count })}`;
-const folBtn = id => id === me?.id ? `<small style="color:var(--sub)">${t('나')}</small>` : `<button class="btn ${myFollows.has(id) ? '' : 'add'}" onclick="toggleFollow('${id}', this)">${myFollows.has(id) ? folLabel(true) : t('맞친구')}</button>`;
+const folBtn = id => id === me?.id ? `<small style="color:var(--sub)">${t('나')}</small>` : `<button class="btn ${myFollows.has(id) ? '' : 'add'}" onclick="toggleFollow('${id}', this)">${folLabel(myFollows.has(id))}</button>`; // 검색 결과: 친구 / 친구 추가
 // ---------- 목록 줄 버튼(만들기·설정·친구 부르기 공통): 아이콘 + 제목(+ 설명) + 오른쪽 화살표 ----------
 function crowBtn(icon, title, fn, { sub = '', cls = '' } = {}) {
   return `<button class="crow2 ${cls}" onclick="${fn}"><span class="cic">${icon}</span><span class="ctx"><b>${title}</b>${sub ? `<small>${sub}</small>` : ''}</span>${cls ? '' : I.chevron}</button>`;
