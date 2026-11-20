@@ -1026,7 +1026,8 @@
   .crot svg { width:19px; height:19px; }
   .cmp-media.has .repick { z-index:3; }
   /* 궤도를 곧바로 다시 그릴 때(시작 직후 데이터가 이어서 올 때): 등장 효과 없이 그대로 */
-  .orbitv.still .orb, .orbitv.still.allseen .orb.seen { animation:ofloat var(--d,6s) ease-in-out infinite !important; animation-delay:var(--dl,0s) !important; opacity:1; }
+  .orbitv.still .orb, .orbitv.still.allseen .orb.seen { animation:ofloat var(--d,6s) ease-in-out infinite !important; animation-delay:var(--dl,0s) !important; }
+  .orbitv.still .orb:not(.seen), .orbitv.still.allseen .orb.seen { opacity:1; } /* 다시 그릴 때도 '본 것' 흐림은 유지(새 사진이 있을 때) */
   /* 수정 시트 사진 줄: 여러 줄로(가로 스크롤 대신) — 손가락으로 끌어 순서 바꾸기 */
   .epm { flex-wrap:wrap; overflow:visible !important; }
   .epm-i { touch-action:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }

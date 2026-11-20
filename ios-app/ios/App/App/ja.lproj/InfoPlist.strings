@@ -1,0 +1,5 @@
+"NSCameraUsageDescription" = "写真をその場で撮って送るためにカメラを使います。";
+"NSMicrophoneUsageDescription" = "動画を撮るときに音声も記録するためにマイクを使います。";
+"NSPhotoLibraryUsageDescription" = "友だちに送る写真や動画を選ぶために写真ライブラリにアクセスします。";
+"NSPhotoLibraryAddUsageDescription" = "グループの写真を写真ライブラリに保存するために必要です。";
+"NSUserTrackingUsageDescription" = "許可すると、興味に合った広告が表示されます。許可しなくてもアプリはそのまま使え、通常の広告が表示されます。";

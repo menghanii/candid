@@ -1,0 +1,5 @@
+"NSCameraUsageDescription" = "사진을 바로 찍어 보내기 위해 카메라를 사용해요.";
+"NSMicrophoneUsageDescription" = "영상을 찍을 때 소리를 함께 담기 위해 마이크를 사용해요.";
+"NSPhotoLibraryUsageDescription" = "친구에게 보낼 사진과 영상을 고르기 위해 사진첩에 접근해요.";
+"NSPhotoLibraryAddUsageDescription" = "그룹 사진을 내 사진첩에 저장하기 위해 필요해요.";
+"NSUserTrackingUsageDescription" = "허용하면 관심사에 맞는 광고를 보여 드려요. 허용하지 않아도 앱은 그대로 쓸 수 있고, 일반 광고가 보여요.";

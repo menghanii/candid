@@ -43,9 +43,9 @@ Contact: contact@candid-feed.com
 ## Keywords (100)
 photo,feed,friends,shared album,group album,candid,sticker,travel,wedding,anonymous,poll,selfie
 
-## Screenshots — `appstore/screenshots/en/01~05.png`
-1. Your feed, filled by friends
-2. Our feed, filled by just us
-3. Everyone's feed, filled by everyone
-4. Swipe through, like, comment, decorate
-5. All your friends, in orbit
+## Screenshots (1290×2796, upload to the 6.9" slot) — `appstore/screenshots/en/01~05.png`
+1. Your feed, by your friends
+2. New moments. In your orbit.
+3. A little candid. A quick catch-up.
+4. You, through your friends' eyes.
+5. Just us. Or everyone.

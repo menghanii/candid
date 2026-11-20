@@ -20,15 +20,18 @@
 		A084ECDBA7D38E1E42DFC39D /* Pods_App.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF277DCFFFF123FFC6DF26C7 /* Pods_App.framework */; };
 		A5077FD5C3A3B3F9A39220E5 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 2F488A2DF4D7BCC9BF5A1FDC /* PrivacyInfo.xcprivacy */; };
 		BF66B74C17D890FC0CCD39DB /* AppleSignInPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = F41E5B4BA2ED0FFC61441D54 /* AppleSignInPlugin.swift */; };
+		DA1D14103B2A2B0027B1DCE3 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 8132CD560AECF7A9B845BBC5 /* InfoPlist.strings */; };
 		E0B56966CCB7C8F33329FEE8 /* MediaPickerPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 182EDB3EF82BCF235975DED7 /* MediaPickerPlugin.swift */; };
 		F54732B1A7F4013E2C3F139C /* AppViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79F259BE9AE4F91AC5EF3A5C /* AppViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		182EDB3EF82BCF235975DED7 /* MediaPickerPlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MediaPickerPlugin.swift; sourceTree = "<group>"; };
+		25B60F82A4C31D67D4DC2296 /* ja */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		2EF2624FD508FF05D5BB64C9 /* NativeAdsPlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NativeAdsPlugin.swift; sourceTree = "<group>"; };
 		2F488A2DF4D7BCC9BF5A1FDC /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
+		319596E52F879A0682232E73 /* en */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		4725A491C823082CF7BBC72D /* App.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -40,6 +43,7 @@
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		77C6B792A1531EDB3495DA50 /* SceneDelegate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		79F259BE9AE4F91AC5EF3A5C /* AppViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppViewController.swift; sourceTree = "<group>"; };
+		817435C0A361B97075F31217 /* ko */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		AF277DCFFFF123FFC6DF26C7 /* Pods_App.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_App.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF51FD2D460BCFE21FA515B2 /* Pods-App.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.release.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.release.xcconfig"; sourceTree = "<group>"; };
 		D80F1298A49DB3E477D881A6 /* AuthSessionPlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AuthSessionPlugin.swift; sourceTree = "<group>"; };
@@ -104,6 +108,7 @@
 				4725A491C823082CF7BBC72D /* App.entitlements */,
 				2F488A2DF4D7BCC9BF5A1FDC /* PrivacyInfo.xcprivacy */,
 				2EF2624FD508FF05D5BB64C9 /* NativeAdsPlugin.swift */,
+				8132CD560AECF7A9B845BBC5 /* InfoPlist.strings */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -163,6 +168,8 @@
 			knownRegions = (
 				en,
 				Base,
+				ko,
+				ja,
 			);
 			mainGroup = 504EC2FB1FED79650016851F;
 			productRefGroup = 504EC3051FED79650016851F /* Products */;
@@ -186,6 +193,7 @@
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
 				A5077FD5C3A3B3F9A39220E5 /* PrivacyInfo.xcprivacy in Resources */,
+				DA1D14103B2A2B0027B1DCE3 /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -274,6 +282,16 @@
 				504EC3111FED79650016851F /* Base */,
 			);
 			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		8132CD560AECF7A9B845BBC5 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				817435C0A361B97075F31217 /* ko */,
+				319596E52F879A0682232E73 /* en */,
+				25B60F82A4C31D67D4DC2296 /* ja */,
+			);
+			name = InfoPlist.strings;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
@@ -393,7 +411,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = 92KNXMVFG4;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -415,7 +433,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = 92KNXMVFG4;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
