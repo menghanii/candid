@@ -3655,7 +3655,15 @@ function wireReels($reels) {
     if (!e.isIntersecting) return e.target.querySelectorAll('video').forEach(v => v.pause());
     const v = currentVideo(e.target); if (!v) return; // 여러 장이면 지금 보이는 장의 영상만
     v.preload = 'auto'; v.muted = muted; v.play().catch(() => {});
-  }), { threshold: 0.6 });
+  }), { root: $reels, threshold: 0.6 }); // 기준을 이 스크롤 칸으로(iPhone 은 기준이 화면이면 안쪽 스크롤 때 안 알려 주는 경우가 있음)
+  // 예비: 스크롤이 멈추면 지금 화면의 칸을 1초 뒤 '본 것'으로(관찰이 놓쳐도 새 사진 숫자가 줄도록)
+  let stopT, seenT;
+  const settle = () => { clearTimeout(seenT);
+    const mid = $reels.scrollTop + $reels.clientHeight / 2;
+    const cur = [...$reels.querySelectorAll('.reel[data-id]')].find(r => r.offsetTop <= mid && r.offsetTop + r.offsetHeight > mid);
+    if (cur) seenT = setTimeout(() => { if (cur.isConnected && Math.abs(cur.offsetTop - $reels.scrollTop) < cur.offsetHeight / 2) markSeen(cur.dataset.id); }, 1000); };
+  $reels.addEventListener('scroll', () => { clearTimeout(stopT); clearTimeout(seenT); stopT = setTimeout(settle, 150); }, { passive: true });
+  requestAnimationFrame(settle); // 처음 열렸을 때 보이는 칸도
   initCarousels($reels, () => true);
   $reels.querySelectorAll('.rcar .stage').forEach(st => enableZoom(st, { snap: true })); // 사진만 잠깐 확대
   $reels.querySelectorAll('.rcar .stage').forEach(watchReelRatio);
