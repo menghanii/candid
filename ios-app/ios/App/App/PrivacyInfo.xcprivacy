@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- candid. 개인정보 매니페스트: 광고(AdMob)는 이용자가 허용한 경우에만 추적, 앱 기능에만 쓰는 정보, 파일 크기 확인(영상 용량) -->
+<!-- candid. 개인정보 매니페스트: 수집 항목(광고 항목은 추적용, 이용자가 허용한 경우에만), 파일 크기 확인(영상 용량).
+     NSPrivacyTracking·NSPrivacyTrackingDomains 는 넣지 않음: true+빈 목록은 ITMS-91064 오류, 도메인을 적으면 추적 거부 시 광고 연결이 막힘(TN3181) -->
 <plist version="1.0">
 <dict>
-	<key>NSPrivacyTracking</key><true/>
-	<key>NSPrivacyTrackingDomains</key><array/>
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array>
 		<dict>
