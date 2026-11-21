@@ -105,11 +105,11 @@ console.log('\n[6] flow wiring');
   has(/const choose = target => \{ closeSheet\(\); setTimeout\(\(\) => composeTarget\(target\), 200\); \};/, 'destination picker closes sheet then composes');
   has(/choose\(\{ group: MYG\.groups\.get\(b\.dataset\.g\) \}\)/, 'group row select → compose target(group)');
   has(/choose\(list\.find\(x => x\.id === b\.dataset\.id\)\)/, 'friend row select → compose target(profile)');
-  // 작성 화면 진입: 그룹은 바로 사진첩(pick), 친구는 일반
-  has(/openCompose\(0, false, 'media', true\);/, 'group compose opens media picker directly');
+  // 작성 화면 진입: 그룹도 사진·투표·질문 중 고를 수 있게 작성 화면부터
+  has(/openCompose\(0, false, 'media', false\);/, 'group compose opens composer with mode choice');
   has(/openCompose\(0, false, 'media'\);/, 'friend compose opens composer');
   has(/const GT = S\.group \|\| null;/, 'composer detects group target');
-  has(/if \(GT\) mode = 'media';/, 'group compose forces media mode');
+  ok(!/if \(GT\) mode = 'media';/.test(html), 'group compose no longer forces media mode');
   // 그룹 화면 → 사진 올리기
   has(/onclick="composeToGroup\(G\.g\)"/, 'group page upload buttons enter composeToGroup');
   // 궤도(홈) 탭 동선
@@ -204,6 +204,26 @@ console.log('\n[9] picker height');
   ok((html.match(/fillPickList\(\{ \$q, \$l, items: /g) || []).length === 2, 'friend and group pickers both use fillPickList');
   has(/const rows = searchMatch\(items, \$q\.value\)/, 'shared filter uses searchMatch');
   ok(!/\.pflist \{[^}]*max-height:52vh/.test(html), 'picker list no longer shrinks with results');
+}
+
+// 10) 그룹 투표·질문 + 댓글형 다중 답변
+console.log('\n[10] group polls & answers');
+{
+  const has = (re, msg) => ok(re.test(html), msg);
+  ok(!/if \(GT\) mode = 'media';/.test(html), 'group composer allows poll/question');
+  ok(!/cmp-modes intop[^>]*display:none/.test(html), 'composer mode tabs are shown for groups');
+  has(/const row = \{ media_type: 'poll'[\s\S]{0,500}group_id: GT\.id/, 'group poll insert uses group author');
+  has(/const row = \{ media_type: 'question'[\s\S]{0,500}group_id: GT\.id/, 'group question insert uses group author');
+  has(/isGroup && !member \? t\('그룹 멤버만 투표할 수 있어요'\)/, 'group poll is limited to members');
+  has(/canAnswerQuestion = p =>/, 'question answer eligibility helper');
+  has(/p\?\.media_type === 'question' && me && !canAnswerQuestion\(p\)/, 'answer input hidden for ineligible users');
+  has(/isQ \? t\('답변'\) : 'Comments'/, 'question opens an answers sheet');
+  has(/qa-more/, 'question card has an answers button');
+  has(/isText\(p\) \? textTile\(p\) :/, 'group grid renders poll/question tiles');
+  const sql = fs.readFileSync(path.join(root, 'sql/41_group_qa.sql'), 'utf8');
+  ok(/media_type in \('poll', 'question'\)/.test(sql), 'SQL allows group polls/questions');
+  ok(/public\.can_post_group\(p\.group_id\)/.test(sql), 'SQL lets group members vote');
+  ok(/p\.media_type <> 'question'/.test(sql), 'SQL gates question answers');
 }
 
 console.log('\n' + (failed ? `FAILED: ${failed} check(s)` : 'ALL TESTS PASSED'));

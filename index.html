@@ -324,6 +324,8 @@
   .qa .q span, .qa .a span { flex:none; font-family:var(--display); font-weight:800; color:var(--accent); }
   .tcard.question .qa .q span, .tcard.question .qa .a span { color:#8fa3ff; }
   .qa .a.wait { opacity:.55; font-style:italic; }
+  .qa-more { margin-top:10px; border:0; background:none; color:var(--accent); font:inherit; font-size:13px; font-weight:800; padding:4px 0; }
+  .tcard.question .qa-more { color:#8fa3ff; }
  .sheet .qa .q span { color:var(--accent); }
   /* 릴스 텍스트 카드 */
   /* 당겨서 새로고침 */
@@ -3207,13 +3209,14 @@ async function toggleLike(id, only) {
   if (error) { s.liked = !s.liked; s.likes += s.liked ? 1 : -1; paintSoc(id); toast(kerr(error)); }
 }
 // 댓글 목록 + 입력칸 (릴스는 시트로, 게시물 상세는 사진 아래에 바로)
-const commentsHtml = (foot = '') => `<div class="clist" data-cl><p class="hint">${t('불러오는 중…')}</p></div>
+const commentsHtml = (foot = '', placeholder = '') => `<div class="clist" data-cl><p class="hint">${t('불러오는 중…')}</p></div>
     <div class="cbar ${foot}">${me
-      ? `<input class="field" data-cin maxlength="200" placeholder="${t('따뜻한 한마디 남기기')}" style="margin:0"><button class="btn primary" data-cgo>${t('게시')}</button>`
+      ? `<input class="field" data-cin maxlength="200" placeholder="${placeholder || t('따뜻한 한마디 남기기')}" style="margin:0"><button class="btn primary" data-cgo>${t('게시')}</button>`
       : `<button class="btn primary block" onclick="closeSheet();location.href=location.pathname">${t('로그인하고 댓글 달기')}</button>`}</div>`;
 function openComments(id, ownerId) {
-  const w = sheet(`<h3>Comments<i class="pd">.</i></h3>${commentsHtml('sheet-foot')}`);
-  mountComments(w, id, ownerId);
+  const p = findAny(id), isQ = p?.media_type === 'question';
+  const w = sheet(`<h3>${isQ ? t('답변') : 'Comments'}<i class="pd">.</i></h3>${commentsHtml('sheet-foot', isQ ? t('답변을 남겨 주세요') : '')}`);
+  mountComments(w, id, ownerId, p);
 }
 // 게시물 상세의 💬: 아래 댓글로 스크롤 + 입력칸 포커스
 function focusPostComments(btn) {
@@ -3221,7 +3224,7 @@ function focusPostComments(btn) {
   sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
   setTimeout(() => sec.querySelector('[data-cin]')?.focus({ preventScroll: true }), 350);
 }
-function mountComments(w, id, ownerId) {
+function mountComments(w, id, ownerId, p) {
   if (!w) return;
   const paint = async () => {
     const q = cols => sb.from('comments').select(cols).eq('post_id', id).order('created_at', { ascending: true });
@@ -3264,6 +3267,7 @@ function mountComments(w, id, ownerId) {
     });
   };
   paint();
+  if (p?.media_type === 'question' && me && !canAnswerQuestion(p)) w.querySelector('.cbar')?.remove(); // 답변은 주인/그룹 멤버만
   const go = w.querySelector('[data-cgo]'), inp = w.querySelector('[data-cin]');
   if (go) {
     const send = async () => {
@@ -3668,7 +3672,7 @@ function composeTarget(target) {
     if (g.closed) return toast(t('업로드가 마감된 그룹이에요'));
     const keep = { uid: S.uid, prof: S.prof, isOwner: S.isOwner, group: S.group };
     Object.assign(S, { group: g });
-    openCompose(0, false, 'media', true); // 버튼을 누른 순간이라 바로 사진첩
+    openCompose(0, false, 'media', false); // 사진·투표·질문 중 고를 수 있게 작성 화면부터
     new MutationObserver((_, ob) => {
       if (document.querySelector('.composer')) return;
       ob.disconnect(); Object.assign(S, keep);
@@ -3822,14 +3826,17 @@ async function loadPolls(posts) {
 }
 function pollHTML(p) {
   const s = POLL.get(p.id) || { counts: (p.poll_options || []).map(() => 0), total: 0, mine: null };
-  const owner = me && me.id === p.owner_id;
-  const canVote = p.status === 'approved' && !owner && s.mine == null;
+  const isGroup = !!p.group_id;
+  const member = !isGroup || ['owner', 'member'].includes(gRole(p.group_id));
+  const owner = !isGroup && me && me.id === p.owner_id;
+  const canVote = p.status === 'approved' && member && !owner && s.mine == null;
   const opts = (p.poll_options || []).map((o, i) => {
     if (canVote) return `<button class="popt" onclick="vote('${p.id}', ${i})">${esc(o)}</button>`;
     const pct = s.total ? Math.round(s.counts[i] / s.total * 100) : 0;
     return `<div class="popt res ${s.mine === i ? 'mine' : ''}"><i style="width:${pct}%"></i><b>${esc(o)}${s.mine === i ? ' ' + II.check : ''}</b><em>${pct}%</em></div>`;
   }).join('');
   const foot = p.status !== 'approved' ? t('승인하면 친구들이 투표할 수 있어요')
+    : isGroup && !member ? t('그룹 멤버만 투표할 수 있어요')
     : owner ? t('{n}명 참여 · 내 피드의 투표엔 참여할 수 없어요', { n: s.total })
     : canVote ? t('눌러서 투표하기') : t('{n}명 참여', { n: s.total });
   return `<div class="poll" data-poll="${p.id}">${opts}<small>${foot}</small></div>`;
@@ -3847,9 +3854,18 @@ async function vote(id, i) {
     toast(/duplicate|23505/i.test(error.message + error.code) ? t('이미 투표했어요') : kerr(error));
   }
 }
-const qaHTML = p => `<div class="qa"><div class="q"><span>Q.</span>${esc(p.text)}</div>${p.answer
-  ? `<div class="a"><span>A.</span>${esc(p.answer)}</div>`
-  : `<div class="a wait">${t('아직 답하지 않았어요')}</div>`}</div>`;
+const canAnswerQuestion = p => !!me && (p.group_id ? ['owner', 'member'].includes(gRole(p.group_id)) : me.id === p.owner_id);
+const qaHTML = p => {
+  const n = (SOC.get(p.id)?.comments || 0) + (p.answer ? 1 : 0);
+  const can = canAnswerQuestion(p);
+  const label = can ? (n ? t('답변 더 하기') : t('답변하기')) : t('답변 보기');
+  const ownerId = p.group_id ? (groupOf(p.group_id)?.owner_id || '') : (p.owner_id || '');
+  return `<div class="qa" data-qa="${p.id}"><div class="q"><span>Q.</span>${esc(p.text)}</div>${p.answer
+    ? `<div class="a"><span>A.</span>${esc(p.answer)}</div>`
+    : n ? `<div class="a wait">${t('답변 {n}개', { n })}</div>`
+      : `<div class="a wait">${t('아직 답하지 않았어요')}</div>`}
+    <button type="button" class="qa-more" onclick="openComments('${p.id}','${ownerId}')">${label}${n ? ` · ${n}` : ''}</button></div>`;
+};
 // 상세·릴스에서 쓰는 큰 카드
 // 투표·질문 카드 + 스티커 층(사진처럼 카드 위에 스티커를 붙일 수 있게)
 const textStage = p => `<div class="tstage">${textCard(p)}${p.status === 'approved' ? stickerLayer(p.id, 0) : ''}</div>`;
@@ -3965,7 +3981,7 @@ function openPost(id) {
       ${own && p.status === 'hidden' ? `<div class="pending-acts">
         <button class="btn" onclick="removePost('${p.id}')">${t('삭제')}</button>
         <button class="btn primary" onclick="restorePost('${p.id}')">${t('다시 올리기')}</button></div>` : ''}
-      ${p.status === 'approved' ? `<section class="pcmts" aria-label="${t('댓글')}">${commentsHtml()}</section>` : ''}
+      ${p.status === 'approved' ? `<section class="pcmts" aria-label="${p.media_type === 'question' ? t('답변') : t('댓글')}">${commentsHtml('', p.media_type === 'question' ? t('답변을 남겨 주세요') : '')}</section>` : ''}
     </article>`;
   ov.onclick = e => { if (e.target.closest('[data-close]')) closePostPage(ov); };
   document.body.appendChild(ov);
@@ -3974,7 +3990,7 @@ function openPost(id) {
   const ob = new MutationObserver(() => { if (!ov.isConnected) { ob.disconnect(); if (history.state?.post && !document.querySelector('.overlay.page')) history.back(); } });
   ob.observe(document.body, { childList: true });
   edgeSwipeBack(ov, () => closePostPage(ov));
-  if (p.status === 'approved') { loadSocial([p.id]).then(() => paintSoc(p.id)).catch(() => {}); mountComments(ov.querySelector('.pcmts'), p.id, gp ? gg?.owner_id : p.owner_id); }
+  if (p.status === 'approved') { loadSocial([p.id]).then(() => paintSoc(p.id)).catch(() => {}); mountComments(ov.querySelector('.pcmts'), p.id, gp ? gg?.owner_id : p.owner_id, p); }
   if (p.status === 'approved') loadStickers([p.id]).then(() => refreshStickerLayers(p.id)).catch(() => {});
   ov.querySelectorAll('.post-media .stage').forEach(watchReelRatio); // 잘리지 않게 원본 비율로
   const pm = ov.querySelector('.post-media'); if (pm) { upgradeFull(pm, 0); pm.querySelectorAll('.stage').forEach(enableZoom); }
@@ -4357,13 +4373,12 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
   let media = null;
   let saved = ''; try { saved = localStorage.getItem('candid_author') || ''; } catch {}
   const nick = (myProf?.name || saved).slice(0, 12);
-  const GT = S.group || null; // 그룹에 올리기: 사진·영상만, 내 이름으로, 바로 게시
-  if (GT) mode = 'media';
+  const GT = S.group || null; // 그룹에 올리기: 사진·영상·투표·질문, 내 이름으로, 바로 게시
   const name = esc(GT ? GT.name : S.prof.name);
   const el = pageOverlay('composer', `
     <header class="pov-h cmp-h"><button class="icon-btn" data-x aria-label="${t('닫기')}">${I.close}</button><b class="cmp-to">${GT ? gAv(GT, 'xs') : avatar(S.prof, 'xs')}<span>${GT ? name : t('{name}에게', { name })}</span></b><span class="cmp-hsp"></span></header>
     <div class="cmp-body">
-      <nav class="cmp-modes intop" role="tablist"${GT ? ' style="display:none"' : ''}><button data-mode="media" role="tab">${t('사진·영상')}</button><button data-mode="poll" role="tab">${t('투표')}</button><button data-mode="question" role="tab">${t('질문')}</button></nav>
+      <nav class="cmp-modes intop" role="tablist"><button data-mode="media" role="tab">${t('사진·영상')}</button><button data-mode="poll" role="tab">${t('투표')}</button><button data-mode="question" role="tab">${t('질문')}</button></nav>
       <section data-sec="media">
         <label class="cmp-media" id="pick"><span class="cmp-empty">${I.camera}<b>${t('사진·영상 선택')}</b><small>${t('여러 장 가능(최대 10장) · 영상은 10초까지')}</small></span><input type="file" accept="image/*,video/*" id="file" multiple hidden></label>
         <div class="trim" id="trim" hidden></div>
@@ -4377,11 +4392,11 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
         <textarea class="cmp-cap big" id="pq" maxlength="80" rows="2" placeholder="${t('무엇을 물어볼까요? (예: {name} 다음 머리 스타일은?)', { name })}"></textarea>
         <div id="opts"></div>
         <button class="cmp-add" id="addopt">${t('+ 선택지 추가')}</button>
-        <p class="cmp-note">${t('{name}님은 투표할 수 없고, 다른 친구들이 투표해요.', { name })}</p>
+        <p class="cmp-note">${GT ? t('그룹 멤버 누구나 투표할 수 있어요.') : t('{name}님은 투표할 수 없고, 다른 친구들이 투표해요.', { name })}</p>
       </section>
       <section data-sec="question">
         <textarea class="cmp-cap big" id="qq" maxlength="120" rows="3" placeholder="${t('{name}님에게 궁금한 것 (예: 우리 처음 만난 날 기억나?)', { name })}"></textarea>
-        <p class="cmp-note">${t('답은 {name}님만 할 수 있고, 답하면 질문과 함께 피드에 올라가요.', { name })}</p>
+        <p class="cmp-note">${GT ? t('그룹 멤버 누구나 답할 수 있어요. 답변은 댓글로 남겨요.') : t('답은 {name}님만 할 수 있어요. 여러 개 남길 수 있어요.', { name })}</p>
       </section>
       <div class="cmp-who"${GT ? ' style="display:none"' : ''}>
         <div class="cmp-whohead"><span>${t('보내는 사람')}</span>
@@ -4571,10 +4586,16 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
       if (mode === 'poll') {
         status(t('보내는 중…'));
         const opts = [...el.querySelectorAll('#opts input')].map(i => i.value.trim()).filter(Boolean);
-        ins = await sendPost({ owner_id: S.uid, media_type: 'poll', mission: '투표', text: $('#pq').value.trim(), poll_options: opts, ...by });
+        const row = { media_type: 'poll', mission: '투표', text: $('#pq').value.trim(), poll_options: opts };
+        ins = GT
+          ? await sb.from('posts').insert({ group_id: GT.id, author_id: me.id, author_name: (myProf?.name || '친구').slice(0, 12), status: 'approved', ...row })
+          : await sendPost({ owner_id: S.uid, ...row, ...by });
       } else if (mode === 'question') {
         status(t('보내는 중…'));
-        ins = await sendPost({ owner_id: S.uid, media_type: 'question', mission: '질문', text: $('#qq').value.trim(), ...by });
+        const row = { media_type: 'question', mission: '질문', text: $('#qq').value.trim() };
+        ins = GT
+          ? await sb.from('posts').insert({ group_id: GT.id, author_id: me.id, author_name: (myProf?.name || '친구').slice(0, 12), status: 'approved', ...row })
+          : await sendPost({ owner_id: S.uid, ...row, ...by });
       } else {
         // 한 장씩 (영상은 줄인 뒤) 올리고 media 배열로 저장. 첫 장은 image_path 에도 넣어 예전 화면과 호환
         const list = [], n = media.length;
@@ -5714,6 +5735,8 @@ async function renderGroup(key, fresh) {
     if (mem.data || fol.data) MYG.groups.set(g.id, g); else MYG.groups.delete(g.id);
   }
   paintGroup();
+  loadPolls(ps.data).catch(() => {});
+  loadSocial(ps.data.filter(p => p.status === 'approved').map(p => p.id)).then(() => { if (G.g?.id === g.id) ps.data.forEach(p => paintSoc(p.id)); }).catch(() => {});
   loadStickers(ps.data.filter(p => p.status === 'approved').map(p => p.id)).then(() => { if (G.g?.id === g.id) ps.data.forEach(p => STK.has(p.id) && refreshStickerLayers(p.id)); }).catch(() => {});
   const q = new URLSearchParams(location.search);
   if (q.has('manage') && me?.id === g.owner_id && !S.autoOpened) { S.autoOpened = true; openGroupManage(); }
@@ -5730,7 +5753,7 @@ function paintGroup() {
   const n = G.posts.length;
   let acts;
   if (!me) acts = `<button class="btn primary" onclick="loginSheet(t('로그인하면 이 그룹에 사진을 올리고 꾸밀 수 있어요'))">${t(g.visibility === 'public' && g.join_mode === 'open' ? '로그인하고 참여하기' : '로그인하고 참여 신청')}</button>`;
-  else if (isOwner || isMember) acts = `${g.closed ? `<button class="btn" disabled>${t('업로드 마감')}</button>` : `<button class="btn primary" onclick="composeToGroup(G.g)">${t('사진 올리기')}</button>`}
+  else if (isOwner || isMember) acts = `${g.closed ? `<button class="btn" disabled>${t('업로드 마감')}</button>` : `<button class="btn primary" onclick="composeToGroup(G.g)">${t('올리기')}</button>`}
       <button class="btn" onclick="openGroupInvite()">${t('초대하기')}</button>
       ${isOwner ? `<button class="btn gmanage" onclick="openGroupManage()">${t('관리')}${G.pendingN ? `<span class="n">${G.pendingN}</span>` : ''}</button>` : ''}`;
   else if (isPending) acts = `<button class="btn" disabled>${II.clock}${t('승인 대기 중')}</button><button class="btn" onclick="leaveGroup(true)">${t('신청 취소')}</button>`;
@@ -5738,7 +5761,7 @@ function paintGroup() {
   else if (g.visibility === 'public') acts = `<button class="btn ${fol ? '' : 'add'}" onclick="toggleGroupFollow()">${fol ? II.check + t('팔로잉') : t('팔로우')}</button><button class="btn primary" onclick="joinGroup()">${t('멤버 신청')}</button>`;
   else acts = `<button class="btn" disabled>${t('초대받은 멤버만 참여할 수 있어요')}</button>`;
   const tile = p => `<button data-pid="${p.id}" onclick="openFeedViewer('${p.id}', this)" class="${p.flagged ? 'gflagged ' : ''}${isVideo(p) ? 'v' : 'p'}" aria-label="${t('{name}님이 올린 사진', { name: esc(p.author_name) })}">
-      <img src="${thumbUrl(p)}" alt="" loading="lazy">${gridStickers(p)}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}
+      ${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">`}${gridStickers(p)}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}
       ${p.pinned_at ? `<span class="gpin" aria-label="${t('고정됨')}">${II.pin}</span>` : ''}${p.flagged ? `<span class="gflag">${t('신고로 가려짐')}</span>` : ''}
       ${tileFrom(p, true)}</button>`;
   const body = !canSee
@@ -5746,7 +5769,7 @@ function paintGroup() {
     : posts.length ? `<div class="grid">${posts.map(tile).join('')}</div>`
     : `<div class="empty"><div class="empty-dot">${DOT('wow', { cls: 'float' })}</div><h2>Be the <em>first.</em></h2>
         <p>${t(isOwner || isMember ? '아직 사진이 없어요.<br>첫 사진을 올리고 멤버를 초대해 보세요.' : '아직 사진이 없어요.')}</p>
-        ${(isOwner || isMember) && !g.closed ? `<button class="btn primary block" onclick="composeToGroup(G.g)">${t('사진 올리기')}</button>` : ''}</div>`;
+        ${(isOwner || isMember) && !g.closed ? `<button class="btn primary block" onclick="composeToGroup(G.g)">${t('올리기')}</button>` : ''}</div>`;
   $app.innerHTML = `
     ${appTop(me ? g.name : null)}
     ${feedHead({ cls: 'ghead',
