@@ -75,6 +75,29 @@ eq(H.memberSub({ role: 'member', status: 'active', prof: {} }), '', 'memberSub e
 const who = H.memberWho({ user_id: 'u9', role: 'member', prof: { name: '<b>', handle: 'h' } });
 ok(who.includes('/u/u9') && who.includes('<av>') && who.includes('&lt;b&gt;') === false && who.includes('<b>'), 'memberWho links feed/avatar/name');
 
+// textTheme: 파스텔 팔레트/코너/결정성
+{
+  const a = html.indexOf('const TEXT_THEMES ='), b = html.indexOf('// 그리드·승인함 썸네일용 카드', a);
+  const src = html.slice(a, b);
+  const TH = new Function('DOT', src + '\nreturn { TEXT_THEMES, textTheme, textThemeVars };')(() => '<dot>');
+  const t1 = TH.textTheme('abc'), t2 = TH.textTheme('abc');
+  eq(t1.key, t2.key, 'textTheme is deterministic');
+  ok(TH.TEXT_THEMES.some(t => t.key === t1.key), 'textTheme picks a palette');
+  ok(['tl', 'tr', 'bl', 'br'].includes(t1.corner), 'textTheme picks a corner');
+  ok(/--tbg:/.test(TH.textThemeVars(t1)) && /--tacc:/.test(TH.textThemeVars(t1)), 'textThemeVars output');
+  eq(TH.textTheme({ id: 'x', theme: 'rose' }).key, 'rose', 'stored theme key is respected');
+}
+// libMonthLabel: 잘못된 시간값 NaN 방지 + 년/월
+{
+  const a = html.indexOf('function libMonthLabel(sec)'), b = html.indexOf('const libDur', a);
+  const tStub = (s, v) => v ? s.replace(/\{(\w+)\}/g, (m, k) => v[k] ?? m) : s;
+  const F = new Function('LANG', 't', html.slice(a, b) + '\nreturn libMonthLabel;')('ko', tStub);
+  eq(F(NaN), '', 'libMonthLabel guards NaN');
+  eq(F(undefined), '', 'libMonthLabel guards undefined');
+  eq(F(0), '', 'libMonthLabel guards zero');
+  eq(F(Math.floor(new Date(2026, 10, 15).getTime() / 1000)), '2026년 11월', 'libMonthLabel year/month');
+}
+
 // 3) 친구/그룹 작성 진입 공통화
 console.log('\n[3] compose unification');
 ok(/const choose = target => \{ closeSheet\(\); setTimeout\(\(\) => composeTarget\(target\), 200\); \};/.test(html), 'picker closes sheet then composeTarget');
@@ -175,12 +198,21 @@ console.log('\n[8] photo library');
 {
   const has = (re, msg) => ok(re.test(html), msg);
   has(/\.lib-knob \{[^}]*height:36px/, 'date handle keeps its original height');
+  has(/sel\.length = 0/, 'album switch clears selection');
+  has(/if \(e\.target\.closest\('\.lib-sc'\)\) return;/, 'photo grid taps do not drag the sheet');
+  has(/sc\.style\.touchAction = 'pan-y'/, 'photo grid scrolls vertically');
+  has(/document\.querySelectorAll\('\.libw'\)/, 'stale photo sheets are cleared');
+  has(/el\.style\.pointerEvents = 'none'/, 'closing photo sheet stops blocking touches');
+  has(/if \(!done\) finish\(null\)/, 'close always cleans up the sheet');
+  has(/sheet\.style\.touchAction = 'pan-y'/, 'photo sheet allows native scrolling');
   has(/\.lib-knob b \{ font-size:13px/, 'date label keeps its original 13px');
   has(/\.lib-knob \{[^}]*min-width:112px/, 'date handle is wider');
   has(/\.lib-knob::before \{[^}]*margin-right:16px/, 'space between the grip and the date');
   has(/class="lib-title" data-albums/, 'album dropdown trigger');
   has(/P\.libAlbums\(\)/, 'album list requested from native');
-  has(/P\.libList\(LIB\.album \? \{ albumId: LIB\.album \} : \{\}\)/, 'selected album passed to libList');
+  has(/P\.libList\(sub != null \? \{ albumSubtype: sub \} : album \? \{ albumId: album \} : \{\}\)/, 'selected album is passed to libList (subtype or id)');
+  has(/const seq = \+\+libSeq/, 'stale album loads are ignored');
+  has(/data-s=/, 'album rows carry the smart subtype');
   has(/function libMonthLabel\(sec\)/, 'year/month label helper');
   has(/Number\.isFinite\(n\)/, 'invalid timestamps are guarded (no NaN)');
   has(/libMonthLabel\(LIB\.ts\?\.\[i\]\)/, 'knob uses guarded month label');
@@ -189,6 +221,8 @@ console.log('\n[8] photo library');
   const swift = fs.readFileSync(path.join(root, 'ios-app/ios/App/App/MediaPickerPlugin.swift'), 'utf8');
   ok(/CAPPluginMethod\(name: "libAlbums"/.test(swift), 'native libAlbums is registered');
   ok(/getString\("albumId"\)/.test(swift), 'native libList accepts albumId');
+  ok(/getInt\("albumSubtype"\)/.test(swift), 'native libList accepts album subtype');
+  ok(/"subtype"/.test(swift), 'native album list includes the subtype');
   ok(/PHAssetCollection\.fetchAssetCollections\(with: \.smartAlbum/.test(swift), 'native lists smart collections');
   ok(/smartAlbumUserLibrary/.test(swift), 'native skips the duplicate Recents collection');
 }
@@ -242,6 +276,8 @@ console.log('\n[11] poll & question cards');
   has(/\.rtc \{[^}]*align-items:stretch/, 'text cards fill the reel width');
   ok(!/\.rtc \{[^}]*padding-right:78px/.test(html), 'no narrow right padding');
   has(/s\.mine === i/, 'selected vote can be toggled off');
+  has(/\.tchar \{[^}]*opacity:\.5/, 'background character is muted');
+  has(/text-shadow:0 1px 0 rgba\(255,255,255,\.82\)/, 'titles have a light shadow for contrast');
   has(/\.from\('poll_votes'\)\.delete\(\)/, 'vote delete request');
   has(/\{n\}명/, 'vote counts per option');
   has(/const ANS = new Map/, 'answer cache');
@@ -251,6 +287,47 @@ console.log('\n[11] poll & question cards');
   const sql2 = fs.readFileSync(path.join(root, 'sql/42_text_theme_vote_toggle.sql'), 'utf8');
   ok(/votes delete own/.test(sql2), 'SQL allows vote cancel');
   ok(/remove_poll_vote/.test(sql2), 'SQL supports anonymous vote cancel');
+}
+
+// 12) 사진 편집 화질(원본 기준) + 작성 화면 제스처
+console.log('\n[12] image edit quality & composer gestures');
+{
+  const has = (re, msg) => ok(re.test(html), msg);
+  has(/m\.src0 \|\|= m\.editUrl \|\| m\.previewUrl/, 'cropper uses the original/edit source');
+  has(/rotCanvas\(img, ed\.rot \|\| 0, Infinity\)/, 'final crop uses original resolution');
+  has(/rotCanvas\(img, ed\.rot, Infinity\)/, 'rotated preview keeps original resolution');
+  has(/view\.src = src;/, 'unrotated preview uses the original image');
+  has(/function freeMedia[\s\S]*editUrl/, 'edit source is released');
+  const swift = fs.readFileSync(path.join(root, 'ios-app/ios/App/App/MediaPickerPlugin.swift'), 'utf8');
+  ok(/editPath/.test(swift), 'native export includes an edit copy');
+  ok(/PHImageManagerMaximumSize/.test(swift), 'native requests the original image');
+  ok(/let edit = img/.test(swift), 'native keeps a full-resolution edit copy');
+  has(/\.page-ov \{[^}]*overflow-x:hidden/, 'composer page locks horizontal scroll');
+  has(/\.cfr \{[^}]*touch-action:pan-y/, 'cropper allows vertical page scroll');
+  has(/if \(a\.length < 2\) return;/, 'one finger scrolls, two fingers edit');
+  has(/두 손가락으로 옮기기·확대 · 화면은 한 손가락으로 스크롤/, 'gesture hint');
+}
+
+// 13) 최근 수정 회귀 체크
+console.log('\n[13] recent fixes');
+{
+  const has = (re, msg) => ok(re.test(html), msg);
+  has(/inner\.innerHTML = ''; \$\('\.lib-empty'\)\.hidden = false/, 'album switch clears the grid while loading');
+  has(/LIB\.albumSub = sub/, 'album switch stores the smart subtype');
+  has(/LIB\.albumSub === a\.subtype/, 'album dropdown highlights by subtype');
+  has(/removeEventListener\('pointermove', move\)/, 'library drag listeners are cleaned up');
+  ok(!/Date\.now\(\) - \(sheet\._noClick \|\| 0\)/.test(html), 'taps are not ignored right after dragging the sheet');
+  has(/\.composer \{[^}]*overflow-x:hidden/, 'composer locks horizontal scrolling');
+  has(/\.cmp-body \{[^}]*overflow-x:hidden/, 'composer body locks horizontal scrolling');
+  has(/\.mstrip \{[^}]*overscroll-behavior-x:contain/, 'media strip contains horizontal overscroll');
+  has(/\.cmp-sugs \{[^}]*overscroll-behavior-x:contain/, 'suggestion strip contains horizontal overscroll');
+  has(/\.page-ov \{[^}]*overflow-y:auto/, 'composer page scrolls vertically');
+  has(/if \(a\.length < 2\) return;/, 'one finger scrolls, two fingers edit');
+  has(/rotCanvas\(img, ed\.rot \|\| 0, Infinity\)/, 'final crop keeps original resolution');
+  has(/view\.src = src;/, 'preview uses the original image');
+  has(/el\.style\.pointerEvents = 'none'/, 'closing photo sheet stops blocking touches');
+  has(/sel\.length = 0/, 'album switch clears selection');
+  has(/\.tchar \{[^}]*opacity:\.5/, 'background character is muted for readability');
 }
 
 console.log('\n' + (failed ? `FAILED: ${failed} check(s)` : 'ALL TESTS PASSED'));

@@ -308,13 +308,14 @@
   .tcard { position:relative; overflow:hidden; padding:28px 22px 22px; color:var(--tink,#fff); background:var(--tbg,var(--accent)); }
   .tcard.question { background:var(--tbg,#0a0a0a); }
   .tcard .tinner { position:relative; z-index:2; }
-  .tchar { position:absolute; z-index:1; pointer-events:none; opacity:.85; line-height:0; }
+  .tchar { position:absolute; z-index:1; pointer-events:none; opacity:.5; line-height:0; }
   .tchar.tl { left:-38px; top:-36px; transform:rotate(-8deg); }
   .tchar.tr { right:-38px; top:-36px; transform:rotate(8deg); }
   .tchar.bl { left:-38px; bottom:-36px; transform:rotate(8deg); }
   .tchar.br { right:-38px; bottom:-36px; transform:rotate(-8deg); }
   .tcard .tk { font-family:var(--display); font-size:12px; font-weight:800; letter-spacing:.1em; opacity:.65; }
   .tcard h4 { margin:10px 0 18px; font-size:24px; font-weight:800; line-height:1.3; letter-spacing:-.03em; word-break:keep-all; }
+  .tcard h4, .tcard .qa .q, .tcard .qa .a, .tcard .tk { text-shadow:0 1px 0 rgba(255,255,255,.82), 0 0 10px rgba(255,255,255,.65); }
   .poll { display:flex; flex-direction:column; gap:8px; }
   .popt { position:relative; display:flex; align-items:center; gap:10px; min-height:50px; padding:0 16px; border:0; border-radius:14px; background:rgba(255,255,255,.5); color:var(--tink,#fff); font-size:15px; font-weight:700; text-align:left; overflow:hidden; }
   button.popt:active { transform:scale(.98); background:rgba(255,255,255,.65); }
@@ -385,7 +386,7 @@
   .caprow textarea { flex:1; min-height:36px; max-height:140px; padding:7px 0; border:0; background:none; color:var(--fg); font:inherit; font-size:16px; line-height:1.45; resize:none; outline:none; }
   .caprow textarea::placeholder { color:var(--sub); }
   .capmeta { display:flex; align-items:center; gap:8px; padding-bottom:14px; border-bottom:1px solid var(--line); }
-  .cmp-sugs { flex:1; display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; margin-left:48px; -webkit-mask-image:linear-gradient(90deg,#000 85%,transparent); mask-image:linear-gradient(90deg,#000 85%,transparent); }
+  .cmp-sugs { flex:1; display:flex; gap:6px; overflow-x:auto; overscroll-behavior-x:contain; scrollbar-width:none; margin-left:48px; -webkit-mask-image:linear-gradient(90deg,#000 85%,transparent); mask-image:linear-gradient(90deg,#000 85%,transparent); }
   .cmp-sugs::-webkit-scrollbar { display:none; }
   .cmp-sugs button { flex:none; padding:6px 11px; border:1px solid var(--line); border-radius:999px; background:none; color:var(--sub); font-size:12px; font-weight:600; white-space:nowrap; }
   .cmp-sugs button.on { border-color:var(--accent); color:var(--accent); }
@@ -508,7 +509,7 @@
   /* 🎁 뽑기 버튼 */
   @keyframes pop { 40% { transform:scale(1.25); } }
   /* 전체 화면 페이지(뽑기·옷장) */
-  .page-ov { position:fixed; inset:0; z-index:22; overflow:auto; background:var(--bg); animation:fade .2s; padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
+  .page-ov { position:fixed; inset:0; z-index:22; overflow-y:auto; overflow-x:hidden; overscroll-behavior-x:none; -webkit-overflow-scrolling:touch; background:var(--bg); animation:fade .2s; padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
   .page-ov > * { max-width:480px; margin-left:auto; margin-right:auto; }
   .pov-h { position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:8px; height:calc(56px + env(safe-area-inset-top)); padding:env(safe-area-inset-top) 12px 0; background:var(--bg); }
   .pov-h b { flex:1; font-family:var(--display); font-weight:800; font-size:22px; letter-spacing:-.04em; }
@@ -537,14 +538,14 @@
   .cgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:12px 16px; }
   @media (prefers-reduced-motion: reduce) { .ring.fx.spin::before, .name.fxn.holo, .cover.stars::after { animation:none; } }
   /* 업로드 작성 화면 (전체 화면, 인스타·유튜브 스타일) */
-  .composer { display:flex; flex-direction:column; padding-bottom:0; }
+  .composer { display:flex; flex-direction:column; padding-bottom:0; overflow-x:hidden; }
   .composer > * { width:100%; }
   .composer > .cmp-modes { width:auto; }
   .cmp-h { justify-content:space-between; }
   .cmp-h b { text-align:center; font-family:var(--sans); font-size:16px; font-weight:700; letter-spacing:-.02em; }
   .cmp-send { border:0; background:none; color:var(--accent); font-size:16px; font-weight:800; padding:8px 6px; min-width:56px; text-align:right; }
   .cmp-send:disabled { color:var(--sub); opacity:.6; }
-  .cmp-body { flex:1; width:100%; padding:4px 16px 120px; }
+  .cmp-body { flex:1; width:100%; padding:4px 16px 120px; overflow-x:hidden; }
   .cmp-body .asked { margin:0 0 12px; }
   [data-sec][hidden] { display:none; }
   .cmp-media { position:relative; display:flex; align-items:center; justify-content:center; width:100%; aspect-ratio:4/5; max-height:58vh; border-radius:18px; overflow:hidden; background:var(--soft); cursor:pointer; }
@@ -566,6 +567,7 @@
   .cmp-qcard { position:relative; overflow:hidden; margin:0 0 10px; padding:18px; border-radius:18px; background:var(--tbg,var(--accent)); color:var(--tink,#fff); }
   .cmp-qcard .tinner { position:relative; z-index:2; }
   .cmp-qcard .tk { font-family:var(--display); font-size:11px; font-weight:800; letter-spacing:.1em; opacity:.7; }
+  .cmp-qcard .tk, .cmp-qlabel, .cmp-qcard .cmp-cap.big { text-shadow:0 1px 0 rgba(255,255,255,.8), 0 0 8px rgba(255,255,255,.55); }
   .cmp-qlabel { display:block; margin:10px 0 6px; font-size:13px; font-weight:800; }
   .cmp-qcard .cmp-cap.big { color:var(--tink,#fff); margin:0 0 12px; }
   .cmp-qcard .cmp-cap.big::placeholder { color:color-mix(in srgb, var(--tink,#fff) 45%, transparent); }
@@ -1052,7 +1054,7 @@
  /* 파란 투표 카드 위에선 흰 닷 */
   /* 작성 화면: 고른 사진 줄·자르기 */
   .mtools { display:flex; align-items:center; gap:10px; margin:10px 0 2px; }
-  .mstrip { flex:1; display:flex; gap:6px; overflow-x:auto; overflow-y:hidden; min-height:0; touch-action:pan-x; scrollbar-width:none; padding:4px 2px; margin:-4px -2px; -webkit-overflow-scrolling:touch; }
+  .mstrip { flex:1; display:flex; gap:6px; overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain; min-height:0; touch-action:pan-x; scrollbar-width:none; padding:4px 2px; margin:-4px -2px; -webkit-overflow-scrolling:touch; }
   .mstrip::-webkit-scrollbar { display:none; }
   .mstrip[hidden] { display:block !important; visibility:hidden; height:0; }
   .pki { position:relative; flex:none; width:46px; height:46px; padding:0; border:0; border-radius:9px; overflow:hidden; background:var(--soft); transition:transform .15s; touch-action:pan-x; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
@@ -1068,7 +1070,7 @@
   .ghead .avwrap .gav, .ghead .avwrap > button { display:block; }
   /* 일관성: 고정 표시도 여러 장·영상 표시처럼 흰 아이콘 + 그림자(배경 동그라미 없음) */
   /* 작성 화면: 미리보기 그 자리 자르기 */
-  .cmp-media .ccrop { position:absolute; inset:0; background:#000; touch-action:none; overflow:hidden; }
+  .cmp-media .ccrop { position:absolute; inset:0; background:#000; touch-action:pan-y; overflow:hidden; }
   .ccrop img { position:absolute; user-select:none; -webkit-user-select:none; pointer-events:none; }
   .crot { position:absolute; right:10px; top:10px; z-index:3; width:36px; height:36px; border-radius:50%; border:0; background:rgba(0,0,0,.55); color:#fff; display:flex; align-items:center; justify-content:center; }
   .crot svg { width:19px; height:19px; }
@@ -1084,7 +1086,7 @@
   /* 작성 화면: 사진 3:4 틀(올라가면 보일 모습) 안에서 사진 옮기기·확대 */
   .cmp-media.has.frame34 { aspect-ratio:3/4; width:auto; height:min(60vh, 60dvh, 620px); max-height:none; margin:0 auto; border-radius:14px; }
   .cmp-media.has.frame916 { aspect-ratio:9/16; width:auto; height:min(60vh, 60dvh, 620px); max-height:none; margin:0 auto; border-radius:14px; }
-  .cmp-media .cfr { position:absolute; inset:0; overflow:hidden; touch-action:none; background:#000; transition:background .3s; }
+  .cmp-media .cfr { position:absolute; inset:0; overflow:hidden; touch-action:pan-y; background:#000; transition:background .3s; }
   .cfr img { position:absolute; left:0; top:0; transform-origin:0 0; user-select:none; -webkit-user-select:none; pointer-events:none; max-width:none; }
   .cfr .chint { position:absolute; left:50%; top:14px; transform:translateX(-50%); padding:6px 11px; border-radius:14px; background:rgba(0,0,0,.55); color:#fff; font-size:12px; font-weight:600; white-space:nowrap; pointer-events:none; transition:opacity .4s; }
   .cfr.touched .chint { opacity:0; }
@@ -1850,7 +1852,7 @@ function frameMath(rw, rh, FW, FH, ed) {
   return { k, w, h, left: FW / 2 + cx - w / 2, top: FH / 2 + cy - h / 2, ox: cx / FW, oy: cy / FH };
 }
 async function renderFrame(src, ed) {
-  const img = await loadImg(src), rc = rotCanvas(img, ed.rot || 0);
+  const img = await loadImg(src), rc = rotCanvas(img, ed.rot || 0, Infinity);
   const FW = 900, FH = 1200, f = frameMath(rc.width, rc.height, FW, FH, ed); // 사진 기본 비율 3:4
   const vx0 = Math.max(0, f.left), vy0 = Math.max(0, f.top), vx1 = Math.min(FW, f.left + f.w), vy1 = Math.min(FH, f.top + f.h);
   const sx = (vx0 - f.left) / f.k, sy = (vy0 - f.top) / f.k, sw = (vx1 - vx0) / f.k, sh = (vy1 - vy0) / f.k;
@@ -1859,7 +1861,7 @@ async function renderFrame(src, ed) {
 function mountFramer(host, src, edit0, onChange) {
   host.className = 'ccrop cfr';
   let ed = { rot: 0, z: 1, ox: 0, oy: 0, ...(edit0 || {}) }, img = null, rc = null, dead = false;
-  host.innerHTML = `<img alt="" draggable="false"><i class="cgrid"></i><button type="button" class="crot" aria-label="${t('회전')}">${I.rotate}</button><span class="chint">${t('끌어서 옮기기 · 두 손가락으로 확대')}</span>`;
+  host.innerHTML = `<img alt="" draggable="false"><i class="cgrid"></i><button type="button" class="crot" aria-label="${t('회전')}">${I.rotate}</button><span class="chint">${t('두 손가락으로 옮기기·확대 · 화면은 한 손가락으로 스크롤')}</span>`;
   if (edit0) host.classList.add('touched');
   const view = host.querySelector('img');
   const paint = () => {
@@ -1869,7 +1871,7 @@ function mountFramer(host, src, edit0, onChange) {
     view.style.transform = `translate(${f.left}px, ${f.top}px) scale(${f.k})`;
   };
   const fill = () => edgeColors(view.src).then(c => { if (!c || dead) return; const rgb = a => `rgb(${a.join(',')})`; host.style.background = `linear-gradient(180deg, ${rgb(c.top)}, ${rgb(c.mid)} 50%, ${rgb(c.bot)})`; });
-  const redraw = () => { rc = rotCanvas(img, ed.rot, 1600); view.src = rc.toDataURL('image/jpeg', .86); paint(); fill(); };
+  const redraw = () => { if ((ed.rot || 0) % 360 === 0) { rc = { width: img.naturalWidth, height: img.naturalHeight }; view.src = src; } else { rc = rotCanvas(img, ed.rot, Infinity); view.src = rc.toDataURL('image/jpeg', .94); } paint(); fill(); };
   loadImg(src).then(im => { if (dead) return; img = im; redraw(); }).catch(() => {});
   const emit = () => onChange({ ...ed });
   host.querySelector('.crot').onclick = e => { e.preventDefault(); e.stopPropagation(); if (!img) return; ed = { rot: (ed.rot + 270) % 360, z: 1, ox: 0, oy: 0 }; redraw(); emit(); };
@@ -1881,7 +1883,9 @@ function mountFramer(host, src, edit0, onChange) {
   host.addEventListener('pointermove', e => {
     if (!pts.has(e.pointerId) || !g0) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (gest && Math.hypot(e.clientX - gest.x, e.clientY - gest.y) > 8) gest.moved = true;
-    const a = [...pts.values()], mx = a.reduce((s, p) => s + p.x, 0) / a.length, my = a.reduce((s, p) => s + p.y, 0) / a.length;
+    const a = [...pts.values()];
+    if (a.length < 2) return; // 한 손가락은 화면 스크롤로 양보(가로 흔들림 방지)
+    const mx = a.reduce((s, p) => s + p.x, 0) / a.length, my = a.reduce((s, p) => s + p.y, 0) / a.length;
     let z = g0.ed.z; if (a.length > 1 && g0.d) z = Math.max(1, Math.min(6, g0.ed.z * Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) / g0.d));
     // 확대는 손가락 가운데를 기준으로: 그 점이 사진의 같은 곳에 머물게
     const R = host.getBoundingClientRect(), px = g0.mx - R.left - g0.FW / 2, py = g0.my - R.top - g0.FH / 2, r = z / g0.ed.z;
@@ -1908,7 +1912,7 @@ function mountFramer(host, src, edit0, onChange) {
 // ---------- 피드 주인: 승인한 사진 순서 바꾸기·빼기 (36 SQL) ----------
 
 // 고른 사진·영상의 미리보기 주소(blob:) 해제 — 작성 화면을 닫거나 다시 고를 때
-function freeMedia(list) { (list || []).forEach(m => [m.previewUrl, m.src0, m._tu].forEach(u => { if (typeof u === 'string' && u.startsWith('blob:')) try { URL.revokeObjectURL(u); } catch {} })); }
+function freeMedia(list) { (list || []).forEach(m => [m.previewUrl, m.editUrl, m.src0, m._tu].forEach(u => { if (typeof u === 'string' && u.startsWith('blob:')) try { URL.revokeObjectURL(u); } catch {} })); }
 addEventListener('unhandledrejection', e => console.log('[candid] unhandled ' + (e.reason?.message || e.reason)));
 // ---------- 친구 피드로 보내기(받기 설정·차단은 서버가 확인, 40 SQL) ----------
 // 이 앱·브라우저의 무작위 표시: 로그인 없이 보낸 사람도 받은 사람이 '보낸 사람 차단'을 할 수 있게(서버에만 기록, 받는 사람에게 안 보임)
@@ -4588,7 +4592,7 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
     pk.appendChild($file);
     pk.classList.toggle('frame34', m.kind === 'image');
     pk.classList.toggle('frame916', m.kind === 'video');
-    if (m.kind === 'image') { m.src0 ||= m.previewUrl; cropper = mountFramer(pk.querySelector('.ccrop'), m.src0, m.edit, async ed => { m.edit = ed; m.edited = true; const r = await renderFrame(m.src0, ed); if (m.edit === ed) { if (m._tu) try { URL.revokeObjectURL(m._tu); } catch {} Object.assign(m, { main: r.main, thumb: r.thumb, job: null, _tu: null }); } paintStrip(); }); }
+    if (m.kind === 'image') { m.src0 ||= m.editUrl || m.previewUrl; cropper = mountFramer(pk.querySelector('.ccrop'), m.src0, m.edit, async ed => { m.edit = ed; m.edited = true; const r = await renderFrame(m.src0, ed); if (m.edit === ed) { if (m._tu) try { URL.revokeObjectURL(m._tu); } catch {} Object.assign(m, { main: r.main, thumb: r.thumb, job: null, _tu: null }); } paintStrip(); }); }
     paintStrip();
     // 영상 구간 자르기: 지금 보이는 장이 영상이면 아래에 구간 선택 바 표시
     const curIdx = () => curPick;
@@ -6657,7 +6661,7 @@ function unlockMedia(list) {
 const capFile = async (path, type) => new Blob([await (await fetch(window.Capacitor.convertFileSrc(path))).arrayBuffer()], { type });
 // ---------- 앱 안 사진첩: 아래에서 올라오는 시트(끌어올리면 전체 화면), 오른쪽 날짜 손잡이로 쭉쭉 내려가기 ----------
 const LIB_ON = () => IN_APP && !!window.Capacitor?.isPluginAvailable?.('MediaPicker');
-const LIB = { ids: null, ts: null, dur: null, at: 0, thumbs: new Map(), album: null, albumName: '', albums: null };
+const LIB = { ids: null, ts: null, dur: null, at: 0, thumbs: new Map(), album: null, albumSub: null, albumName: '', albums: null };
 function libMonthLabel(sec) {
   const n = Number(sec);
   if (!Number.isFinite(n) || n <= 0) return ''; // 값이 없거나 잘못되면 NaN 대신 빈 값
@@ -6673,6 +6677,7 @@ async function openLibrary(max = 10) {
   if (st === 'denied' || st === 'notDetermined') { toast(t('설정에서 사진 접근을 허용하면 여기서 바로 골라요')); return nativePick(); }
   return new Promise(resolve => {
     const COLS = 4, GAP = 2;
+    document.querySelectorAll('.libw').forEach(x => x.remove()); // 남아 있던 사진첩이 터치를 막지 않게
     const el = document.createElement('div'); el.className = 'libw';
     el.innerHTML = `<div class="lib-dim"></div><div class="lib" role="dialog" aria-label="${t('사진첩')}">
       <div class="lib-h"><i class="lib-grab"></i><div class="lib-hr"><button class="lib-x" data-x>${t('취소')}</button><button class="lib-title" data-albums aria-label="${t('사진첩')}"><b>${LIB.albumName || t('최근 항목')}</b><i>▾</i></button><button class="lib-ok" data-ok disabled>${t('추가')}</button></div>
@@ -6687,8 +6692,18 @@ async function openLibrary(max = 10) {
     const H = () => innerHeight, HALF = () => Math.round(H() * .42); // 처음엔 화면의 58% 높이
     const setY = (y, anim) => { sheet.style.transition = anim ? 'transform .32s cubic-bezier(.2,.9,.3,1)' : 'none'; sheet.style.transform = `translateY(${Math.max(0, y)}px)`; };
     const snap = f => { full = f; setY(f ? 0 : HALF(), true); el.classList.toggle('full', f); sc.style.overflowY = 'auto'; };
-    const finish = items => { if (done) return; done = true; dropLayer('lib'); setY(H(), true); el.classList.add('out'); setTimeout(() => el.remove(), 300); resolve(items); };
-    const close = () => history.state?.lib ? history.back() : finish(null);
+    let drag = null, libSeq = 0;
+    const finish = items => {
+      if (done) return; done = true;
+      dropLayer('lib'); drag = null; el.style.pointerEvents = 'none'; // 닫히는 동안에도 아래 화면 터치를 막지 않게
+      const $a = el.querySelector('.lib-albums'); if ($a) $a.hidden = true;
+      removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
+      setY(H(), true); el.classList.add('out'); setTimeout(() => el.remove(), 300); resolve(items);
+    };
+    const close = () => {
+      if (history.state?.lib) { history.back(); setTimeout(() => { if (!done) finish(null); }, 400); } // 기록이 안 닫혀도 확실히 정리
+      else finish(null);
+    };
     pushLayer('lib', () => finish(null));
     setY(H(), false); requestAnimationFrame(() => requestAnimationFrame(() => snap(false)));
     $('.lib-dim').onclick = close; $('[data-x]').onclick = close;
@@ -6699,12 +6714,17 @@ async function openLibrary(max = 10) {
     $title.onclick = async () => {
       if (!$albums.hidden) { $albums.hidden = true; return; }
       if (!LIB.albums) { try { LIB.albums = ((await P.libAlbums()).albums || []); } catch { LIB.albums = []; } }
-      const row = (id, name, count, on) => `<button class="lib-album${on ? ' on' : ''}" data-a="${esc(id || '')}"><span>${esc(name)}</span>${count != null ? `<small>${count}</small>` : ''}${on ? `<i>${II.check}</i>` : ''}</button>`;
-      $albumsIn.innerHTML = row('', t('최근 항목'), LIB.ids?.length ?? null, !LIB.album) + (LIB.albums || []).map(a => row(a.id, a.name, a.count, LIB.album === a.id)).join('');
+      const row = (id, name, count, on, sub) => `<button class="lib-album${on ? ' on' : ''}" data-a="${esc(id || '')}" data-s="${sub == null ? '' : sub}"><span>${esc(name)}</span>${count != null ? `<small>${count}</small>` : ''}${on ? `<i>${II.check}</i>` : ''}</button>`;
+      $albumsIn.innerHTML = row('', t('최근 항목'), LIB.ids?.length ?? null, !LIB.album && LIB.albumSub == null, null) + (LIB.albums || []).map(a => row(a.id, a.name, a.count, LIB.album === a.id || (a.subtype != null && LIB.albumSub === a.subtype), a.subtype)).join('');
       $albums.hidden = false;
       $albumsIn.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
-        const id = b.dataset.a || null;
-        if (id !== LIB.album) { LIB.album = id; LIB.albumName = id ? ((LIB.albums || []).find(a => a.id === id)?.name || '') : ''; LIB.ids = null; LIB.ts = null; LIB.dur = null; LIB.buckets = null; LIB.at = 0; }
+        const id = b.dataset.a || null, sub = b.dataset.s ? +b.dataset.s : null;
+        if (id !== LIB.album || sub !== LIB.albumSub) {
+          LIB.album = id; LIB.albumSub = sub; LIB.albumName = id ? ((LIB.albums || []).find(a => a.id === id)?.name || '') : '';
+          LIB.ids = null; LIB.ts = null; LIB.dur = null; LIB.buckets = null; LIB.at = 0;
+          sel.length = 0; const ok = $('[data-ok]'); ok.disabled = true; ok.textContent = t('추가'); // 앨범 바꾸면 선택 초기화
+          inner.innerHTML = ''; $('.lib-empty').hidden = false; $('.lib-empty').textContent = t('불러오는 중…');
+        }
         $title.querySelector('b').textContent = albumName();
         $albums.hidden = true; sc.scrollTop = 0; drawn = ''; render(); load();
       });
@@ -6716,7 +6736,7 @@ async function openLibrary(max = 10) {
         const r = await P.libExport({ ids: sel.slice() });
         if (r.skipped) toast(t('{n}개는 열 수 없어서 뺐어요', { n: r.skipped }));
         const items = await Promise.all(r.items.map(async it => {
-          if (it.kind === 'image') { const main = await capFile(it.path, 'image/jpeg'), thumb = await capFile(it.thumbPath, 'image/jpeg'); return { kind: 'image', main, thumb, previewUrl: URL.createObjectURL(main) }; }
+          if (it.kind === 'image') { const main = await capFile(it.path, 'image/jpeg'), thumb = await capFile(it.thumbPath, 'image/jpeg'); const edit = it.editPath ? await capFile(it.editPath, 'image/jpeg') : null; return { kind: 'image', main, thumb, previewUrl: URL.createObjectURL(main), ...(edit ? { editUrl: URL.createObjectURL(edit) } : {}) }; }
           const thumb = it.thumbPath ? await capFile(it.thumbPath, 'image/jpeg') : await fallbackPoster();
           return { kind: 'video', nativePath: it.path, duration: it.duration, w: it.width, h: it.height, thumb, previewUrl: window.Capacitor.convertFileSrc(it.path), main: null };
         }));
@@ -6725,14 +6745,13 @@ async function openLibrary(max = 10) {
       } catch (e) { toast(kerr(e)); b.disabled = false; b.textContent = t('추가 {n}', { n: sel.length }); }
     };
     // 끌기: 머리를 잡고 위(전체 화면)·아래(반/닫기). 반 높이일 땐 사진 칸에서 위로 밀어도 전체 화면
-    let drag = null;
-    const down = e => { if (e.target.closest('.lib-albums')) return; if (e.target.closest('button') && !e.target.closest('.lib-cell')) return; const inGrid = !!e.target.closest('.lib-sc'); if (inGrid && full) return; drag = { y: e.clientY, t: Date.now(), base: full ? 0 : HALF(), grid: inGrid, moved: false }; };
-    const move = e => { if (!drag) return; const dy = e.clientY - drag.y; if (!drag.moved && Math.abs(dy) < 8) return; drag.moved = true; if (drag.grid) sc.style.overflowY = 'hidden'; setY(drag.base + dy, false); };
-    const up = e => { if (!drag) return; const d = drag; drag = null; if (!d.moved) return; d.cancelClick = true; sheet._noClick = Date.now();
+    const down = e => { if (e.target.closest('.lib-albums')) return; if (e.target.closest('button') && !e.target.closest('.lib-cell')) return; if (e.target.closest('.lib-sc')) return; drag = { y: e.clientY, t: Date.now(), base: full ? 0 : HALF(), grid: false, moved: false }; };
+    function move(e) { if (!drag) return; const dy = e.clientY - drag.y; if (!drag.moved && Math.abs(dy) < 8) return; drag.moved = true; if (drag.grid) sc.style.overflowY = 'hidden'; setY(drag.base + dy, false); }
+    function up(e) { if (!drag) return; const d = drag; drag = null; if (!d.moved) return; d.cancelClick = true; sheet._noClick = Date.now();
       const dy = e.clientY - d.y, v = dy / Math.max(1, Date.now() - d.t), y = d.base + dy;
       if (v < -0.4 || y < HALF() * .5) snap(true); else if (v > 0.6 || y > HALF() + 120) (full && y < HALF() + 120 ? snap(false) : close()); else snap(full); };
     sheet.addEventListener('pointerdown', down); addEventListener('pointermove', move); addEventListener('pointerup', up); addEventListener('pointercancel', up);
-    sheet.style.touchAction = 'none'; const fixTouch = () => { sc.style.touchAction = full ? 'pan-y' : 'none'; }; fixTouch(); new MutationObserver(fixTouch).observe(el, { attributes: true, attributeFilter: ['class'] });
+    sheet.style.touchAction = 'pan-y'; const fixTouch = () => { sc.style.touchAction = 'pan-y'; }; fixTouch(); new MutationObserver(fixTouch).observe(el, { attributes: true, attributeFilter: ['class'] });
     // 칸 그리기(보이는 줄만)
     let cell = 0, rows = 0, drawn = '', thumbQ = new Set(), thumbT = 0;
     const render = () => {
@@ -6755,7 +6774,7 @@ async function openLibrary(max = 10) {
       try { const r = await P.libThumbs({ ids, size: Math.round(cell * Math.min(devicePixelRatio, 2.5)) || 240 }); Object.entries(r.paths || {}).forEach(([id, p]) => LIB.thumbs.set(id, window.Capacitor.convertFileSrc(p))); drawn = ''; render(); } catch {}
     };
     inner.addEventListener('click', e => {
-      const b = e.target.closest('.lib-cell'); if (!b || Date.now() - (sheet._noClick || 0) < 300) return;
+      const b = e.target.closest('.lib-cell'); if (!b) return;
       const id = LIB.ids[+b.dataset.i], k = sel.indexOf(id);
       if (k >= 0) sel.splice(k, 1); else if (sel.length >= max) return toast(t('최대 {n}장까지 고를 수 있어요', { n: max })); else sel.push(id);
       const ok = $('[data-ok]'); ok.disabled = !sel.length; ok.textContent = sel.length ? t('추가 {n}', { n: sel.length }) : t('추가');
@@ -6794,13 +6813,16 @@ async function openLibrary(max = 10) {
       knob.addEventListener('pointermove', mv); knob.addEventListener('pointerup', end); knob.addEventListener('pointercancel', end);
     });
     const load = async () => {
+      const seq = ++libSeq, album = LIB.album, sub = LIB.albumSub;
       if (!LIB.ids || Date.now() - LIB.at > 60e3) {
         $('.lib-empty').hidden = false;
         try {
-          const r = await P.libList(LIB.album ? { albumId: LIB.album } : {});
+          const r = await P.libList(sub != null ? { albumSubtype: sub } : album ? { albumId: album } : {});
+          if (seq !== libSeq) return; // 그 사이 다른 앨범으로 바뀌면 이전 결과는 버림
           Object.assign(LIB, { ids: r.ids || [], ts: r.ts || [], dur: r.dur || [], at: Date.now() });
-        } catch (e) { toast(kerr(e)); return finish(await nativePick()); }
+        } catch (e) { if (seq !== libSeq) return; toast(kerr(e)); return finish(await nativePick()); }
       }
+      if (seq !== libSeq) return;
       if (!LIB.buckets || LIB.buckets.n !== LIB.ids.length) {
         const B = []; let prev = null;
         LIB.ts.forEach((ts, i) => { const l = libMonthLabel(ts); if (!l) return; if (l !== prev) { B.push({ i, label: l }); prev = l; } });
@@ -6817,7 +6839,7 @@ async function nativePick(useCamera) {
   catch (e) { if (!/canceled|replaced/.test(e?.message || e?.code || '')) toast(kerr(e)); return null; }
   if (r.skipped) toast(t('{n}개는 열 수 없어서 뺐어요', { n: r.skipped }));
   return Promise.all(r.items.map(async it => {
-    if (it.kind === 'image') { const main = await capFile(it.path, 'image/jpeg'), thumb = await capFile(it.thumbPath, 'image/jpeg'); return { kind: 'image', main, thumb, previewUrl: URL.createObjectURL(main) }; }
+    if (it.kind === 'image') { const main = await capFile(it.path, 'image/jpeg'), thumb = await capFile(it.thumbPath, 'image/jpeg'); const edit = it.editPath ? await capFile(it.editPath, 'image/jpeg') : null; return { kind: 'image', main, thumb, previewUrl: URL.createObjectURL(main), ...(edit ? { editUrl: URL.createObjectURL(edit) } : {}) }; }
     const thumb = it.thumbPath ? await capFile(it.thumbPath, 'image/jpeg') : await fallbackPoster();
     return { kind: 'video', nativePath: it.path, duration: it.duration, w: it.width, h: it.height, thumb, previewUrl: window.Capacitor.convertFileSrc(it.path), main: null };
   }));

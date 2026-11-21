@@ -80,8 +80,9 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
                     defer { group.leave() }
                     guard let img = obj as? UIImage else { return }
                     let main = Self.resize(img, maxSide: 1080), thumb = Self.resize(main, maxSide: 480)
-                    guard let mp = self.saveJPEG(main, 0.82), let tp = self.saveJPEG(thumb, 0.7) else { return }
-                    put(i, ["kind": "image", "path": mp, "thumbPath": tp,
+                    let edit = img
+                    guard let mp = self.saveJPEG(main, 0.82), let tp = self.saveJPEG(thumb, 0.7), let ep = self.saveJPEG(edit, 0.9) else { return }
+                    put(i, ["kind": "image", "path": mp, "thumbPath": tp, "editPath": ep,
                             "width": Int(main.size.width), "height": Int(main.size.height)])
                 }
             }
@@ -225,8 +226,9 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
                 if let v = self.videoInfo(dst) { call.resolve(["items": [v], "skipped": 0]) } else { call.reject("video_failed") }
             } else if let img = info[.originalImage] as? UIImage {
                 let main = Self.resize(img, maxSide: 1080), thumb = Self.resize(main, maxSide: 480)
-                guard let mp = self.saveJPEG(main, 0.82), let tp = self.saveJPEG(thumb, 0.7) else { call.reject("image_failed"); return }
-                call.resolve(["items": [["kind": "image", "path": mp, "thumbPath": tp, "width": Int(main.size.width), "height": Int(main.size.height)]], "skipped": 0])
+                let edit = img
+                guard let mp = self.saveJPEG(main, 0.82), let tp = self.saveJPEG(thumb, 0.7), let ep = self.saveJPEG(edit, 0.9) else { call.reject("image_failed"); return }
+                call.resolve(["items": [["kind": "image", "path": mp, "thumbPath": tp, "editPath": ep, "width": Int(main.size.width), "height": Int(main.size.height)]], "skipped": 0])
             } else { call.reject("no_media") }
         }
     }
@@ -257,17 +259,18 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
     @objc func libList(_ call: CAPPluginCall) {
         DispatchQueue.global(qos: .utility).async { self.cleanOld(self.thumbDir, maxAge: 14 * 86400) }
         let albumId = call.getString("albumId")
+        let albumSub = call.getInt("albumSubtype")
         DispatchQueue.global(qos: .userInitiated).async {
             let o = PHFetchOptions()
             o.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
             o.predicate = NSPredicate(format: "mediaType == %d || mediaType == %d", PHAssetMediaType.image.rawValue, PHAssetMediaType.video.rawValue)
-            let r: PHFetchResult<PHAsset>
-            if let aid = albumId, !aid.isEmpty,
-               let c = PHAssetCollection.fetchAssetCollections(withLocalIdentifiers: [aid], options: nil).firstObject {
-                r = PHAsset.fetchAssets(in: c, options: o) // 앨범 안 사진
-            } else {
-                r = PHAsset.fetchAssets(with: o) // 최근 항목(전체)
+            var album: PHAssetCollection? = nil
+            if let raw = albumSub, let sub = PHAssetCollectionSubtype(rawValue: raw) {
+                album = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: sub, options: nil).firstObject
+            } else if let aid = albumId, !aid.isEmpty {
+                album = PHAssetCollection.fetchAssetCollections(withLocalIdentifiers: [aid], options: nil).firstObject
             }
+            let r = album.map { PHAsset.fetchAssets(in: $0, options: o) } ?? PHAsset.fetchAssets(with: o)
             var ids = [String](), ts = [Int](), dur = [Double](), map = [String: PHAsset]()
             ids.reserveCapacity(r.count); ts.reserveCapacity(r.count); dur.reserveCapacity(r.count)
             r.enumerateObjects { a, _, _ in
@@ -296,7 +299,7 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
                 let count = PHAsset.fetchAssets(in: c, options: nil).count
                 if count == 0 { return }
                 let name = c.localizedTitle ?? "Collection"
-                out.append((rank[c.assetCollectionSubtype] ?? 99, ["id": c.localIdentifier, "name": name, "count": count]))
+                out.append((rank[c.assetCollectionSubtype] ?? 99, ["id": c.localIdentifier, "name": name, "count": count, "subtype": Int(c.assetCollectionSubtype.rawValue)]))
             }
             let albums = out.sorted { $0.0 < $1.0 }.map { $0.1 }
             DispatchQueue.main.async { call.resolve(["albums": albums]) }
@@ -348,12 +351,12 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
                 }
             } else {
                 let io = PHImageRequestOptions(); io.isNetworkAccessAllowed = true; io.deliveryMode = .highQualityFormat; io.resizeMode = .exact; io.version = .current
-                PHImageManager.default().requestImage(for: a, targetSize: CGSize(width: 1080, height: 1080), contentMode: .aspectFit, options: io) { img, _ in
+                PHImageManager.default().requestImage(for: a, targetSize: PHImageManagerMaximumSize, contentMode: .aspectFit, options: io) { img, _ in
                     defer { g.leave() }
                     guard let img = img else { return }
-                    let main = Self.resize(img, maxSide: 1080), thumb = Self.resize(main, maxSide: 480)
-                    guard let mp = self.saveJPEG(main, 0.82), let tp = self.saveJPEG(thumb, 0.7) else { return }
-                    put(i, ["kind": "image", "path": mp, "thumbPath": tp, "width": Int(main.size.width), "height": Int(main.size.height)])
+                    let main = Self.resize(img, maxSide: 1080), thumb = Self.resize(main, maxSide: 480), edit = img
+                    guard let mp = self.saveJPEG(main, 0.82), let tp = self.saveJPEG(thumb, 0.7), let ep = self.saveJPEG(edit, 0.9) else { return }
+                    put(i, ["kind": "image", "path": mp, "thumbPath": tp, "editPath": ep, "width": Int(main.size.width), "height": Int(main.size.height)])
                 }
             }
         }
