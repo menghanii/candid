@@ -509,7 +509,7 @@
   /* 🎁 뽑기 버튼 */
   @keyframes pop { 40% { transform:scale(1.25); } }
   /* 전체 화면 페이지(뽑기·옷장) */
-  .page-ov { position:fixed; inset:0; z-index:22; overflow-y:auto; overflow-x:hidden; overscroll-behavior-x:none; -webkit-overflow-scrolling:touch; background:var(--bg); animation:fade .2s; padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
+  .page-ov { position:fixed; inset:0; z-index:22; overflow-y:auto; overflow-x:hidden; overscroll-behavior-x:none; overscroll-behavior-y:contain; -webkit-overflow-scrolling:touch; background:var(--bg); animation:fade .2s; padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
   .page-ov > * { max-width:480px; margin-left:auto; margin-right:auto; }
   .pov-h { position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:8px; height:calc(56px + env(safe-area-inset-top)); padding:env(safe-area-inset-top) 12px 0; background:var(--bg); }
   .pov-h b { flex:1; font-family:var(--display); font-weight:800; font-size:22px; letter-spacing:-.04em; }
@@ -1007,7 +1007,7 @@
   .libw.full .lib-dim { opacity:0; } .libw.out .lib-dim { opacity:0; }
   .lib { position:absolute; left:0; right:0; top:0; height:100dvh; background:var(--bg); border-radius:18px 18px 0 0; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 -10px 40px rgba(0,0,0,.35); will-change:transform; }
   .libw.full .lib { border-radius:0; }
-  .lib-h { flex:none; padding:8px 14px 8px; transition:padding .3s; }
+  .lib-h { flex:none; padding:8px 14px 8px; transition:padding .3s; touch-action:none; }
   .libw.full .lib-h { padding-top:calc(env(safe-area-inset-top) + 6px); }
   .lib-grab { display:block; width:38px; height:5px; border-radius:3px; background:var(--line); margin:0 auto 8px; }
   .libw.full .lib-grab { opacity:.55; height:5px; margin:0 auto 8px; }
@@ -4023,7 +4023,7 @@ const findAny = id => findPost(id) || HOME.posts.find(x => x.id === id) || VIEWE
   let buzzed = false;
   document.body.appendChild(ind);
   const scroller = () => document.querySelector('.reels') || document.scrollingElement;
-  const blocked = () => busy || document.querySelector('.sheet-wrap:not(.closing), .overlay, #orbitv, .ostack, .oreel'); // 궤도 화면에서는 당겨서 새로고침 없음
+  const blocked = () => busy || document.querySelector('.sheet-wrap:not(.closing), .overlay, .composer, .page-ov, .libw, #orbitv, .ostack, .oreel'); // 사진첩·작성 화면에서는 당겨서 새로고침 없음
   addEventListener('touchstart', e => { y0 = !blocked() && scroller().scrollTop <= 0 ? e.touches[0].clientY : null; dy = 0; }, { passive: true });
   addEventListener('touchmove', e => {
     if (y0 == null) return;
@@ -4492,9 +4492,6 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
         <div class="trim" id="trim" hidden></div>
         <div class="mtools" id="mtools" hidden><div class="mstrip" id="mstrip"></div></div>
         ${IN_APP && window.Capacitor?.isPluginAvailable?.('MediaPicker') ? `<button type="button" class="camb" id="camb">${I.camera}<span>${t('카메라로 찍기')}</span></button>` : ''}
-        <div class="caprow"><span class="capav" id="capav"></span>
-          <textarea id="text" maxlength="80" rows="1" placeholder="${GT ? t('한마디 (선택)') : t('{name}에게 한마디…', { name })}" enterkeyhint="done"></textarea></div>
-        <div class="capmeta"><div class="cmp-sugs" id="sugs">${['이 표정 레전드 ㅋㅋ', '인생샷 인정 📸', '몰래 찍음 🤫', '이거 기억나?', '너무 잘 나와서 보냄', '박제 완료'].map(x => `<button type="button">${t(x)}</button>`).join('')}</div><span class="capcnt" id="capcnt">0/80</span></div>
       </section>
       <section data-sec="poll">
         <div class="cmp-qcard" style="${qstyle}"><div class="tinner">
@@ -4673,19 +4670,7 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
         : `<input class="field" id="author" maxlength="12" placeholder="${t('내 이름 (예: 지수)')}" value="${esc(typedNow ?? nick)}" autocomplete="off">`;
   };
   el.querySelectorAll('.cmp-seg button').forEach(b => b.onclick = () => setWho(b.dataset.who));
-  // 한마디: 자동 높이 + 글자 수 + 추천 문구(누르면 채움) + 엔터는 입력 끝
-  const $t = $('#text');
-  const capFit = () => { $t.style.height = 'auto'; $t.style.height = $t.scrollHeight + 'px'; $('#capcnt').textContent = `${$t.value.length}/80`; $('#capcnt').classList.toggle('on', !!$t.value); };
-  $t.oninput = capFit;
-  $t.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); $t.blur(); } };
-  el.querySelectorAll('#sugs button').forEach(b => b.onclick = () => { $t.value = b.textContent; capFit(); el.querySelectorAll('#sugs button').forEach(x => x.classList.toggle('on', x === b)); });
-  const capAv = () => {
-    const typed = $('#author')?.value.trim();
-    $('#capav').innerHTML = who === 'anon' ? ANON_AV : me ? avatar(myProf, 'xs') : esc((typed || t('나')).slice(0, 1));
-  };
-  el.addEventListener('input', e => { if (e.target.id === 'author') capAv(); });
-  el.querySelectorAll('.cmp-seg button').forEach(b => b.addEventListener('click', capAv));
-  setWho('name'); capAv();
+  setWho('name');
   setMode(mode);
   if (mode === 'media' && (pick || LIB_ON())) { if (LIB_ON()) openLibrary(10).then(items => { if (items?.length) handlePick(items); }); else $file.click(); } // 누르자마자 사진첩 (웹은 버튼 터치 안에서만 열 수 있음)
 
@@ -4733,11 +4718,11 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
         }
         ins = GT ? await sb.from('posts').insert({
           group_id: GT.id, author_id: me.id, author_name: (myProf?.name || '친구').slice(0, 12), status: 'approved',
-          image_path: list[0].p, thumb_path: list[0].t, media_type: list[0].k, ...(n > 1 ? { media: list } : {}), text: $('#text').value.trim(),
+          image_path: list[0].p, thumb_path: list[0].t, media_type: list[0].k, ...(n > 1 ? { media: list } : {}), text: $('#text')?.value.trim() || null,
         }) : await sendPost({
           owner_id: S.uid, image_path: list[0].p, thumb_path: list[0].t, media_type: list[0].k,
           ...(n > 1 ? { media: list } : {}), // 1장은 media 칸 없이 (09 SQL 실행 전에도 동작)
-          mission: null, text: $('#text').value.trim(), ...by,
+          mission: null, text: $('#text')?.value.trim() || null, ...by,
         });
       }
     } catch (err) { ins = { error: err }; }

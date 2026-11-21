@@ -380,6 +380,18 @@ console.log('\n[14] build 25 checks');
   ok(/picked \?\? PHAsset\.fetchAssets\(with: allOpts\)/.test(swift), 'album fetch falls back to all photos');
 }
 
+// 15) 당겨서 새로고침 차단 + 사진 작성 캡션 제거 (비디오 무관 수정)
+console.log('\n[15] pull-to-refresh & composer cleanup');
+{
+  const has = (re, msg) => ok(re.test(html), msg);
+  has(/const blocked = .*\.composer, \.page-ov, \.libw/, 'pull-to-refresh is disabled in library/composer');
+  has(/\.page-ov \{[^}]*overscroll-behavior-y:contain/, 'composer page contains vertical overscroll');
+  has(/\.lib-h \{[^}]*touch-action:none/, 'library header owns its drag gesture');
+  ok(!/id="text"/.test(html), 'media composer caption is removed');
+  ok(!/id="sugs"/.test(html), 'media composer suggestion chips are removed');
+  has(/text: \$\('#text'\)\?\.value\.trim\(\) \|\| null/, 'media posts have no caption when removed');
+}
+
 console.log('\n' + (failed ? `FAILED: ${failed} check(s)` : 'ALL TESTS PASSED'));
 if (require.main === module) process.exit(failed ? 1 : 0);
 else if (failed) throw new Error('candid pre-build tests failed');
