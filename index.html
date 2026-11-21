@@ -984,9 +984,21 @@
   .libw.full .lib-grab { opacity:0; height:0; margin:0; }
   .lib-hr { display:flex; align-items:center; height:40px; }
   .lib-hr b { flex:1; text-align:center; font-size:16px; font-weight:800; }
+  .lib-title { flex:1; min-width:0; display:flex; align-items:center; justify-content:center; gap:4px; background:none; border:0; padding:8px 4px; color:var(--fg); font-size:16px; font-weight:800; text-align:center; }
+  .lib-title b { font:inherit; flex:none; }
+  .lib-title i { font-style:normal; font-size:11px; color:var(--sub); }
   .lib-hr button { background:none; border:0; font-size:15px; font-weight:600; color:var(--fg); padding:8px 4px; min-width:64px; text-align:left; }
   .lib-hr .lib-ok { text-align:right; color:var(--accent); font-weight:800; } .lib-hr .lib-ok:disabled { color:var(--sub); }
   .lib-lim { display:block; width:100%; margin:4px 0 2px; padding:8px; border:0; border-radius:10px; background:var(--soft); color:var(--sub); font-size:12.5px; font-weight:600; }
+  .lib-albums { position:absolute; inset:0; z-index:8; }
+  .lib-albums[hidden] { display:none; }
+  .lib-albums-dim { position:absolute; inset:0; background:rgba(0,0,0,.18); }
+  .lib-albums-in { position:absolute; left:12px; right:12px; top:96px; max-height:min(60%,420px); overflow-y:auto; padding:6px; border-radius:14px; background:var(--card); border:1px solid var(--line); box-shadow:0 12px 32px rgba(0,0,0,.28); }
+  .libw.full .lib-albums-in { top:calc(env(safe-area-inset-top) + 64px); }
+  .lib-album { display:flex; align-items:center; gap:10px; width:100%; padding:12px; border:0; border-radius:10px; background:none; color:var(--fg); font:inherit; font-size:15px; font-weight:600; text-align:left; }
+  .lib-album.on { background:var(--soft); }
+  .lib-album small { margin-left:auto; color:var(--sub); font-size:12px; font-weight:700; }
+  .lib-album i { flex:none; color:var(--accent); display:flex; }
   .lib-sc { flex:1; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none; -webkit-overflow-scrolling:touch; padding-bottom:env(safe-area-inset-bottom); }
   .lib-sc::-webkit-scrollbar { display:none; }
   .lib-in { position:relative; }
@@ -1002,9 +1014,9 @@
   .libw.full .lib-scrub { top:calc(env(safe-area-inset-top) + 70px); }
   .lib-scrub.show, .libw.scrubbing .lib-scrub { opacity:1; }
   .lib-scrub.show .lib-knob { pointer-events:auto; }
-  .lib-knob { position:absolute; right:6px; top:0; display:flex; align-items:center; height:36px; padding:0 12px; border-radius:18px; background:rgba(30,30,32,.92); color:#fff; box-shadow:0 4px 14px rgba(0,0,0,.35); touch-action:none; white-space:nowrap; }
-  .lib-knob b { font-size:13px; font-weight:800; }
-  .lib-knob::before { content:""; width:10px; height:14px; margin-right:7px; background:linear-gradient(#fff,#fff) 0 2px/10px 2px no-repeat, linear-gradient(#fff,#fff) 0 6px/10px 2px no-repeat, linear-gradient(#fff,#fff) 0 10px/10px 2px no-repeat; opacity:.7; }
+  .lib-knob { position:absolute; right:6px; top:0; display:flex; align-items:center; justify-content:center; height:36px; min-width:112px; padding:0 16px; border-radius:18px; background:rgba(30,30,32,.92); color:#fff; box-shadow:0 4px 14px rgba(0,0,0,.35); touch-action:none; white-space:nowrap; }
+  .lib-knob b { font-size:13px; font-weight:800; letter-spacing:-.01em; }
+  .lib-knob::before { content:""; width:12px; height:16px; margin-right:16px; background:linear-gradient(#fff,#fff) 0 3px/12px 2px no-repeat, linear-gradient(#fff,#fff) 0 8px/12px 2px no-repeat, linear-gradient(#fff,#fff) 0 13px/12px 2px no-repeat; opacity:.7; }
   .libw.scrubbing .lib-knob { transform-origin:right center; }
   /* 새 사진: 오른쪽 위에 블루닷 캐릭터가 빼꼼(가끔 통통) */
  .grid button:nth-child(3n) .gnew .dotc-b { animation-delay:-1.8s; }
@@ -6511,15 +6523,14 @@ function unlockMedia(list) {
 const capFile = async (path, type) => new Blob([await (await fetch(window.Capacitor.convertFileSrc(path))).arrayBuffer()], { type });
 // ---------- 앱 안 사진첩: 아래에서 올라오는 시트(끌어올리면 전체 화면), 오른쪽 날짜 손잡이로 쭉쭉 내려가기 ----------
 const LIB_ON = () => IN_APP && !!window.Capacitor?.isPluginAvailable?.('MediaPicker');
-const LIB = { ids: null, ts: null, dur: null, at: 0, thumbs: new Map() };
-function libDateLabel(sec) {
-  const d = new Date(sec * 1000), now = new Date(), day = 864e5;
-  const d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime(), x0 = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const n = Math.round((d0 - x0) / day);
-  if (n <= 0) return t('오늘'); if (n === 1) return t('어제'); if (n < 7) return t('{n}일 전', { n });
-  if (n < 14) return t('일주일 전'); if (n < 28) return t('{n}주 전', { n: Math.floor(n / 7) });
-  if (LANG !== 'ko') return d.toLocaleDateString(LANG, d.getFullYear() === now.getFullYear() ? { month: 'long' } : { year: 'numeric', month: 'long' }); // 영어 November · 일본어 11月
-  return d.getFullYear() === now.getFullYear() ? t('{m}월', { m: d.getMonth() + 1 }) : t('{y}년 {m}월', { y: d.getFullYear(), m: d.getMonth() + 1 });
+const LIB = { ids: null, ts: null, dur: null, at: 0, thumbs: new Map(), album: null, albumName: '', albums: null };
+function libMonthLabel(sec) {
+  const n = Number(sec);
+  if (!Number.isFinite(n) || n <= 0) return ''; // 값이 없거나 잘못되면 NaN 대신 빈 값
+  const d = new Date(n * 1000);
+  if (Number.isNaN(d.getTime())) return '';
+  if (LANG === 'ko') return t('{y}년 {m}월', { y: d.getFullYear(), m: d.getMonth() + 1 });
+  return d.toLocaleDateString(LANG, { year: 'numeric', month: 'long' });
 }
 const libDur = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
 async function openLibrary(max = 10) {
@@ -6530,8 +6541,9 @@ async function openLibrary(max = 10) {
     const COLS = 4, GAP = 2;
     const el = document.createElement('div'); el.className = 'libw';
     el.innerHTML = `<div class="lib-dim"></div><div class="lib" role="dialog" aria-label="${t('사진첩')}">
-      <div class="lib-h"><i class="lib-grab"></i><div class="lib-hr"><button class="lib-x" data-x>${t('취소')}</button><b>${t('최근 항목')}</b><button class="lib-ok" data-ok disabled>${t('추가')}</button></div>
+      <div class="lib-h"><i class="lib-grab"></i><div class="lib-hr"><button class="lib-x" data-x>${t('취소')}</button><button class="lib-title" data-albums aria-label="${t('사진첩')}"><b>${LIB.albumName || t('최근 항목')}</b><i>▾</i></button><button class="lib-ok" data-ok disabled>${t('추가')}</button></div>
         ${st === 'limited' ? `<button class="lib-lim" data-lim>${t('선택한 사진만 보여요 · 더 고르기')}</button>` : ''}</div>
+      <div class="lib-albums" hidden><div class="lib-albums-dim"></div><div class="lib-albums-in"></div></div>
       <div class="lib-sc"><div class="lib-in"></div></div>
       <div class="lib-scrub" aria-hidden="true"><span class="lib-knob"><b></b></span></div>
       <p class="lib-empty" hidden>${t('불러오는 중…')}</p></div>`;
@@ -6547,6 +6559,23 @@ async function openLibrary(max = 10) {
     setY(H(), false); requestAnimationFrame(() => requestAnimationFrame(() => snap(false)));
     $('.lib-dim').onclick = close; $('[data-x]').onclick = close;
     $('[data-lim]')?.addEventListener('click', async () => { try { await P.libManage(); LIB.ids = null; await load(); } catch {} });
+    // 앨범 드롭다운: 최근 항목 + 다른 앨범
+    const $title = $('.lib-title'), $albums = $('.lib-albums'), $albumsIn = $('.lib-albums-in');
+    const albumName = () => LIB.albumName || t('최근 항목');
+    $title.onclick = async () => {
+      if (!$albums.hidden) { $albums.hidden = true; return; }
+      if (!LIB.albums) { try { LIB.albums = ((await P.libAlbums()).albums || []); } catch { LIB.albums = []; } }
+      const row = (id, name, count, on) => `<button class="lib-album${on ? ' on' : ''}" data-a="${esc(id || '')}"><span>${esc(name)}</span>${count != null ? `<small>${count}</small>` : ''}${on ? `<i>${II.check}</i>` : ''}</button>`;
+      $albumsIn.innerHTML = row('', t('최근 항목'), LIB.ids?.length ?? null, !LIB.album) + (LIB.albums || []).map(a => row(a.id, a.name, a.count, LIB.album === a.id)).join('');
+      $albums.hidden = false;
+      $albumsIn.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
+        const id = b.dataset.a || null;
+        if (id !== LIB.album) { LIB.album = id; LIB.albumName = id ? ((LIB.albums || []).find(a => a.id === id)?.name || '') : ''; LIB.ids = null; LIB.ts = null; LIB.dur = null; LIB.buckets = null; LIB.at = 0; }
+        $title.querySelector('b').textContent = albumName();
+        $albums.hidden = true; sc.scrollTop = 0; drawn = ''; render(); load();
+      });
+    };
+    $albums.querySelector('.lib-albums-dim').onclick = () => { $albums.hidden = true; };
     $('[data-ok]').onclick = async () => {
       const b = $('[data-ok]'); b.disabled = true; b.textContent = t('준비 중…');
       try {
@@ -6563,7 +6592,7 @@ async function openLibrary(max = 10) {
     };
     // 끌기: 머리를 잡고 위(전체 화면)·아래(반/닫기). 반 높이일 땐 사진 칸에서 위로 밀어도 전체 화면
     let drag = null;
-    const down = e => { if (e.target.closest('button') && !e.target.closest('.lib-cell')) return; const inGrid = !!e.target.closest('.lib-sc'); if (inGrid && full) return; drag = { y: e.clientY, t: Date.now(), base: full ? 0 : HALF(), grid: inGrid, moved: false }; };
+    const down = e => { if (e.target.closest('.lib-albums')) return; if (e.target.closest('button') && !e.target.closest('.lib-cell')) return; const inGrid = !!e.target.closest('.lib-sc'); if (inGrid && full) return; drag = { y: e.clientY, t: Date.now(), base: full ? 0 : HALF(), grid: inGrid, moved: false }; };
     const move = e => { if (!drag) return; const dy = e.clientY - drag.y; if (!drag.moved && Math.abs(dy) < 8) return; drag.moved = true; if (drag.grid) sc.style.overflowY = 'hidden'; setY(drag.base + dy, false); };
     const up = e => { if (!drag) return; const d = drag; drag = null; if (!d.moved) return; d.cancelClick = true; sheet._noClick = Date.now();
       const dy = e.clientY - d.y, v = dy / Math.max(1, Date.now() - d.t), y = d.base + dy;
@@ -6601,13 +6630,15 @@ async function openLibrary(max = 10) {
     // 오른쪽 날짜 손잡이: 내리면 나타나고, 잡고 끌면 그 위치(날짜)로 바로
     let scrubbing = false, hideT = 0;
     const paintKnob = () => {
-      if (!LIB.ids?.length) return;
+      if (!LIB.ids?.length) { scrub.classList.remove('show'); return; }
       const max = sc.scrollHeight - sc.clientHeight; if (max <= 0) { scrub.classList.remove('show'); return; }
-      const f = sc.scrollTop / max, track = scrub.clientHeight - knob.offsetHeight;
+      const f = Math.max(0, Math.min(1, sc.scrollTop / max)), track = Math.max(1, scrub.clientHeight - knob.offsetHeight);
       if (!scrubbing) knob.style.transform = `translateY(${f * track}px)`; else return;
-      const i = Math.min(LIB.ids.length - 1, Math.floor(sc.scrollTop / (cell + GAP)) * COLS);
-      knob.querySelector('b').textContent = libDateLabel(LIB.ts[i]);
-      scrub.classList.add('show'); clearTimeout(hideT); if (!scrubbing) hideT = setTimeout(() => scrub.classList.remove('show'), 1300);
+      const step = (Number.isFinite(cell) && cell > 0 ? cell : 1) + GAP;
+      const i = Math.min(LIB.ids.length - 1, Math.max(0, Math.floor(sc.scrollTop / step) * COLS));
+      const label = libMonthLabel(LIB.ts?.[i]);
+      if (label) knob.querySelector('b').textContent = label; // NaN 대신 값이 있을 때만 표시
+      scrub.classList.add('show'); clearTimeout(hideT); if (!scrubbing) hideT = setTimeout(() => scrub.classList.remove('show'), 1500);
     };
     sc.addEventListener('scroll', () => { render(); paintKnob(); }, { passive: true });
     knob.addEventListener('pointerdown', e => {
@@ -6615,21 +6646,32 @@ async function openLibrary(max = 10) {
       // 예전 iPhone 사진첩처럼: 손잡이는 손가락을 그대로 따라가고, 사진은 날짜 묶음(오늘·어제·…·월) 단위로 툭툭 넘어감
       const R = scrub.getBoundingClientRect(), off = e.clientY - knob.getBoundingClientRect().top; let lastB = -1;
       const mv = ev => {
-        const track = R.height - knob.offsetHeight, f = Math.max(0, Math.min(1, (ev.clientY - R.top - off) / track));
+        const track = Math.max(1, R.height - knob.offsetHeight), f = Math.max(0, Math.min(1, (ev.clientY - R.top - off) / track));
         knob.style.transform = `translateY(${f * track}px)`;
-        const B = LIB.buckets, idx = Math.round(f * (LIB.ids.length - 1));
+        const B = LIB.buckets || []; if (!B.length) return;
+        const idx = Math.round(f * (LIB.ids.length - 1));
         let lo = 0, hi = B.length - 1; while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (B[mid].i <= idx) lo = mid; else hi = mid - 1; } // idx 가 든 묶음
-        if (lo === lastB) return; lastB = lo;
-        knob.querySelector('b').textContent = B[lo].label;
-        sc.scrollTop = Math.floor(B[lo].i / COLS) * (cell + GAP);
+        const b = B[lo]; if (!b || lo === lastB) return; lastB = lo;
+        knob.querySelector('b').textContent = b.label;
+        sc.scrollTop = Math.floor(b.i / COLS) * ((Number.isFinite(cell) && cell > 0 ? cell : 1) + GAP);
         navigator.vibrate?.(4);
       };
       const end = () => { scrubbing = false; el.classList.remove('scrubbing'); knob.removeEventListener('pointermove', mv); knob.removeEventListener('pointerup', end); knob.removeEventListener('pointercancel', end); paintKnob(); askThumbs(); };
       knob.addEventListener('pointermove', mv); knob.addEventListener('pointerup', end); knob.addEventListener('pointercancel', end);
     });
     const load = async () => {
-      if (!LIB.ids || Date.now() - LIB.at > 60e3) { $('.lib-empty').hidden = false; try { const r = await P.libList(); Object.assign(LIB, { ids: r.ids, ts: r.ts, dur: r.dur, at: Date.now() }); } catch (e) { toast(kerr(e)); return finish(await nativePick()); } }
-      if (!LIB.buckets || LIB.buckets.n !== LIB.ids.length) { const B = []; let prev = null; LIB.ts.forEach((ts, i) => { const l = libDateLabel(ts); if (l !== prev) { B.push({ i, label: l }); prev = l; } }); B.n = LIB.ids.length; LIB.buckets = B; }
+      if (!LIB.ids || Date.now() - LIB.at > 60e3) {
+        $('.lib-empty').hidden = false;
+        try {
+          const r = await P.libList(LIB.album ? { albumId: LIB.album } : {});
+          Object.assign(LIB, { ids: r.ids || [], ts: r.ts || [], dur: r.dur || [], at: Date.now() });
+        } catch (e) { toast(kerr(e)); return finish(await nativePick()); }
+      }
+      if (!LIB.buckets || LIB.buckets.n !== LIB.ids.length) {
+        const B = []; let prev = null;
+        LIB.ts.forEach((ts, i) => { const l = libMonthLabel(ts); if (!l) return; if (l !== prev) { B.push({ i, label: l }); prev = l; } });
+        B.n = LIB.ids.length; LIB.buckets = B;
+      }
       $('.lib-empty').hidden = !!LIB.ids.length; if (!LIB.ids.length) $('.lib-empty').textContent = t('사진첩이 비어 있어요');
       drawn = ''; render();
     };

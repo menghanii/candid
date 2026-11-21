@@ -170,6 +170,28 @@ console.log('\n[7] media ratios');
   ok(!/frame9\b/.test(html), 'legacy 9:16 photo frame removed');
 }
 
+// 8) 앱 안 사진첩: 앨범 이동·날짜 손잡이·NaN 방지
+console.log('\n[8] photo library');
+{
+  const has = (re, msg) => ok(re.test(html), msg);
+  has(/\.lib-knob \{[^}]*height:36px/, 'date handle keeps its original height');
+  has(/\.lib-knob b \{ font-size:13px/, 'date label keeps its original 13px');
+  has(/\.lib-knob \{[^}]*min-width:112px/, 'date handle is wider');
+  has(/\.lib-knob::before \{[^}]*margin-right:16px/, 'space between the grip and the date');
+  has(/class="lib-title" data-albums/, 'album dropdown trigger');
+  has(/P\.libAlbums\(\)/, 'album list requested from native');
+  has(/P\.libList\(LIB\.album \? \{ albumId: LIB\.album \} : \{\}\)/, 'selected album passed to libList');
+  has(/function libMonthLabel\(sec\)/, 'year/month label helper');
+  has(/Number\.isFinite\(n\)/, 'invalid timestamps are guarded (no NaN)');
+  has(/libMonthLabel\(LIB\.ts\?\.\[i\]\)/, 'knob uses guarded month label');
+  has(/setTimeout\(\(\) => scrub\.classList\.remove\('show'\), 1500\)/, 'date handle hides after 1.5s');
+  has(/LIB\.ts\.forEach\(\(ts, i\) => \{ const l = libMonthLabel\(ts\)/, 'month buckets use year/month');
+  const swift = fs.readFileSync(path.join(root, 'ios-app/ios/App/App/MediaPickerPlugin.swift'), 'utf8');
+  ok(/CAPPluginMethod\(name: "libAlbums"/.test(swift), 'native libAlbums is registered');
+  ok(/getString\("albumId"\)/.test(swift), 'native libList accepts albumId');
+  ok(/PHAssetCollection\.fetchAssetCollections/.test(swift), 'native reads photo albums');
+}
+
 console.log('\n' + (failed ? `FAILED: ${failed} check(s)` : 'ALL TESTS PASSED'));
 if (require.main === module) process.exit(failed ? 1 : 0);
 else if (failed) throw new Error('candid pre-build tests failed');

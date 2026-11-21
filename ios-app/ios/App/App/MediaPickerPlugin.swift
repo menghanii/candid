@@ -21,6 +21,7 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
         CAPPluginMethod(name: "camera", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "libAuth", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "libList", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "libAlbums", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "libThumbs", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "libExport", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "libManage", returnType: CAPPluginReturnPromise)
@@ -255,11 +256,18 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
     }
     @objc func libList(_ call: CAPPluginCall) {
         DispatchQueue.global(qos: .utility).async { self.cleanOld(self.thumbDir, maxAge: 14 * 86400) }
+        let albumId = call.getString("albumId")
         DispatchQueue.global(qos: .userInitiated).async {
             let o = PHFetchOptions()
             o.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
             o.predicate = NSPredicate(format: "mediaType == %d || mediaType == %d", PHAssetMediaType.image.rawValue, PHAssetMediaType.video.rawValue)
-            let r = PHAsset.fetchAssets(with: o)
+            let r: PHFetchResult<PHAsset>
+            if let aid = albumId, !aid.isEmpty,
+               let c = PHAssetCollection.fetchAssetCollections(withLocalIdentifiers: [aid], options: nil).firstObject {
+                r = PHAsset.fetchAssets(in: c, options: o) // 앨범 안 사진
+            } else {
+                r = PHAsset.fetchAssets(with: o) // 최근 항목(전체)
+            }
             var ids = [String](), ts = [Int](), dur = [Double](), map = [String: PHAsset]()
             ids.reserveCapacity(r.count); ts.reserveCapacity(r.count); dur.reserveCapacity(r.count)
             r.enumerateObjects { a, _, _ in
@@ -267,6 +275,21 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
                 dur.append(a.mediaType == .video ? (a.duration * 10).rounded() / 10 : 0); map[a.localIdentifier] = a
             }
             DispatchQueue.main.async { self.fetch = r; self.byId = map; call.resolve(["ids": ids, "ts": ts, "dur": dur]) }
+        }
+    }
+    @objc func libAlbums(_ call: CAPPluginCall) {
+        let s = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        guard s == .authorized || s == .limited else { call.resolve(["albums": []]); return }
+        DispatchQueue.global(qos: .userInitiated).async {
+            var out: [[String: Any]] = []
+            let opts = PHFetchOptions()
+            opts.sortDescriptors = [NSSortDescriptor(key: "localizedTitle", ascending: true)]
+            let user = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: opts)
+            user.enumerateObjects { c, _, _ in
+                let count = PHAsset.fetchAssets(in: c, options: nil).count
+                if count > 0 { out.append(["id": c.localIdentifier, "name": c.localizedTitle ?? "Album", "count": count]) }
+            }
+            DispatchQueue.main.async { call.resolve(["albums": out]) }
         }
     }
     @objc func libThumbs(_ call: CAPPluginCall) {
