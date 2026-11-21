@@ -189,7 +189,21 @@ console.log('\n[8] photo library');
   const swift = fs.readFileSync(path.join(root, 'ios-app/ios/App/App/MediaPickerPlugin.swift'), 'utf8');
   ok(/CAPPluginMethod\(name: "libAlbums"/.test(swift), 'native libAlbums is registered');
   ok(/getString\("albumId"\)/.test(swift), 'native libList accepts albumId');
-  ok(/PHAssetCollection\.fetchAssetCollections/.test(swift), 'native reads photo albums');
+  ok(/PHAssetCollection\.fetchAssetCollections\(with: \.smartAlbum/.test(swift), 'native lists smart collections');
+  ok(/smartAlbumUserLibrary/.test(swift), 'native skips the duplicate Recents collection');
+}
+
+// 9) Send to / Post to: 결과 수와 무관하게 화면 높이 고정(공통 목록)
+console.log('\n[9] picker height');
+{
+  const has = (re, msg) => ok(re.test(html), msg);
+  has(/\.pflist \{ height:min\(52vh, 420px\); overflow:auto;/, 'picker list has a fixed height');
+  has(/<div id="pdl" class="flist pflist">/, 'friend/group pickers share the fixed list');
+  has(/id="pdq" placeholder="\$\{isG \?/, 'search field is shared by friend and group pickers');
+  has(/function fillPickList\(\{ \$q, \$l, items, empty, attr, row, pick \}\)/, 'shared picker list/search module');
+  ok((html.match(/fillPickList\(\{ \$q, \$l, items: /g) || []).length === 2, 'friend and group pickers both use fillPickList');
+  has(/const rows = searchMatch\(items, \$q\.value\)/, 'shared filter uses searchMatch');
+  ok(!/\.pflist \{[^}]*max-height:52vh/.test(html), 'picker list no longer shrinks with results');
 }
 
 console.log('\n' + (failed ? `FAILED: ${failed} check(s)` : 'ALL TESTS PASSED'));

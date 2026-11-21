@@ -281,15 +281,25 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
         let s = PHPhotoLibrary.authorizationStatus(for: .readWrite)
         guard s == .authorized || s == .limited else { call.resolve(["albums": []]); return }
         DispatchQueue.global(qos: .userInitiated).async {
-            var out: [[String: Any]] = []
-            let opts = PHFetchOptions()
-            opts.sortDescriptors = [NSSortDescriptor(key: "localizedTitle", ascending: true)]
-            let user = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: opts)
-            user.enumerateObjects { c, _, _ in
+            // 사진 앱의 '모음'(스마트 앨범): 즐겨찾기·비디오·셀피·라이브 포토 등
+            let rank: [PHAssetCollectionSubtype: Int] = [
+                .smartAlbumFavorites: 0, .smartAlbumVideos: 1, .smartAlbumSelfPortraits: 2,
+                .smartAlbumLivePhotos: 3, .smartAlbumDepthEffect: 4, .smartAlbumPanoramas: 5,
+                .smartAlbumScreenshots: 6, .smartAlbumRecentlyAdded: 7, .smartAlbumSlomoVideos: 8,
+                .smartAlbumTimelapses: 9, .smartAlbumBursts: 10, .smartAlbumAnimated: 11,
+                .smartAlbumLongExposures: 12
+            ]
+            var out: [(Int, [String: Any])] = []
+            let all = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .any, options: nil)
+            all.enumerateObjects { c, _, _ in
+                if c.assetCollectionSubtype == .smartAlbumUserLibrary { return } // '최근 항목'은 전체라 중복 제외
                 let count = PHAsset.fetchAssets(in: c, options: nil).count
-                if count > 0 { out.append(["id": c.localIdentifier, "name": c.localizedTitle ?? "Album", "count": count]) }
+                if count == 0 { return }
+                let name = c.localizedTitle ?? "Collection"
+                out.append((rank[c.assetCollectionSubtype] ?? 99, ["id": c.localIdentifier, "name": name, "count": count]))
             }
-            DispatchQueue.main.async { call.resolve(["albums": out]) }
+            let albums = out.sorted { $0.0 < $1.0 }.map { $0.1 }
+            DispatchQueue.main.async { call.resolve(["albums": albums]) }
         }
     }
     @objc func libThumbs(_ call: CAPPluginCall) {

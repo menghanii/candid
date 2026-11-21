@@ -385,7 +385,7 @@
   .pask { text-align:center; padding:6px 0 14px; }
   .pask-ic { display:flex; justify-content:center; margin-bottom:10px; }
   .pask h3 { margin:0 0 6px; }
-  .pflist { max-height:52vh; overflow:auto; margin:0 -4px; }
+  .pflist { height:min(52vh, 420px); overflow:auto; margin:0 -4px; -webkit-overflow-scrolling:touch; }
   .cpick { max-height:30vh; }
   .pfrow { display:flex; width:100%; align-items:center; gap:12px; padding:10px 4px; border:0; background:none; color:inherit; text-align:left; font:inherit; }
   .pfrow > span { flex:1; min-width:0; display:flex; flex-direction:column; }
@@ -3038,13 +3038,22 @@ function openCallFriends() {
     </div>`);
 }
 const ctxRow = (av, label, fn) => `<button class="crow2 hl" onclick="closeSheet();${fn.replace(/"/g, '&quot;')}">${av}<span class="ctx"><b>${label}</b><small>${t('지금 보고 있는 곳')}</small></span>${I.chevron}</button>`;
+// 대상 고르기 공통: 검색어로 거른 목록을 같은 방식으로 그리고, 고르면 대상으로 넘긴다
+function fillPickList({ $q, $l, items, empty, attr, row, pick }) {
+  const paint = () => {
+    const rows = searchMatch(items, $q.value);
+    $l.innerHTML = rows.length ? rows.map(row).join('') : `<p class="hint" style="padding:12px 0">${empty}</p>`;
+    $l.querySelectorAll(`[${attr}]`).forEach(b => b.onclick = () => pick(b));
+  };
+  $q.oninput = paint; paint();
+}
 // ⊕ 만들기 > 친구 피드 채워주기 · 그룹에 올리기: 대상만 다를 뿐 '고르고 → 작성 화면 열기'는 같은 흐름
 //   kind: 'friend' | 'group'. 고른 뒤에는 항상 시트를 닫고 같은 방식으로 작성 화면을 연다.
 async function pickDestination(kind) {
   const isG = kind === 'group';
   const w = sheet(`<h3>${isG ? 'Post to' : 'Send to'}<i class="pd">.</i></h3>
     <p class="hint">${isG ? t('어느 그룹에 올릴까요?') : t('누구의 피드를 채워줄까요?')}</p>
-    ${isG ? '' : `<input class="field" id="pdq" placeholder="${t('친구 이름·아이디로 찾기')}" autocomplete="off" style="margin-bottom:6px">`}
+    <input class="field" id="pdq" placeholder="${isG ? t('그룹 이름으로 찾기') : t('친구 이름·아이디로 찾기')}" autocomplete="off" style="margin-bottom:6px">
     <div id="pdl" class="flist pflist"><p class="hint">${t('불러오는 중…')}</p></div>
     <div class="sheet-foot">${isG
       ? `<button class="btn block" onclick="closeSheet();setTimeout(openCreateGroup,250)">${t('+ 새 그룹 만들기')}</button>`
@@ -3055,11 +3064,12 @@ async function pickDestination(kind) {
   if (isG) {
     await loadMyGroups().catch(() => {});
     if (!w.isConnected) return;
-    if (MYG.ok === false) return $l.innerHTML = `<p class="hint">${t('그룹 기능 준비 중이에요')}</p>`;
+    if (MYG.ok === false) { $q.hidden = true; return $l.innerHTML = `<p class="hint">${t('그룹 기능 준비 중이에요')}</p>`; }
     const gl = myGroupList().filter(canPostTo);
-    $l.innerHTML = gl.length ? gl.map(g => listRow({ tag: 'button', cls: 'pfrow', attrs: ` data-g="${g.id}"`, face: gAv(g, 'xs'), title: esc(g.name), sub: gBadge(g), right: `<i class="pf-go">${t('올리기')}</i>` })).join('')
-      : `<div class="empty-dot" style="margin:8px 0 4px">${DOT('look', { size: 52, cls: 'blink' })}</div><p class="hint" style="text-align:center">${t('아직 올릴 수 있는 그룹이 없어요. 새 그룹을 만들거나 초대 링크로 참여해 보세요.')}</p>`;
-    $l.querySelectorAll('[data-g]').forEach(b => b.onclick = () => choose({ group: MYG.groups.get(b.dataset.g) }));
+    if (!gl.length) { $q.hidden = true; return $l.innerHTML = `<div class="empty-dot" style="margin:8px 0 4px">${DOT('look', { size: 52, cls: 'blink' })}</div><p class="hint" style="text-align:center">${t('아직 올릴 수 있는 그룹이 없어요. 새 그룹을 만들거나 초대 링크로 참여해 보세요.')}</p>`; }
+    fillPickList({ $q, $l, items: gl, empty: t('찾는 그룹이 없어요'), attr: 'data-g',
+      row: g => listRow({ tag: 'button', cls: 'pfrow', attrs: ` data-g="${g.id}"`, face: gAv(g, 'xs'), title: esc(g.name), sub: gBadge(g), right: `<i class="pf-go">${t('올리기')}</i>` }),
+      pick: b => choose({ group: MYG.groups.get(b.dataset.g) }) });
     return;
   }
   const ids = [...myFollows];
@@ -3068,12 +3078,9 @@ async function pickDestination(kind) {
   if (!w.isConnected) return;
   if (error) return $l.innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
   const list = (data || []).sort(byKoName);
-  const paint = () => {
-    const rows = searchMatch(list, $q.value);
-    $l.innerHTML = rows.length ? rows.map(p => listRow({ tag: 'button', cls: 'pfrow', attrs: ` data-id="${p.id}"`, face: avatar(p, 'xs'), title: esc(p.name), sub: p.handle ? '@' + esc(p.handle) : '', right: `<i class="pf-go">${t('보내기')}</i>` })).join('') : `<p class="hint" style="padding:12px 0">${t('찾는 친구가 없어요')}</p>`;
-    $l.querySelectorAll('[data-id]').forEach(b => b.onclick = () => choose(list.find(x => x.id === b.dataset.id)));
-  };
-  $q.oninput = paint; paint();
+  fillPickList({ $q, $l, items: list, empty: t('찾는 친구가 없어요'), attr: 'data-id',
+    row: p => listRow({ tag: 'button', cls: 'pfrow', attrs: ` data-id="${p.id}"`, face: avatar(p, 'xs'), title: esc(p.name), sub: p.handle ? '@' + esc(p.handle) : '', right: `<i class="pf-go">${t('보내기')}</i>` }),
+    pick: b => choose(list.find(x => x.id === b.dataset.id)) });
 }
 function pickFriendToSend() { return pickDestination('friend'); }
 function pickGroupToPost() { return pickDestination('group'); }

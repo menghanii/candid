@@ -236,6 +236,8 @@
  "친구 이름·아이디로 찾기": "Search by name or ID",
  "아직 친구가 없어요. 친구를 찾아 추가하면 여기서 바로 보낼 수 있어요.": "No friends yet. Add some and you can send to them right here.",
  "찾는 친구가 없어요": "No matching friends",
+ "그룹 이름으로 찾기": "Search groups by name",
+ "찾는 그룹이 없어요": "No matching groups",
  "친구들 피드에 새 사진이 올라오면 여기 떠요.<br>친구 피드에 사진을 먼저 보내 보는 건 어때요?": "New photos on your friends' feeds show up here.<br>Why not send one to a friend first?",
  "내 피드로 가기": "Go to my feed",
  "소리 켜기/끄기": "Sound on/off",
