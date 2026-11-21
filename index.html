@@ -580,7 +580,8 @@
   .stk-layer { z-index:3; }
  /* 썸네일: 스티커는 사진 위, 'from.' 글씨 아래 */
   /* 상세 화면 */
-  .post-media .stage > img, .post-media .stage > video { aspect-ratio:4/5; }
+  .post-media .stage > img { aspect-ratio:3/4; }
+  .post-media .stage > video { aspect-ratio:9/16; }
   /* 게시물 크게 보기: 원본 비율 그대로(잘림 없음). 너무 긴 사진은 화면 높이 72% 안에 맞추고 양옆은 검은 여백 */
   .post-media .slide, .post-media .carwrap:not(.multi) { display:flex; align-items:center; justify-content:center; background:#000; }
   .post-media .stage.fit { width:min(100%, calc(72dvh * var(--ar))); }
@@ -595,6 +596,8 @@
   .decor > * { width:100%; }
   .dwrap { padding:4px 16px 0; }
   .dstage { border-radius:16px; touch-action:none; }
+  .dstage.pic > img { aspect-ratio:3/4; }
+  .dstage.vid > img { aspect-ratio:9/16; }
   .dstage > img { pointer-events:none; -webkit-user-drag:none; }
   /* 투표·질문 카드에 스티커: 카드 상자 기준으로 위치(0~1) */
   .tstage { position:relative; container-type:inline-size; }
@@ -664,7 +667,7 @@
   .empty.small { padding:20px 28px 24px; }
   .empty.small h2 { font-size:22px; }
   /* 릴스: 사진은 화면 가운데, 글(from·메시지·시간)은 하단 메뉴 바로 위 */
-  /* 릴스: 사진·영상을 자르지 않고 원본 비율 그대로(남는 곳은 흐린 배경). 비율은 불러온 뒤 --ar 로 */
+  /* 릴스: 사진은 3:4 · 영상은 9:16으로 맞춤(남는 곳은 흐린 배경). 비율은 --ar 로 */
   /* 여러 장: 장마다 비율이 달라도 각 장을 같은 영역의 정가운데에(위아래 여백 동일) */
  /* 릴스: 화면 맨 위(상단 바 뒤)에 가려져서, 사진마다 오른쪽 위에 표시(.rmulti) */
   /* 닷 잡기: 색은 파란 닷에 필터를 씌워서(무지개는 색이 계속 변함) */
@@ -1038,6 +1041,7 @@
   .epm-i.drag { z-index:5; box-shadow:0 8px 20px rgba(0,0,0,.45); transition:none; }
   /* 작성 화면: 사진 3:4 틀(올라가면 보일 모습) 안에서 사진 옮기기·확대 */
   .cmp-media.has.frame34 { aspect-ratio:3/4; width:auto; height:min(60vh, 60dvh, 620px); max-height:none; margin:0 auto; border-radius:14px; }
+  .cmp-media.has.frame916 { aspect-ratio:9/16; width:auto; height:min(60vh, 60dvh, 620px); max-height:none; margin:0 auto; border-radius:14px; }
   .cmp-media .cfr { position:absolute; inset:0; overflow:hidden; touch-action:none; background:#000; transition:background .3s; }
   .cfr img { position:absolute; left:0; top:0; transform-origin:0 0; user-select:none; -webkit-user-select:none; pointer-events:none; max-width:none; }
   .cfr .chint { position:absolute; left:50%; top:14px; transform:translateX(-50%); padding:6px 11px; border-radius:14px; background:rgba(0,0,0,.55); color:#fff; font-size:12px; font-weight:600; white-space:nowrap; pointer-events:none; transition:opacity .4s; }
@@ -1110,8 +1114,8 @@
   .sheet-wrap.from-top .sheet { border-bottom:1px solid var(--line); box-shadow:0 12px 40px rgba(0,0,0,.35); max-height:82vh; border-radius:0 0 24px 24px; padding:calc(12px + env(safe-area-inset-top)) 20px 8px; animation:down .32s cubic-bezier(.32,.72,0,1); padding-top:calc(var(--st) + 14px); }
   .sheet-wrap.from-top .grab { margin:14px auto 4px; }
   /* ===== Candids 칸·사진 (한 곳에 모음) ===== */
-  .rcar .stage > img { transform-origin:center center; background:transparent; max-height:none; aspect-ratio:4/5; }
-  .rcar .stage > video { transform-origin:center center; background:transparent; max-height:none; aspect-ratio:4/5; }
+  .rcar .stage > img { transform-origin:center center; background:transparent; max-height:none; aspect-ratio:3/4; }
+  .rcar .stage > video { transform-origin:center center; background:transparent; max-height:none; aspect-ratio:9/16; }
   .rcar .stage.pinching { overflow:visible; z-index:30; }
   .rcar .stage.pinching .stk-layer { opacity:0; }
   .rcar .stage.zoomed .stk-layer { opacity:0; }
@@ -1147,8 +1151,10 @@
   .rcar .rmulti svg { width:11px; height:11px; }
   .rcar .rmulti b { font-weight:500; }
   /* ===== 사진 격자 (한 곳에 모음) ===== */
-  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; padding-top:2px; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; padding-top:2px; align-items:start; }
   .grid button { padding:0; border:0; aspect-ratio:4/5; background:var(--soft); overflow:hidden; position:relative; container-type:inline-size; }
+  .grid button.p { aspect-ratio:3/4; }
+  .grid button.v { aspect-ratio:9/16; }
   .grid img { width:100%; height:100%; object-fit:cover; display:block; transition:transform .3s, opacity .3s; }
   .grid button:hover img { transform:scale(1.03); opacity:.92; }
   .grid button::after { content:""; position:absolute; inset:auto 0 0; height:38%; background:linear-gradient(transparent, rgba(0,0,0,.32)); pointer-events:none; display:none; }
@@ -2845,7 +2851,7 @@ function renderBody() {
     return;
   }
   if (approved.length) {
-    $b.innerHTML = `<div class="grid">${approved.map(p => `<button data-pid="${p.id}" onclick="openFeedViewer('${p.id}', this)" class=""${p.id === S.justApproved ? 'fresh' : ''}" aria-label="${t('{name}가 보낸 사진', { name: aname(p.author_name) })}${p.text ? ': ' + esc(p.text) : ''}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">`}${gridStickers(p)}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}${p.pinned_at ? `<span class="gpin" aria-label="${t('고정됨')}">${II.pin}</span>` : ''}${tileFrom(p, !isOwner)}</button>`).join('')}</div>`;
+    $b.innerHTML = `<div class="grid">${approved.map(p => `<button data-pid="${p.id}" onclick="openFeedViewer('${p.id}', this)" class="${isText(p) ? 't' : isVideo(p) ? 'v' : 'p'}${p.id === S.justApproved ? ' fresh' : ''}" aria-label="${t('{name}가 보낸 사진', { name: aname(p.author_name) })}${p.text ? ': ' + esc(p.text) : ''}">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="" loading="lazy">`}${gridStickers(p)}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}${p.pinned_at ? `<span class="gpin" aria-label="${t('고정됨')}">${II.pin}</span>` : ''}${tileFrom(p, !isOwner)}</button>`).join('')}</div>`;
     fillTileFaces($b);
     S.justApproved = null;
     return;
@@ -4432,13 +4438,14 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
     const m = media[curPick];
     cropper?.destroy(); cropper = null;
     pk.classList.add('has');
-    pk.classList.remove('frame34');
+    pk.classList.remove('frame34', 'frame916');
     pk.innerHTML = m.kind === 'video'
       ? `<video src="${m.previewUrl}" poster="${m._tu ||= URL.createObjectURL(m.thumb)}" muted playsinline autoplay loop></video><span class="vbadge">${t('{s}초', { s: Math.round((m.end - m.start) * 10) / 10 })}</span>`
       : `<div class="ccrop"></div>`;
     pk.insertAdjacentHTML('beforeend', `<span class="repick">${t(media.length > 1 ? '다시 고르기' : '바꾸기')}</span>`);
     pk.appendChild($file);
     pk.classList.toggle('frame34', m.kind === 'image');
+    pk.classList.toggle('frame916', m.kind === 'video');
     if (m.kind === 'image') { m.src0 ||= m.previewUrl; cropper = mountFramer(pk.querySelector('.ccrop'), m.src0, m.edit, async ed => { m.edit = ed; m.edited = true; const r = await renderFrame(m.src0, ed); if (m.edit === ed) { if (m._tu) try { URL.revokeObjectURL(m._tu); } catch {} Object.assign(m, { main: r.main, thumb: r.thumb, job: null, _tu: null }); } paintStrip(); }); }
     paintStrip();
     // 영상 구간 자르기: 지금 보이는 장이 영상이면 아래에 구간 선택 바 표시
@@ -5106,7 +5113,7 @@ async function loadStickers(ids) {
 // 스티커 한 개: 이모지·미니 아이템 그림·텍스트 + 크기(--s)·회전(--r)
 const stickerSpan = (r, cls = '') => `<span class="pst${r.text ? ' tx' : ''} ${cls}" data-id="${r.id}"${cls ? '' : ' role="button" onclick="stkWho(event, this)"'} style="left:${r.x * 100}%;top:${r.y * 100}%;--s:${r.scale};--r:${r.rot || 0}deg">${r.text ? `<span class="ptxt ${r.style || 'plain'}">${esc(r.text)}</span>` : glyph(ITEM[r.item_id])}</span>`;
 const stickerLayer = (postId, idx) => `<div class="stk-layer" data-sl="${postId}:${idx}">${(STK.get(postId) || []).filter(r => r.media_idx === idx).map(r => stickerSpan(r)).join('')}</div>`;
-// 피드 격자 썸네일의 스티커: 칸이 4:5 가운데 잘라 보기(cover)라 꾸미기 화면(4:5)과 보이는 영역이 같음 → 같은 좌표·같은 비율 크기
+// 피드 격자 썸네일의 스티커: 칸 비율(사진 3:4 · 영상 9:16)과 꾸미기 화면이 같아 같은 좌표·같은 비율 크기
 // 첫 장(썸네일 사진)의 스티커만. 투표·질문 카드는 칸 비율이 카드와 달라 위치가 어긋나므로 표시하지 않음
 const gridStickers = p => isText(p) ? '' : stickerLayer(p.id, 0);
 // 보는 화면(게시물·릴스)에서 스티커를 누르면 누가 붙였는지
@@ -5144,15 +5151,13 @@ document.addEventListener('pointerdown', e => { if (!e.target.closest('.stk-tag,
 function refreshStickerLayers(postId) {
   document.querySelectorAll(`[data-sl^="${postId}:"]`).forEach(el => { const st = el.parentElement; el.outerHTML = stickerLayer(postId, +el.dataset.sl.split(':')[1]); if (st?.dataset.ar) fitStickerLayer(st); });
 }
-// 릴스 원본 비율: 사진(또는 영상 대표 이미지)을 불러온 뒤 그 비율로 칸을 맞춤
+// 릴스 비율: 사진 3:4 · 영상 9:16으로 칸을 맞춤
 function watchReelRatio(st) {
   const m = st.querySelector('img, video'); if (!m) return;
   const set = (w, h) => { if (!w || !h) return; st.dataset.ar = w / h; st.style.setProperty('--ar', w / h); st.classList.add('fit'); fitStickerLayer(st); };
   paintFill(st, m.tagName === 'IMG' ? m.currentSrc || m.src : m.poster);
-  if (m.tagName === 'IMG') { if (m.complete && m.naturalWidth) set(m.naturalWidth, m.naturalHeight); else m.addEventListener('load', () => set(m.naturalWidth, m.naturalHeight), { once: true }); return; }
-  if (m.videoWidth) return set(m.videoWidth, m.videoHeight);
-  m.addEventListener('loadedmetadata', () => set(m.videoWidth, m.videoHeight), { once: true });
-  if (m.poster) { const im = new Image(); im.onload = () => { if (!st.dataset.ar) set(im.naturalWidth, im.naturalHeight); }; im.src = m.poster; }
+  if (m.tagName === 'IMG') return set(3, 4); // 사진은 기존 업로드분도 3:4
+  return set(9, 16); // 영상은 9:16
 }
 // 9:16 칸의 남는 곳: 사진의 위·아래 가장자리 색을 골라 그라데이션으로 채움(인스타 스토리처럼)
 const FILLS = new Map();
@@ -5340,7 +5345,7 @@ async function openDecorate(postId, idx0) {
   const MAX_POST = 100; // 한 게시물에 한 사람당 1개, 게시물 전체 100개 (20 SQL 과 같음)
   const el = pageOverlay('decor', `
     <header class="pov-h cmp-h"><button class="icon-btn" data-x aria-label="${t('닫기')}">${I.close}</button><b>${t('스티커 꾸며주기')}</b><button class="cmp-send" id="dsave">${t('저장')}</button></header>
-    <div class="dwrap"><div class="stage dstage${m ? '' : ' tstage'}" id="dstage">${m ? `<img src="${photoUrl(m.k === 'video' ? (m.t || m.p) : m.p)}" alt="" draggable="false">` : textCard(p)}<div class="dlayer" id="dlayer"></div></div></div>
+    <div class="dwrap"><div class="stage dstage${m ? (m.k === 'video' ? ' vid' : ' pic') : ' tstage'}" id="dstage">${m ? `<img src="${photoUrl(m.k === 'video' ? (m.t || m.p) : m.p)}" alt="" draggable="false">` : textCard(p)}<div class="dlayer" id="dlayer"></div></div></div>
     <div class="dtools" id="dtools" hidden>
       <div class="dsl" id="dszw"><small>${t('크기')}</small><input type="range" id="dsize" min="0.4" max="3" step="0.05" aria-label="${t('크기')}"></div>
       <div class="dsl" id="drotw"><small>${t('회전')}</small><input type="range" id="drot" min="-180" max="180" step="1" aria-label="${t('회전')}"></div>
@@ -5707,7 +5712,7 @@ function paintGroup() {
   else if (g.visibility === 'public' && g.join_mode === 'open') acts = `<button class="btn primary" onclick="joinGroup()">${t('참여하기')}</button>`;
   else if (g.visibility === 'public') acts = `<button class="btn ${fol ? '' : 'add'}" onclick="toggleGroupFollow()">${fol ? II.check + t('팔로잉') : t('팔로우')}</button><button class="btn primary" onclick="joinGroup()">${t('멤버 신청')}</button>`;
   else acts = `<button class="btn" disabled>${t('초대받은 멤버만 참여할 수 있어요')}</button>`;
-  const tile = p => `<button data-pid="${p.id}" onclick="openFeedViewer('${p.id}', this)" class="${p.flagged ? 'gflagged' : ''}" aria-label="${t('{name}님이 올린 사진', { name: esc(p.author_name) })}">
+  const tile = p => `<button data-pid="${p.id}" onclick="openFeedViewer('${p.id}', this)" class="${p.flagged ? 'gflagged ' : ''}${isVideo(p) ? 'v' : 'p'}" aria-label="${t('{name}님이 올린 사진', { name: esc(p.author_name) })}">
       <img src="${thumbUrl(p)}" alt="" loading="lazy">${gridStickers(p)}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}
       ${p.pinned_at ? `<span class="gpin" aria-label="${t('고정됨')}">${II.pin}</span>` : ''}${p.flagged ? `<span class="gflag">${t('신고로 가려짐')}</span>` : ''}
       ${tileFrom(p, true)}</button>`;

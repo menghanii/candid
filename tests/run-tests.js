@@ -139,6 +139,20 @@ console.log('\n[7] media ratios');
   has(/\.cmp-media\.has\.frame34 \{ aspect-ratio:3\/4;/, 'photo composer frame is 3:4');
   has(/const FW = 900, FH = 1200, f = frameMath/, 'photo output crops to 3:4');
   has(/classList\.toggle\('frame34', m\.kind === 'image'\)/, 'image uses the 3:4 frame');
+  has(/if \(m\.tagName === 'IMG'\) return set\(3, 4\);/, 'uploaded photos display at 3:4 (incl. existing)');
+  has(/return set\(9, 16\);/, 'videos display at 9:16');
+  has(/\.rcar \.stage > img \{[^}]*aspect-ratio:3\/4/, 'reel photo default is 3:4');
+  has(/\.rcar \.stage > video \{[^}]*aspect-ratio:9\/16/, 'reel video default is 9:16');
+  has(/\.post-media \.stage > img \{[^}]*aspect-ratio:3\/4/, 'post photo default is 3:4');
+  has(/\.post-media \.stage > video \{[^}]*aspect-ratio:9\/16/, 'post video default is 9:16');
+  has(/\.cmp-media\.has\.frame916 \{ aspect-ratio:9\/16;/, 'video composer frame is 9:16');
+  has(/classList\.toggle\('frame916', m\.kind === 'video'\)/, 'video uses the 9:16 frame');
+  has(/\.grid button\.p \{ aspect-ratio:3\/4;/, 'grid photo tiles are 3:4');
+  has(/\.grid button\.v \{ aspect-ratio:9\/16;/, 'grid video tiles are 9:16');
+  has(/isText\(p\) \? 't' : isVideo\(p\) \? 'v' : 'p'/, 'profile grid tiles tagged by kind');
+  has(/\.dstage\.pic > img \{ aspect-ratio:3\/4;/, 'decorate photo frame is 3:4');
+  has(/\.dstage\.vid > img \{ aspect-ratio:9\/16;/, 'decorate video frame is 9:16');
+  has(/dstage\$\{m \? \(m\.k === 'video' \? ' vid' : ' pic'\) : ' tstage'\}/, 'decorate frame tagged by kind');
   ok(!/frame9\b/.test(html), 'legacy 9:16 photo frame removed');
 }
 
