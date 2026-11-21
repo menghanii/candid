@@ -299,33 +299,48 @@
   .optrow button { flex:none; width:36px; height:36px; margin-bottom:10px; border:0; border-radius:50%; background:var(--soft); color:var(--sub); }
   #addopt { margin-bottom:12px; color:var(--sub); }
   /* 그리드·승인함 텍스트 타일 */
-  .ttile { width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; gap:6px; padding:12px; text-align:left; color:#fff; background:var(--accent); overflow:hidden; }
-  .ttile.question { background:#0a0a0a; }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ttile.question { background:#1f1f24; } }
+  .ttile { width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; gap:6px; padding:12px; text-align:left; color:var(--tink,#fff); background:var(--tbg,var(--accent)); overflow:hidden; }
+  .ttile.question { background:var(--tbg,#0a0a0a); }
   .ttile .tk { font-family:var(--display); font-size:10px; font-weight:800; letter-spacing:.08em; opacity:.7; }
   .ttile p { margin:0; font-size:13px; font-weight:800; line-height:1.3; letter-spacing:-.02em; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; word-break:keep-all; }
   .ttile small { font-size:11px; opacity:.75; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   /* 상세·릴스 큰 카드 */
-  .tcard { padding:28px 22px 22px; color:#fff; background:var(--accent); }
-  .tcard.question { background:#0a0a0a; }
+  .tcard { position:relative; overflow:hidden; padding:28px 22px 22px; color:var(--tink,#fff); background:var(--tbg,var(--accent)); }
+  .tcard.question { background:var(--tbg,#0a0a0a); }
+  .tcard .tinner { position:relative; z-index:2; }
+  .tchar { position:absolute; z-index:1; pointer-events:none; opacity:.85; line-height:0; }
+  .tchar.tl { left:-38px; top:-36px; transform:rotate(-8deg); }
+  .tchar.tr { right:-38px; top:-36px; transform:rotate(8deg); }
+  .tchar.bl { left:-38px; bottom:-36px; transform:rotate(8deg); }
+  .tchar.br { right:-38px; bottom:-36px; transform:rotate(-8deg); }
   .tcard .tk { font-family:var(--display); font-size:12px; font-weight:800; letter-spacing:.1em; opacity:.65; }
   .tcard h4 { margin:10px 0 18px; font-size:24px; font-weight:800; line-height:1.3; letter-spacing:-.03em; word-break:keep-all; }
   .poll { display:flex; flex-direction:column; gap:8px; }
-  .popt { position:relative; display:flex; align-items:center; gap:10px; min-height:50px; padding:0 16px; border:0; border-radius:14px; background:rgba(255,255,255,.16); color:#fff; font-size:15px; font-weight:700; text-align:left; overflow:hidden; }
-  button.popt:active { transform:scale(.98); background:rgba(255,255,255,.26); }
-  .popt.res i { position:absolute; inset:0 auto 0 0; background:rgba(255,255,255,.28); transition:width .5s cubic-bezier(.2,.8,.2,1); }
-  .popt.res.mine i { background:rgba(255,255,255,.45); }
-  .popt b, .popt em { position:relative; }
-  .popt b { flex:1; } .popt em { font-style:normal; font-weight:800; }
+  .popt { position:relative; display:flex; align-items:center; gap:10px; min-height:50px; padding:0 16px; border:0; border-radius:14px; background:rgba(255,255,255,.5); color:var(--tink,#fff); font-size:15px; font-weight:700; text-align:left; overflow:hidden; }
+  button.popt:active { transform:scale(.98); background:rgba(255,255,255,.65); }
+  .popt.res i { position:absolute; inset:0 auto 0 0; background:color-mix(in srgb, var(--tdot,#fff) 30%, transparent); transition:width .5s cubic-bezier(.2,.8,.2,1); }
+  .popt.res.mine i { background:color-mix(in srgb, var(--tdot,#fff) 48%, transparent); }
+  .popt b, .popt em, .popt small { position:relative; }
+  .popt b { flex:1; } .popt em { font-style:normal; font-weight:800; } .popt.res small { font-size:11px; opacity:.7; margin-left:6px; }
   .poll small { margin-top:4px; font-size:12px; opacity:.75; }
   .qa .q, .qa .a { display:flex; gap:10px; line-height:1.45; word-break:keep-all; }
   .qa .q { font-size:22px; font-weight:800; letter-spacing:-.03em; margin:10px 0 16px; }
-  .qa .a { font-size:16px; opacity:.88; padding-top:14px; border-top:1px solid rgba(255,255,255,.18); }
+  .qa .a { font-size:16px; opacity:.88; padding-top:14px; border-top:1px solid color-mix(in srgb, var(--tink,#fff) 16%, transparent); }
   .qa .q span, .qa .a span { flex:none; font-family:var(--display); font-weight:800; color:var(--accent); }
-  .tcard.question .qa .q span, .tcard.question .qa .a span { color:#8fa3ff; }
+  .tcard .qa .q span, .tcard .qa .a span { color:var(--tacc,var(--accent)); }
+  .tcard.question .qa .q span, .tcard.question .qa .a span { color:var(--tacc,#8fa3ff); }
   .qa .a.wait { opacity:.55; font-style:italic; }
-  .qa-more { margin-top:10px; border:0; background:none; color:var(--accent); font:inherit; font-size:13px; font-weight:800; padding:4px 0; }
-  .tcard.question .qa-more { color:#8fa3ff; }
+  .qa .anslist { display:flex; flex-direction:column; }
+  .qa .ans .ansb { display:flex; gap:8px; align-items:flex-start; min-width:0; }
+  .qa .ans .ansav { flex:none; }
+  .qa .ans .ansname { font-weight:800; font-size:12px; opacity:.8; text-decoration:none; color:inherit; }
+  .qa .ans .ansbody { font-size:15px; line-height:1.4; margin-top:2px; word-break:keep-all; }
+  .qa .more { opacity:.6; font-size:12px; font-style:normal; }
+  .qa-form { display:flex; gap:8px; margin-top:12px; }
+  .qa-form .field { flex:1; margin:0; background:rgba(255,255,255,.55); color:var(--tink,#fff); border-color:rgba(0,0,0,.1); }
+  .qa-form .field::placeholder { color:color-mix(in srgb, var(--tink,#fff) 45%, transparent); }
+  .qa-form .btn { flex:none; padding:0 14px; }
+  .qa-more { display:none; }
  .sheet .qa .q span { color:var(--accent); }
   /* 릴스 텍스트 카드 */
   /* 당겨서 새로고침 */
@@ -548,6 +563,16 @@
   .cmp-cap::placeholder { color:var(--sub); font-weight:400; }
   .cmp-add { display:block; width:100%; padding:12px; border:1.5px dashed var(--line); border-radius:14px; background:none; color:var(--sub); font-weight:600; margin-bottom:10px; }
   .cmp-note { color:var(--sub); font-size:12px; margin:10px 2px 0; line-height:1.5; }
+  .cmp-qcard { position:relative; overflow:hidden; margin:0 0 10px; padding:18px; border-radius:18px; background:var(--tbg,var(--accent)); color:var(--tink,#fff); }
+  .cmp-qcard .tinner { position:relative; z-index:2; }
+  .cmp-qcard .tk { font-family:var(--display); font-size:11px; font-weight:800; letter-spacing:.1em; opacity:.7; }
+  .cmp-qlabel { display:block; margin:10px 0 6px; font-size:13px; font-weight:800; }
+  .cmp-qcard .cmp-cap.big { color:var(--tink,#fff); margin:0 0 12px; }
+  .cmp-qcard .cmp-cap.big::placeholder { color:color-mix(in srgb, var(--tink,#fff) 45%, transparent); }
+  .cmp-qcard .optrow input { background:rgba(255,255,255,.5); border-color:rgba(0,0,0,.1); color:var(--tink,#fff); }
+  .cmp-qcard .optrow span { color:color-mix(in srgb, var(--tink,#fff) 65%, transparent); }
+  .cmp-qcard .cmp-add { color:var(--tacc,var(--accent)); border-color:color-mix(in srgb, var(--tink,#fff) 25%, transparent); }
+  .cmp-qcard .cmp-note { color:color-mix(in srgb, var(--tink,#fff) 65%, transparent); }
   .cmp-modes { position:fixed; left:50%; bottom:calc(14px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:3; display:flex; gap:2px; padding:4px; border-radius:999px; background:rgba(28,28,30,.92); box-shadow:0 8px 24px rgba(0,0,0,.3); }
   .cmp-modes { width:max-content; max-width:calc(100vw - 24px); white-space:nowrap; }
   .cmp-modes button { flex:none; padding:10px 16px; border:0; border-radius:999px; background:none; color:#aeaeb2; font-size:13px; font-weight:700; }
@@ -1143,8 +1168,8 @@
   .rmedia { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
   .reel::after { content:""; position:absolute; inset:auto 0 0; pointer-events:none; height:220px; background:linear-gradient(transparent, rgba(0,0,0,.6) 55%); }
   .reels:has(~ .bnav) { bottom:0; }
-  .rtc { display:flex; align-items:center; padding:90px 18px 210px; padding-bottom:260px; padding-right:78px; }
-  .rtc .tcard { width:100%; border:1px solid rgba(255,255,255,.14); border-radius:24px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); background:rgba(255,255,255,.1); }
+  .rtc { display:flex; align-items:stretch; padding:90px 14px 210px; padding-bottom:260px; }
+  .rtc .tcard { width:100%; max-width:none; border:1px solid rgba(255,255,255,.14); border-radius:24px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); background:var(--tbg,rgba(255,255,255,.1)); }
   .rtc .tcard h4 { font-size:26px; }
   .rtc .qa .q { font-size:26px; }
   .reels.hide-stk .stk-layer { display:none; }
@@ -2671,6 +2696,7 @@ async function renderProfile(uid, fresh, quiet) { // quiet: 돌아왔을 때 뒤
   S.pending = posts.filter(p => p.status === 'pending');
   S.hidden = posts.filter(p => p.status === 'hidden').sort((a, b) => new Date(b.hidden_at || 0) - new Date(a.hidden_at || 0)); // 주인이 피드에서 내린 것
   await loadPolls(S.approved).catch(() => {});
+  await loadAnswers(S.approved).catch(() => {});
   await loadStickers(S.approved.map(p => p.id)).catch(() => {});
   if (!S.isOwner) S.tab = 'grid';
   CACHE.prof.set(uid, { prof, isOwner: S.isOwner, approved: S.approved, pending: S.pending, locked, sig });
@@ -3193,6 +3219,15 @@ async function loadSocial(ids) {
   (l.data || []).forEach(r => { const s = SOC.get(r.post_id); s.likes++; if (me && r.user_id === me.id) s.liked = true; });
   (c.data || []).forEach(r => SOC.get(r.post_id).comments++);
 }
+const ANS = new Map(); // postId → 질문 답변(댓글 + 프로필)
+async function loadAnswers(posts) {
+  const qs = (posts || []).filter(p => p.media_type === 'question' && p.status === 'approved');
+  if (!qs.length) return;
+  const ids = qs.map(p => p.id);
+  let { data, error } = await sb.from('comments').select('id, post_id, body, created_at, user_id, profiles(name, avatar_url)').in('post_id', ids).order('created_at', { ascending: true });
+  if (error && /profiles/.test(error.message)) ({ data } = await sb.from('comments').select('id, post_id, body, created_at, user_id').in('post_id', ids).order('created_at', { ascending: true }));
+  qs.forEach(p => ANS.set(p.id, (data || []).filter(c => c.post_id === p.id)));
+}
 function paintSoc(id) {
   const s = SOC.get(id); if (!s) return;
   document.querySelectorAll(`[data-like="${id}"]`).forEach(b => { b.querySelector('span').innerHTML = s.liked ? I.heartOn : I.heart; b.querySelector('b').textContent = s.likes || (b.classList.contains('rbtn') ? t('좋아요') : ''); b.setAttribute('aria-pressed', s.liked); });
@@ -3344,7 +3379,7 @@ async function fetchHome() {
   const posts = rankFeed(all);
   // 화면은 게시물·보낸 사람만 오면 바로 그림. 좋아요·댓글 수·투표·스티커는 뒤에서 받아 그 자리에 채움
   const pids = posts.map(p => p.id);
-  Promise.all([loadSocial(pids).catch(() => {}), loadPolls(posts).catch(() => {}), loadStickers(pids).catch(() => {})])
+  Promise.all([loadSocial(pids).catch(() => {}), loadPolls(posts).catch(() => {}), loadStickers(pids).catch(() => {}), loadAnswers(posts).catch(() => {})])
     .then(() => { if (document.querySelector('.reels')) fillHomeExtras(posts); saveHomeCache({ posts, owners: o.data ? new Map(o.data.map(p => [p.id, p])) : new Map(), groups: new Map(MYG.groups) }); });
   return { posts, all, owners: new Map((o.data || []).map(p => [p.id, p])), groups: new Map(MYG.groups) };
 }
@@ -3641,6 +3676,7 @@ function fillHomeExtras(posts) {
   posts.forEach(p => {
     paintSoc(p.id); refreshStickerLayers(p.id);
     if (p.media_type === 'poll') document.querySelectorAll(`[data-poll="${p.id}"]`).forEach(el => { el.outerHTML = pollHTML(p); });
+    if (p.media_type === 'question') paintAnswers(p.id);
   });
 }
 // 홈: 저장해 둔 릴스를 바로 보여주고 뒤에서 갱신. fresh=true(당겨서 새로고침)면 새로 받아 다시 그림
@@ -3692,8 +3728,9 @@ function composeTo(prof) { composeTarget(prof); }
 function reelSection(p, owners) {
     const o = owners.get(p.owner_id) || { name: t('친구') }, s = (SOC.get(p.id) || { likes: 0, liked: false, comments: 0 });
     const gg = p.group_id ? HOME.groups.get(p.group_id) : null; // 그룹 사진: 오른쪽 위 아바타 = 그룹, 아래에 그룹 이름 배지
+    const cmtAct = p.media_type === 'question' ? `focusAnswer('${p.id}')` : `openComments('${p.id}','${gg ? gg.owner_id : p.owner_id}')`;
     return `<section class="reel" data-id="${p.id}">
-      ${isText(p) ? `<div class="rbg rbg-${p.media_type}"></div><div class="rmedia rtc">${textStage(p)}</div>` : ''}
+      ${isText(p) ? `<div class="rbg" style="background:${textTheme(p).bg};filter:none"></div><div class="rmedia rtc">${textStage(p)}</div>` : ''}
       ${isText(p) ? '' : `<div class="rmedia rcar">${mediaCarousel(p, 'reel')}</div>
         ${mediaOf(p).some(m => m.k === 'video') ? `<button class="rmute" aria-label="${t('소리 켜기/끄기')}">${muted ? I.mute : I.sound}</button>` : ''}`}
       <div class="rburst">${I.heartOn}</div>
@@ -3707,7 +3744,7 @@ function reelSection(p, owners) {
       </div>
       <div class="rside">
         <button class="rbtn" data-like="${p.id}" aria-label="${t('좋아요')}" aria-pressed="${s.liked}" onclick="toggleLike('${p.id}')"><span>${s.liked ? I.heartOn : I.heart}</span><b>${s.likes || t('좋아요')}</b></button>
-        <button class="rbtn" data-cmt="${p.id}" aria-label="${t('댓글')}" onclick="openComments('${p.id}','${gg ? gg.owner_id : p.owner_id}')"><span>${I.comment}</span><b>${s.comments || t('댓글')}</b></button>
+        <button class="rbtn" data-cmt="${p.id}" aria-label="${p.media_type === 'question' ? t('답변') : t('댓글')}" onclick="${cmtAct}"><span>${I.comment}</span><b>${s.comments || t(p.media_type === 'question' ? '답변' : '댓글')}</b></button>
         ${me ? `<button class="rbtn" aria-label="${t('스티커로 꾸며주기')}" onclick="decorateFromReel('${p.id}', this)"><span>${I.sparkle}</span><b>${t('꾸며주기')}</b></button>` : ''}
         <button class="rbtn" aria-label="${t('이 사진 공유하기')}" onclick="sharePost('${p.id}')"><span>${I.send}</span><b>${t('공유')}</b></button>
         <button class="rbtn rmorebtn" aria-label="${t('더보기')}" onclick="reelMore('${p.id}')"><span>${I.more}</span></button>
@@ -3764,7 +3801,7 @@ function wireReels($reels) {
   $reels.querySelectorAll('.rcar .stage').forEach(st => enableZoom(st, { snap: true })); // 사진만 잠깐 확대
   $reels.querySelectorAll('.rcar .stage').forEach(watchReelRatio);
   $reels.querySelectorAll('.rcar video').forEach(addVideoBar);
-  cardDots($reels);
+  // (투표·질문 카드의 돌아다니는 닷 제거)
   $reels.querySelectorAll('.reel[data-id]').forEach(r => {
     io.observe(r);
     // 두 번 탭: 좋아요 + 하트 / 한 번 탭(영상): 재생·멈춤(소리는 오른쪽 위 버튼)
@@ -3805,8 +3842,25 @@ function shareOther(uid, handle) {
 
 // ---------- 투표·질문 ----------
 const isText = p => p.media_type === 'poll' || p.media_type === 'question';
+// 투표·질문 카드 배경: 파스텔 그라데이션 (게시물 theme 키가 있으면 그걸, 없으면 id 로 고정)
+const TEXT_THEMES = [
+  { key: 'rose', bg: 'linear-gradient(145deg,#ffe3ed,#ffd0de 55%,#ffc0d2)', dot: '#ff9bbd', ink: '#3a2230', acc: '#b23a6a' },
+  { key: 'sky', bg: 'linear-gradient(145deg,#e4f2ff,#d0e8ff 55%,#bedcff)', dot: '#82baff', ink: '#1f2b3a', acc: '#2f6fb8' },
+  { key: 'lemon', bg: 'linear-gradient(145deg,#fff5d8,#ffecb6 55%,#ffe39a)', dot: '#ffd166', ink: '#3a3020', acc: '#a67a12' },
+  { key: 'mint', bg: 'linear-gradient(145deg,#e9ffef,#d2f7dc 55%,#bdefcd)', dot: '#7bd99b', ink: '#20382a', acc: '#2f8a52' },
+  { key: 'lilac', bg: 'linear-gradient(145deg,#f1e7ff,#e2d3ff 55%,#d3c1ff)', dot: '#b18cff', ink: '#2e2440', acc: '#7550b8' },
+  { key: 'aqua', bg: 'linear-gradient(145deg,#e6fbff,#cdf4fc 55%,#b9eef8)', dot: '#6fd6e8', ink: '#203840', acc: '#2a8fa3' },
+];
+const textTheme = p => {
+  const seed = String(typeof p === 'string' ? p : (p?.id || p?.text || ''));
+  let h = 0; for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const base = (p && typeof p === 'object' && p.theme && TEXT_THEMES.find(t => t.key === p.theme)) || TEXT_THEMES[h % TEXT_THEMES.length];
+  return { ...base, corner: ['tl', 'tr', 'bl', 'br'][h % 4], mood: h % 3 === 0 ? 'happy' : 'look' };
+};
+const textThemeVars = t => `--tbg:${t.bg};--tdot:${t.dot};--tink:${t.ink};--tacc:${t.acc}`;
+const textThemeChar = t => `<i class="tchar ${t.corner}" style="--accent:${t.dot}" aria-hidden="true">${DOT(t.mood, { size: 200 })}</i>`;
 // 그리드·승인함 썸네일용 카드
-const textTile = p => `<div class="ttile ${p.media_type}"><span class="tk">${p.media_type === 'poll' ? 'POLL' : 'Q&amp;A'}</span><p>${esc(p.text)}</p>${p.media_type === 'question' && p.answer ? `<small>A. ${esc(p.answer)}</small>` : ''}</div>`;
+const textTile = p => { const t = textTheme(p); return `<div class="ttile ${p.media_type}" style="${textThemeVars(t)}"><span class="tk">${p.media_type === 'poll' ? 'POLL' : 'Q&amp;A'}</span><p>${esc(p.text)}</p>${p.media_type === 'question' && p.answer ? `<small>A. ${esc(p.answer)}</small>` : ''}</div>`; };
 
 // 투표자 키: 로그인 'u:<id>' / 비로그인은 기기마다 랜덤 'g:<uuid>' (기기당 1표)
 function voterKey() {
@@ -3829,48 +3883,83 @@ function pollHTML(p) {
   const isGroup = !!p.group_id;
   const member = !isGroup || ['owner', 'member'].includes(gRole(p.group_id));
   const owner = !isGroup && me && me.id === p.owner_id;
-  const canVote = p.status === 'approved' && member && !owner && s.mine == null;
+  const canPick = p.status === 'approved' && member && !owner;
   const opts = (p.poll_options || []).map((o, i) => {
-    if (canVote) return `<button class="popt" onclick="vote('${p.id}', ${i})">${esc(o)}</button>`;
+    if (canPick && s.mine == null) return `<button class="popt" onclick="vote('${p.id}', ${i})">${esc(o)}</button>`;
     const pct = s.total ? Math.round(s.counts[i] / s.total * 100) : 0;
-    return `<div class="popt res ${s.mine === i ? 'mine' : ''}"><i style="width:${pct}%"></i><b>${esc(o)}${s.mine === i ? ' ' + II.check : ''}</b><em>${pct}%</em></div>`;
+    const inner = `<i style="width:${pct}%"></i><b>${esc(o)}${s.mine === i ? ' ' + II.check : ''}</b><em>${pct}%</em><small>${t('{n}명', { n: s.counts[i] })}</small>`;
+    if (canPick && s.mine === i) return `<button class="popt res mine" onclick="vote('${p.id}', ${i})">${inner}</button>`; // 다시 누르면 취소
+    return `<div class="popt res${s.mine === i ? ' mine' : ''}">${inner}</div>`;
   }).join('');
   const foot = p.status !== 'approved' ? t('승인하면 친구들이 투표할 수 있어요')
     : isGroup && !member ? t('그룹 멤버만 투표할 수 있어요')
     : owner ? t('{n}명 참여 · 내 피드의 투표엔 참여할 수 없어요', { n: s.total })
-    : canVote ? t('눌러서 투표하기') : t('{n}명 참여', { n: s.total });
+    : s.mine != null ? t('선택을 다시 누르면 취소할 수 있어요')
+    : canPick ? t('눌러서 투표하기') : t('{n}명 참여', { n: s.total });
   return `<div class="poll" data-poll="${p.id}">${opts}<small>${foot}</small></div>`;
 }
 async function vote(id, i) {
-  const s = POLL.get(id); if (!s || s.mine != null) return;
-  s.mine = i; s.counts[i]++; s.total++;
+  const s = POLL.get(id); if (!s) return;
   const repaint = () => document.querySelectorAll(`[data-poll="${id}"]`).forEach(el => {
     const p = findAny(id); if (p) el.outerHTML = pollHTML(p);
   });
+  const my = voterKey();
+  if (s.mine === i) { // 선택한 것을 다시 누르면 취소하고 다시 투표 가능
+    const old = s.mine; s.mine = null; s.counts[i] = Math.max(0, s.counts[i] - 1); s.total = Math.max(0, s.total - 1);
+    repaint(); navigator.vibrate?.(6);
+    const del = me
+      ? await sb.from('poll_votes').delete().eq('post_id', id).eq('voter_key', my)
+      : await sb.rpc('remove_poll_vote', { p_post: id, p_key: my });
+    if (del.error) { s.mine = old; s.counts[i]++; s.total++; repaint(); toast(kerr(del.error)); }
+    return;
+  }
+  if (s.mine != null) return;
+  s.mine = i; s.counts[i]++; s.total++;
   repaint(); navigator.vibrate?.(8);
-  const { error } = await sb.from('poll_votes').insert({ post_id: id, voter_key: voterKey(), user_id: me?.id ?? null, option: i });
+  const { error } = await sb.from('poll_votes').insert({ post_id: id, voter_key: my, user_id: me?.id ?? null, option: i });
   if (error) {
     s.mine = null; s.counts[i]--; s.total--; repaint();
     toast(/duplicate|23505/i.test(error.message + error.code) ? t('이미 투표했어요') : kerr(error));
   }
 }
 const canAnswerQuestion = p => !!me && (p.group_id ? ['owner', 'member'].includes(gRole(p.group_id)) : me.id === p.owner_id);
-const qaHTML = p => {
-  const n = (SOC.get(p.id)?.comments || 0) + (p.answer ? 1 : 0);
-  const can = canAnswerQuestion(p);
-  const label = can ? (n ? t('답변 더 하기') : t('답변하기')) : t('답변 보기');
-  const ownerId = p.group_id ? (groupOf(p.group_id)?.owner_id || '') : (p.owner_id || '');
-  return `<div class="qa" data-qa="${p.id}"><div class="q"><span>Q.</span>${esc(p.text)}</div>${p.answer
-    ? `<div class="a"><span>A.</span>${esc(p.answer)}</div>`
-    : n ? `<div class="a wait">${t('답변 {n}개', { n })}</div>`
-      : `<div class="a wait">${t('아직 답하지 않았어요')}</div>`}
-    <button type="button" class="qa-more" onclick="openComments('${p.id}','${ownerId}')">${label}${n ? ` · ${n}` : ''}</button></div>`;
+const ownerNameOf = p => (HOME.owners?.get(p.owner_id) || (S.prof?.id === p.owner_id ? S.prof : null))?.name || t('피드 주인');
+const answerRows = p => {
+  const list = ANS.get(p.id) || [];
+  const all = p.answer ? [{ legacy: true, body: p.answer }, ...list] : list;
+  if (!all.length) return `<div class="a wait">${t('아직 답하지 않았어요')}</div>`;
+  const shown = all.slice(-4);
+  const rows = shown.map(c => c.legacy
+    ? `<div class="a ans"><span>A.</span><div class="ansb"><a class="ansav" href="${feedUrl(p.owner_id)}">${avatar(HOME.owners?.get(p.owner_id) || (S.prof?.id === p.owner_id ? S.prof : null) || { name: ownerNameOf(p) }, 'xs')}</a><div><b class="ansname">${esc(ownerNameOf(p))}</b><div class="ansbody">${esc(c.body)}</div></div></div></div>`
+    : `<div class="a ans"><span>A.</span><div class="ansb"><a class="ansav" href="${feedUrl(c.user_id)}">${avatar(c.profiles || { name: t('친구') }, 'xs')}</a><div><a class="ansname" href="${feedUrl(c.user_id)}">${esc(c.profiles?.name || t('친구'))}</a><div class="ansbody">${esc(c.body)}</div></div></div></div>`).join('');
+  return `<div class="anslist">${rows}${all.length > shown.length ? `<div class="a more">${t('답변 {n}개 더 있어요', { n: all.length - shown.length })}</div>` : ''}</div>`;
 };
+const qaHTML = p => {
+  const can = canAnswerQuestion(p);
+  return `<div class="qa" data-qa="${p.id}"><div class="q"><span>Q.</span>${esc(p.text)}</div>${answerRows(p)}${can
+    ? `<div class="qa-form"><input class="field" data-ansin="${p.id}" maxlength="300" placeholder="${t('답변을 남겨 주세요')}"><button class="btn primary" data-ansgo="${p.id}" onclick="sendAnswer('${p.id}')">${t('게시')}</button></div>`
+    : ''}</div>`;
+};
+function paintAnswers(id) { const p = findAny(id); if (!p) return; document.querySelectorAll(`[data-qa="${id}"]`).forEach(el => { el.outerHTML = qaHTML(p); }); }
+function focusAnswer(id) { const el = document.querySelector(`[data-qa="${id}"]`); if (!el) return; el.scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => el.querySelector(`[data-ansin="${id}"]`)?.focus({ preventScroll: true }), 300); }
+async function sendAnswer(id) {
+  const inp = document.querySelector(`[data-ansin="${id}"]`); if (!inp) return;
+  const body = inp.value.trim(), p = findAny(id);
+  if (!body || !p || !me || !canAnswerQuestion(p) || p.status !== 'approved') return;
+  inp.disabled = true;
+  const { error } = await sb.from('comments').insert({ post_id: id, user_id: me.id, body });
+  inp.disabled = false;
+  if (error) return toast(kerr(error));
+  inp.value = '';
+  const arr = ANS.get(id) || []; arr.push({ id: 'tmp' + Date.now(), body, user_id: me.id, created_at: new Date().toISOString(), profiles: { name: myProf?.name || t('나'), avatar_url: myProf?.avatar_url } });
+  ANS.set(id, arr); paintAnswers(id);
+  const s = SOC.get(id); if (s) { s.comments = (s.comments || 0) + 1; paintSoc(id); }
+}
 // 상세·릴스에서 쓰는 큰 카드
 // 투표·질문 카드 + 스티커 층(사진처럼 카드 위에 스티커를 붙일 수 있게)
 const textStage = p => `<div class="tstage">${textCard(p)}${p.status === 'approved' ? stickerLayer(p.id, 0) : ''}</div>`;
-const textCard = p => `<div class="tcard ${p.media_type}"><span class="tk">${p.media_type === 'poll' ? 'POLL' : 'Q&amp;A'}</span>
-  ${p.media_type === 'poll' ? `<h4>${esc(p.text)}</h4>${pollHTML(p)}` : qaHTML(p)}</div>`;
+const textCard = p => { const t = textTheme(p); return `<div class="tcard ${p.media_type}" style="${textThemeVars(t)}">${textThemeChar(t)}<div class="tinner"><span class="tk">${p.media_type === 'poll' ? 'POLL' : 'Q&amp;A'}</span>
+  ${p.media_type === 'poll' ? `<h4>${esc(p.text)}</h4>${pollHTML(p)}` : qaHTML(p)}</div></div>`; };
 
 // 질문 답하기 (피드 주인만) → 답과 함께 피드에 올림
 function openAnswer(id) {
@@ -3968,7 +4057,7 @@ function openPost(id) {
       ${p.text && !isText(p) ? `<div class="post-c"><div class="quote">${esc(p.text)}</div>${p.edited_at ? `<small class="edited">${t('수정됨')}</small>` : ''}</div>` : ''}
       ${p.status === 'approved' ? `<div class="psoc">
         <button class="pbtn" data-like="${p.id}" aria-label="${t('좋아요')}" onclick="toggleLike('${p.id}')"><span>${I.heart}</span><b></b></button>
-        <button class="pbtn" data-cmt="${p.id}" aria-label="${t('댓글')}" onclick="focusPostComments(this)"><span>${I.comment}</span><b></b></button>
+        <button class="pbtn" data-cmt="${p.id}" aria-label="${p.media_type === 'question' ? t('답변') : t('댓글')}" onclick="${p.media_type === 'question' ? `focusAnswer('${p.id}')` : 'focusPostComments(this)'}"><span>${I.comment}</span><b></b></button>
         ${me ? `<button class="pbtn deco" aria-label="${t('스티커로 꾸며주기')}" onclick="openDecorate('${p.id}')"><span>${I.sparkle}</span>${t('꾸며주기')}</button>` : ''}</div>` : ''}
       <div class="post-f">
         ${gp ? t('{when} 올림', { when: ago(p.created_at) }) : p.status === 'pending' ? t('받은 지 {when} · 승인 대기 중', { when: ago(p.created_at) }) : p.status === 'hidden' ? t('{when} 피드에서 내림 · 나만 보여요', { when: ago(p.hidden_at || p.created_at) }) : t('{when} 피드에 올림', { when: ago(p.approved_at || p.created_at) })}
@@ -3981,7 +4070,7 @@ function openPost(id) {
       ${own && p.status === 'hidden' ? `<div class="pending-acts">
         <button class="btn" onclick="removePost('${p.id}')">${t('삭제')}</button>
         <button class="btn primary" onclick="restorePost('${p.id}')">${t('다시 올리기')}</button></div>` : ''}
-      ${p.status === 'approved' ? `<section class="pcmts" aria-label="${p.media_type === 'question' ? t('답변') : t('댓글')}">${commentsHtml('', p.media_type === 'question' ? t('답변을 남겨 주세요') : '')}</section>` : ''}
+      ${p.status === 'approved' && p.media_type !== 'question' ? `<section class="pcmts" aria-label="${t('댓글')}">${commentsHtml()}</section>` : ''}
     </article>`;
   ov.onclick = e => { if (e.target.closest('[data-close]')) closePostPage(ov); };
   document.body.appendChild(ov);
@@ -3990,14 +4079,18 @@ function openPost(id) {
   const ob = new MutationObserver(() => { if (!ov.isConnected) { ob.disconnect(); if (history.state?.post && !document.querySelector('.overlay.page')) history.back(); } });
   ob.observe(document.body, { childList: true });
   edgeSwipeBack(ov, () => closePostPage(ov));
-  if (p.status === 'approved') { loadSocial([p.id]).then(() => paintSoc(p.id)).catch(() => {}); mountComments(ov.querySelector('.pcmts'), p.id, gp ? gg?.owner_id : p.owner_id, p); }
+  if (p.status === 'approved') {
+    loadSocial([p.id]).then(() => paintSoc(p.id)).catch(() => {});
+    if (p.media_type === 'question') loadAnswers([p]).then(() => paintAnswers(p.id)).catch(() => {});
+    else mountComments(ov.querySelector('.pcmts'), p.id, gp ? gg?.owner_id : p.owner_id, p);
+  }
   if (p.status === 'approved') loadStickers([p.id]).then(() => refreshStickerLayers(p.id)).catch(() => {});
   ov.querySelectorAll('.post-media .stage').forEach(watchReelRatio); // 잘리지 않게 원본 비율로
   const pm = ov.querySelector('.post-media'); if (pm) { upgradeFull(pm, 0); pm.querySelectorAll('.stage').forEach(enableZoom); }
   if (p.author_id) loadProfLite(p.author_id).then(pr => { const el = ov.querySelector('[data-pav]'); if (pr && el) el.outerHTML = avatar(pr, 'sm'); }); // 보낸 사람 실제 프로필 사진
   if (p.text && !isText(p) && p.edited_at === undefined) loadEdited(p).then(() => { if (p.edited_at && ov.isConnected && !ov.querySelector('.edited')) ov.querySelector('.post-c')?.insertAdjacentHTML('beforeend', `<small class="edited">${t('수정됨')}</small>`); });
   initCarousels(ov, () => true);
-  cardDots(ov);
+  // (투표·질문 카드의 돌아다니는 닷 제거)
   ov.querySelector('video')?.play().catch(() => {});
 }
 
@@ -4375,6 +4468,8 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
   const nick = (myProf?.name || saved).slice(0, 12);
   const GT = S.group || null; // 그룹에 올리기: 사진·영상·투표·질문, 내 이름으로, 바로 게시
   const name = esc(GT ? GT.name : S.prof.name);
+  const draftTheme = { ...TEXT_THEMES[Math.floor(Math.random() * TEXT_THEMES.length)], corner: ['tl', 'tr', 'bl', 'br'][Math.floor(Math.random() * 4)], mood: Math.random() < .5 ? 'happy' : 'look' };
+  const qstyle = textThemeVars(draftTheme), qchar = `<i class="tchar ${draftTheme.corner}" style="--accent:${draftTheme.dot}" aria-hidden="true">${DOT(draftTheme.mood, { size: 170 })}</i>`;
   const el = pageOverlay('composer', `
     <header class="pov-h cmp-h"><button class="icon-btn" data-x aria-label="${t('닫기')}">${I.close}</button><b class="cmp-to">${GT ? gAv(GT, 'xs') : avatar(S.prof, 'xs')}<span>${GT ? name : t('{name}에게', { name })}</span></b><span class="cmp-hsp"></span></header>
     <div class="cmp-body">
@@ -4389,14 +4484,22 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
         <div class="capmeta"><div class="cmp-sugs" id="sugs">${['이 표정 레전드 ㅋㅋ', '인생샷 인정 📸', '몰래 찍음 🤫', '이거 기억나?', '너무 잘 나와서 보냄', '박제 완료'].map(x => `<button type="button">${t(x)}</button>`).join('')}</div><span class="capcnt" id="capcnt">0/80</span></div>
       </section>
       <section data-sec="poll">
-        <textarea class="cmp-cap big" id="pq" maxlength="80" rows="2" placeholder="${t('무엇을 물어볼까요? (예: {name} 다음 머리 스타일은?)', { name })}"></textarea>
-        <div id="opts"></div>
-        <button class="cmp-add" id="addopt">${t('+ 선택지 추가')}</button>
-        <p class="cmp-note">${GT ? t('그룹 멤버 누구나 투표할 수 있어요.') : t('{name}님은 투표할 수 없고, 다른 친구들이 투표해요.', { name })}</p>
+        <div class="cmp-qcard" style="${qstyle}">${qchar}<div class="tinner">
+          <span class="tk">POLL</span>
+          <label class="cmp-qlabel" for="pq">${t('투표 질문')}</label>
+          <textarea class="cmp-cap big" id="pq" maxlength="80" rows="2" placeholder="${t('무엇을 물어볼까요?')}"></textarea>
+          <div id="opts"></div>
+          <button class="cmp-add" id="addopt">${t('+ 선택지 추가')}</button>
+          <p class="cmp-note">${GT ? t('그룹 멤버 누구나 투표할 수 있어요.') : t('{name}님은 투표할 수 없고, 다른 친구들이 투표해요.', { name })}</p>
+        </div></div>
       </section>
       <section data-sec="question">
-        <textarea class="cmp-cap big" id="qq" maxlength="120" rows="3" placeholder="${t('{name}님에게 궁금한 것 (예: 우리 처음 만난 날 기억나?)', { name })}"></textarea>
-        <p class="cmp-note">${GT ? t('그룹 멤버 누구나 답할 수 있어요. 답변은 댓글로 남겨요.') : t('답은 {name}님만 할 수 있어요. 여러 개 남길 수 있어요.', { name })}</p>
+        <div class="cmp-qcard" style="${qstyle}">${qchar}<div class="tinner">
+          <span class="tk">Q&amp;A</span>
+          <label class="cmp-qlabel" for="qq">${t('질문')}</label>
+          <textarea class="cmp-cap big" id="qq" maxlength="120" rows="3" placeholder="${t('질문을 적어 주세요')}"></textarea>
+          <p class="cmp-note">${GT ? t('그룹 멤버 누구나 답할 수 있어요. 답변은 댓글로 남겨요.') : t('답은 {name}님만 할 수 있어요. 여러 개 남길 수 있어요.', { name })}</p>
+        </div></div>
       </section>
       <div class="cmp-who"${GT ? ' style="display:none"' : ''}>
         <div class="cmp-whohead"><span>${t('보내는 사람')}</span>
@@ -5737,6 +5840,7 @@ async function renderGroup(key, fresh) {
   paintGroup();
   loadPolls(ps.data).catch(() => {});
   loadSocial(ps.data.filter(p => p.status === 'approved').map(p => p.id)).then(() => { if (G.g?.id === g.id) ps.data.forEach(p => paintSoc(p.id)); }).catch(() => {});
+  loadAnswers(ps.data).then(() => { if (G.g?.id === g.id) ps.data.forEach(p => { if (p.media_type === 'question') paintAnswers(p.id); }); }).catch(() => {});
   loadStickers(ps.data.filter(p => p.status === 'approved').map(p => p.id)).then(() => { if (G.g?.id === g.id) ps.data.forEach(p => STK.has(p.id) && refreshStickerLayers(p.id)); }).catch(() => {});
   const q = new URLSearchParams(location.search);
   if (q.has('manage') && me?.id === g.owner_id && !S.autoOpened) { S.autoOpened = true; openGroupManage(); }

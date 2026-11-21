@@ -217,13 +217,40 @@ console.log('\n[10] group polls & answers');
   has(/isGroup && !member \? t\('그룹 멤버만 투표할 수 있어요'\)/, 'group poll is limited to members');
   has(/canAnswerQuestion = p =>/, 'question answer eligibility helper');
   has(/p\?\.media_type === 'question' && me && !canAnswerQuestion\(p\)/, 'answer input hidden for ineligible users');
-  has(/isQ \? t\('답변'\) : 'Comments'/, 'question opens an answers sheet');
-  has(/qa-more/, 'question card has an answers button');
+  has(/isQ \? t\('답변'\) : 'Comments'/, 'question comments are titled answers');
+  has(/const qaHTML = p =>/, 'question card renders inline answers');
+  has(/data-ansin=/, 'question card has an inline answer input');
+  has(/focusAnswer/, 'question comment button focuses inline answers');
   has(/isText\(p\) \? textTile\(p\) :/, 'group grid renders poll/question tiles');
   const sql = fs.readFileSync(path.join(root, 'sql/41_group_qa.sql'), 'utf8');
   ok(/media_type in \('poll', 'question'\)/.test(sql), 'SQL allows group polls/questions');
   ok(/public\.can_post_group\(p\.group_id\)/.test(sql), 'SQL lets group members vote');
   ok(/p\.media_type <> 'question'/.test(sql), 'SQL gates question answers');
+}
+
+// 11) 투표·질문 카드 리디자인
+console.log('\n[11] poll & question cards');
+{
+  const has = (re, msg) => ok(re.test(html), msg);
+  has(/const TEXT_THEMES =/, 'pastel theme palettes');
+  has(/textThemeChar/, 'blue dot background character');
+  has(/class="tchar \$\{t\.corner\}/, 'dot placed at a random corner');
+  has(/class="cmp-qcard"/, 'composer shows a clear poll/question card');
+  has(/cmp-qlabel/, 'composer has explicit labels');
+  ok(!/머리 스타일은|우리 처음 만난/.test(html), 'example questions removed');
+  ok(!/cardDots\(\$reels\)|cardDots\(ov\)/.test(html), 'wandering card dots removed');
+  has(/\.rtc \{[^}]*align-items:stretch/, 'text cards fill the reel width');
+  ok(!/\.rtc \{[^}]*padding-right:78px/.test(html), 'no narrow right padding');
+  has(/s\.mine === i/, 'selected vote can be toggled off');
+  has(/\.from\('poll_votes'\)\.delete\(\)/, 'vote delete request');
+  has(/\{n\}명/, 'vote counts per option');
+  has(/const ANS = new Map/, 'answer cache');
+  has(/function sendAnswer/, 'inline answer submit');
+  has(/class="anslist"/, 'inline answers with profiles');
+  has(/const textTheme = p =>/, 'theme derived per post');
+  const sql2 = fs.readFileSync(path.join(root, 'sql/42_text_theme_vote_toggle.sql'), 'utf8');
+  ok(/votes delete own/.test(sql2), 'SQL allows vote cancel');
+  ok(/remove_poll_vote/.test(sql2), 'SQL supports anonymous vote cancel');
 }
 
 console.log('\n' + (failed ? `FAILED: ${failed} check(s)` : 'ALL TESTS PASSED'));
