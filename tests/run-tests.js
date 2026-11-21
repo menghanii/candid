@@ -79,13 +79,20 @@ ok(who.includes('/u/u9') && who.includes('<av>') && who.includes('&lt;b&gt;') ==
 {
   const a = html.indexOf('const TEXT_THEMES ='), b = html.indexOf('// 그리드·승인함 썸네일용 카드', a);
   const src = html.slice(a, b);
-  const TH = new Function('DOT', src + '\nreturn { TEXT_THEMES, textTheme, textThemeVars };')(() => '<dot>');
+  const TH = new Function('DOT', src + '\nreturn { TEXT_THEMES, CORNERS, MOODS, textTheme, textThemeVars };')(() => '<dot>');
   const t1 = TH.textTheme('abc'), t2 = TH.textTheme('abc');
+  eq(TH.TEXT_THEMES.length, 10, '10 pastel palettes');
+  eq(TH.CORNERS.length, 4, '4 corners');
+  eq(TH.MOODS.length, 6, '6 character moods');
   eq(t1.key, t2.key, 'textTheme is deterministic');
   ok(TH.TEXT_THEMES.some(t => t.key === t1.key), 'textTheme picks a palette');
-  ok(['tl', 'tr', 'bl', 'br'].includes(t1.corner), 'textTheme picks a corner');
+  ok(TH.CORNERS.includes(t1.corner), 'textTheme picks a corner');
+  ok(TH.MOODS.includes(t1.mood), 'textTheme picks a mood');
   ok(/--tbg:/.test(TH.textThemeVars(t1)) && /--tacc:/.test(TH.textThemeVars(t1)), 'textThemeVars output');
   eq(TH.textTheme({ id: 'x', theme: 'rose' }).key, 'rose', 'stored theme key is respected');
+  const combos = new Set();
+  for (let i = 0; i < 5000; i++) { const t = TH.textTheme('id-' + i); combos.add(t.key + '|' + t.corner + '|' + t.mood); }
+  eq(combos.size, 240, '240 combinations are reachable');
 }
 // libMonthLabel: 잘못된 시간값 NaN 방지 + 년/월
 {
@@ -328,6 +335,14 @@ console.log('\n[13] recent fixes');
   has(/el\.style\.pointerEvents = 'none'/, 'closing photo sheet stops blocking touches');
   has(/sel\.length = 0/, 'album switch clears selection');
   has(/\.tchar \{[^}]*opacity:\.5/, 'background character is muted for readability');
+  has(/function placeReelInfo/, 'media info placement helper');
+  has(/classList\.add\('below'\)/, 'info can sit directly under the media');
+  has(/\.rinfo\.below \{[^}]*bottom:auto !important/, 'below-media info overrides bottom anchoring');
+  has(/requestAnimationFrame\(\(\) => placeReelInfo/, 'info placement runs after media loads');
+  has(/--tbg:var\(--soft\);--tink:var\(--fg\)/, 'composer uses a fixed/static template');
+  ok(!/draftId/.test(html), 'composer no longer uses a draft id');
+  ok(!/TEXT_THEMES\[Math\.floor\(Math\.random/.test(html), 'composer makes no random theme');
+  has(/const textTheme = p =>/, 'the actual post gets a random theme from its id');
 }
 
 console.log('\n' + (failed ? `FAILED: ${failed} check(s)` : 'ALL TESTS PASSED'));

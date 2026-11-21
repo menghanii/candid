@@ -1121,6 +1121,7 @@
   .bnav button * { pointer-events:none; -webkit-user-drag:none; }
   /* ===== Candids 글·오른쪽 버튼 (한 곳에 모음) ===== */
   .rinfo { position:absolute; z-index:2; left:16px; text-shadow:0 1px 8px rgba(0,0,0,.4); right:20px; bottom:calc(62px + max(env(safe-area-inset-bottom), 10px)) !important; }
+  .rinfo.below { top:var(--rtop, 0); bottom:auto !important; }
   .rfrom { font-size:13px; margin-top:0; }
   .rfrom .mchip { margin-left:4px; background:rgba(255,255,255,.18); color:#fff; }
   .rtext { margin-top:8px; font-size:18px; font-weight:700; line-height:1.35; letter-spacing:-.02em; word-break:keep-all; }
@@ -3776,6 +3777,7 @@ function paintHome({ posts, owners, groups }) {
 // 칸 연결: 보이는 영상만 재생·1초 보면 '본 것'·여러 장 넘기기·확대·두 번 탭 좋아요
 function wireReels($reels) {
   FEED_ADS.wire($reels);
+  requestAnimationFrame(() => $reels.querySelectorAll('.reel').forEach(placeReelInfo));
   // 화면에 보이는 영상만 재생
   $reels._io?.disconnect();
   const io = $reels._io = new IntersectionObserver(es => es.forEach(e => {
@@ -3854,12 +3856,19 @@ const TEXT_THEMES = [
   { key: 'mint', bg: 'linear-gradient(145deg,#e9ffef,#d2f7dc 55%,#bdefcd)', dot: '#7bd99b', ink: '#20382a', acc: '#2f8a52' },
   { key: 'lilac', bg: 'linear-gradient(145deg,#f1e7ff,#e2d3ff 55%,#d3c1ff)', dot: '#b18cff', ink: '#2e2440', acc: '#7550b8' },
   { key: 'aqua', bg: 'linear-gradient(145deg,#e6fbff,#cdf4fc 55%,#b9eef8)', dot: '#6fd6e8', ink: '#203840', acc: '#2a8fa3' },
+  { key: 'peach', bg: 'linear-gradient(145deg,#fff0e4,#ffe0cc 55%,#ffd0b8)', dot: '#ffb27f', ink: '#3a2a20', acc: '#b5652f' },
+  { key: 'peri', bg: 'linear-gradient(145deg,#eaefff,#dbe4ff 55%,#ccd8ff)', dot: '#93a8ff', ink: '#232a44', acc: '#5266b8' },
+  { key: 'sage', bg: 'linear-gradient(145deg,#f0f7e9,#e2efd6 55%,#d4e8c5)', dot: '#a3d184', ink: '#2a3324', acc: '#5f8a3f' },
+  { key: 'coral', bg: 'linear-gradient(145deg,#ffe9e3,#ffd9d0 55%,#ffc9bd)', dot: '#ff9e8f', ink: '#3a2622', acc: '#b65444' },
 ];
+const CORNERS = ['tl', 'tr', 'bl', 'br'];
+const MOODS = ['happy', 'look', 'wink', 'wow', 'sleepy', 'down']; // 닷 표정 6종
+const hash32 = s => { let h = 2166136261; for (const ch of s) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } h ^= h >>> 16; h = Math.imul(h, 0x7feb352d); h ^= h >>> 15; h = Math.imul(h, 0x846ca68b); h ^= h >>> 16; return h >>> 0; };
 const textTheme = p => {
   const seed = String(typeof p === 'string' ? p : (p?.id || p?.text || ''));
-  let h = 0; for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  const base = (p && typeof p === 'object' && p.theme && TEXT_THEMES.find(t => t.key === p.theme)) || TEXT_THEMES[h % TEXT_THEMES.length];
-  return { ...base, corner: ['tl', 'tr', 'bl', 'br'][h % 4], mood: h % 3 === 0 ? 'happy' : 'look' };
+  const stored = p && typeof p === 'object' && p.theme && TEXT_THEMES.find(t => t.key === p.theme);
+  const base = stored || TEXT_THEMES[hash32(seed) % TEXT_THEMES.length];
+  return { ...base, corner: CORNERS[hash32(seed + '#c') % CORNERS.length], mood: MOODS[hash32(seed + '#m') % MOODS.length] };
 };
 const textThemeVars = t => `--tbg:${t.bg};--tdot:${t.dot};--tink:${t.ink};--tacc:${t.acc}`;
 const textThemeChar = t => `<i class="tchar ${t.corner}" style="--accent:${t.dot}" aria-hidden="true">${DOT(t.mood, { size: 200 })}</i>`;
@@ -4472,8 +4481,7 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
   const nick = (myProf?.name || saved).slice(0, 12);
   const GT = S.group || null; // 그룹에 올리기: 사진·영상·투표·질문, 내 이름으로, 바로 게시
   const name = esc(GT ? GT.name : S.prof.name);
-  const draftTheme = { ...TEXT_THEMES[Math.floor(Math.random() * TEXT_THEMES.length)], corner: ['tl', 'tr', 'bl', 'br'][Math.floor(Math.random() * 4)], mood: Math.random() < .5 ? 'happy' : 'look' };
-  const qstyle = textThemeVars(draftTheme), qchar = `<i class="tchar ${draftTheme.corner}" style="--accent:${draftTheme.dot}" aria-hidden="true">${DOT(draftTheme.mood, { size: 170 })}</i>`;
+  const qstyle = '--tbg:var(--soft);--tink:var(--fg);--tacc:var(--accent);--tdot:var(--accent)'; // 작성 화면은 고정 템플릿
   const el = pageOverlay('composer', `
     <header class="pov-h cmp-h"><button class="icon-btn" data-x aria-label="${t('닫기')}">${I.close}</button><b class="cmp-to">${GT ? gAv(GT, 'xs') : avatar(S.prof, 'xs')}<span>${GT ? name : t('{name}에게', { name })}</span></b><span class="cmp-hsp"></span></header>
     <div class="cmp-body">
@@ -4488,7 +4496,7 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
         <div class="capmeta"><div class="cmp-sugs" id="sugs">${['이 표정 레전드 ㅋㅋ', '인생샷 인정 📸', '몰래 찍음 🤫', '이거 기억나?', '너무 잘 나와서 보냄', '박제 완료'].map(x => `<button type="button">${t(x)}</button>`).join('')}</div><span class="capcnt" id="capcnt">0/80</span></div>
       </section>
       <section data-sec="poll">
-        <div class="cmp-qcard" style="${qstyle}">${qchar}<div class="tinner">
+        <div class="cmp-qcard" style="${qstyle}"><div class="tinner">
           <span class="tk">POLL</span>
           <label class="cmp-qlabel" for="pq">${t('투표 질문')}</label>
           <textarea class="cmp-cap big" id="pq" maxlength="80" rows="2" placeholder="${t('무엇을 물어볼까요?')}"></textarea>
@@ -4498,7 +4506,7 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
         </div></div>
       </section>
       <section data-sec="question">
-        <div class="cmp-qcard" style="${qstyle}">${qchar}<div class="tinner">
+        <div class="cmp-qcard" style="${qstyle}"><div class="tinner">
           <span class="tk">Q&amp;A</span>
           <label class="cmp-qlabel" for="qq">${t('질문')}</label>
           <textarea class="cmp-cap big" id="qq" maxlength="120" rows="3" placeholder="${t('질문을 적어 주세요')}"></textarea>
@@ -5303,10 +5311,28 @@ document.addEventListener('pointerdown', e => { if (!e.target.closest('.stk-tag,
 function refreshStickerLayers(postId) {
   document.querySelectorAll(`[data-sl^="${postId}:"]`).forEach(el => { const st = el.parentElement; el.outerHTML = stickerLayer(postId, +el.dataset.sl.split(':')[1]); if (st?.dataset.ar) fitStickerLayer(st); });
 }
+// 사진(3:4)은 카드 아래 공간이 남으니, 메시지·from을 카드 바로 밑에 붙임 (영상은 공간 없으면 기존 하단 유지)
+function placeReelInfo(reel) {
+  const wrap = reel?.querySelector('.rcar .carwrap'), info = reel?.querySelector('.rinfo');
+  if (!wrap || !info) return;
+  const R = reel.getBoundingClientRect(), C = wrap.getBoundingClientRect();
+  if (!R.height || !C.height) return;
+  const top = C.bottom - R.top + 12, maxTop = R.height - info.offsetHeight - 16;
+  if (C.height < R.height - 32 && top <= maxTop) {
+    info.style.setProperty('--rtop', Math.max(0, top).toFixed(1) + 'px');
+    info.classList.add('below');
+  } else {
+    info.classList.remove('below'); info.style.removeProperty('--rtop');
+  }
+}
 // 릴스 비율: 사진은 저장된 원본 비율(칸도 사진 비율), 영상은 9:16
 function watchReelRatio(st) {
   const m = st.querySelector('img, video'); if (!m) return;
-  const set = (w, h) => { if (!w || !h) return; st.dataset.ar = w / h; st.style.setProperty('--ar', w / h); st.classList.add('fit'); fitStickerLayer(st); };
+  const set = (w, h) => {
+    if (!w || !h) return;
+    st.dataset.ar = w / h; st.style.setProperty('--ar', w / h); st.classList.add('fit'); fitStickerLayer(st);
+    const reel = st.closest('.reel'); if (reel) requestAnimationFrame(() => placeReelInfo(reel));
+  };
   paintFill(st, m.tagName === 'IMG' ? m.currentSrc || m.src : m.poster);
   if (m.tagName === 'IMG') return set(3, 4); // 사진 칸 3:4 (남는 곳은 메인 색으로 채움)
   return set(9, 16); // 영상 칸 9:16
