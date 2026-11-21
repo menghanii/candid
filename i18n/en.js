@@ -893,9 +893,6 @@
  "'{name}' 앨범에 초대할게 📸\n우리 찍은 사진 여기 다 같이 모으자! 링크 누르면 바로 들어와져.": "You're invited to the '{name}' album 📸\nLet's collect all our photos here! Tap the link to join right away.",
  "새 링크를 만들면 지금까지 보낸 초대 링크로는 더 이상 들어올 수 없어요. 만들까요?": "A new link will stop the old invite links from working. Create a new one?",
  "새로 만들기": "Create new",
- "끌어서 순서를 바꾸고, ×로 뺄 수 있어요": "Drag to reorder, tap × to remove",
- "끌어서 순서를 바꾸고, ×로 뺄 수 있어요 · 업로드가 마감돼 더할 수는 없어요": "Drag to reorder, tap × to remove · uploads are closed, so you can't add more",
- "끌어서 순서를 바꾸고, 빼거나 더할 수 있어요(최대 10장)": "Drag to reorder, remove or add (up to 10)",
  "사진 정리 기능 준비 중이에요": "Photo editing is coming soon",
  "게시물을 고쳤어요": "Post updated",
  "사진 수정 기능 준비 중이에요": "Photo editing is coming soon",
@@ -926,4 +923,7 @@
  "이 사진 봤어? 👀 '{name}' 그룹에 올라왔어!": "Did you see this photo? 👀 It's in the '{name}' group!",
  "{name} 피드 같이 채워 주자! 📸 링크 누르면 로그인 없이 바로 보낼 수 있어.": "Let's fill {name}'s feed together! 📸 Tap the link to send a photo — no sign-in needed.",
  "누구나 같이 채우는 '{name}' 그룹이야 📸 너도 와서 구경해봐👀": "'{name}' is a group anyone can fill 📸 Come take a look 👀",
+ "길게 눌러 순서를 바꾸고, ×로 뺄 수 있어요": "Press and hold to reorder, tap × to remove",
+ "길게 눌러 순서를 바꾸고, ×로 뺄 수 있어요 · 업로드가 마감돼 더할 수는 없어요": "Press and hold to reorder, tap × to remove · Uploads are closed, so you can't add more",
+ "길게 눌러 순서를 바꾸고, 빼거나 더할 수 있어요(최대 10장)": "Press and hold to reorder, remove or add photos (up to 10)",
 };

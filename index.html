@@ -1007,9 +1007,10 @@
  /* 파란 투표 카드 위에선 흰 닷 */
   /* 작성 화면: 고른 사진 줄·자르기 */
   .mtools { display:flex; align-items:center; gap:10px; margin:10px 0 2px; }
-  .mstrip { flex:1; display:flex; gap:6px; overflow:hidden; min-height:0; touch-action:none; }
+  .mstrip { flex:1; display:flex; gap:6px; overflow-x:auto; overflow-y:hidden; min-height:0; touch-action:pan-x; scrollbar-width:none; padding:4px 2px; margin:-4px -2px; -webkit-overflow-scrolling:touch; }
+  .mstrip::-webkit-scrollbar { display:none; }
   .mstrip[hidden] { display:block !important; visibility:hidden; height:0; }
-  .pki { position:relative; flex:none; width:46px; height:46px; padding:0; border:0; border-radius:9px; overflow:hidden; background:var(--soft); transition:transform .15s; touch-action:none; }
+  .pki { position:relative; flex:none; width:46px; height:46px; padding:0; border:0; border-radius:9px; overflow:hidden; background:var(--soft); transition:transform .15s; touch-action:pan-x; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
   .pki img { width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; }
   .pki b { position:absolute; left:3px; top:3px; min-width:15px; height:15px; border-radius:8px; background:rgba(0,0,0,.6); color:#fff; font-size:10px; line-height:15px; text-align:center; }
   .pki.on { box-shadow:inset 0 0 0 2px var(--accent); } .pki.on b { background:var(--accent); }
@@ -1032,7 +1033,7 @@
   .orbitv.still .orb:not(.seen), .orbitv.still.allseen .orb.seen { opacity:1; } /* 다시 그릴 때도 '본 것' 흐림은 유지(새 사진이 있을 때) */
   /* 수정 시트 사진 줄: 여러 줄로(가로 스크롤 대신) — 손가락으로 끌어 순서 바꾸기 */
   .epm { flex-wrap:wrap; overflow:visible !important; }
-  .epm-i { touch-action:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+  .epm-i { touch-action:manipulation; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
   .epm-i img { pointer-events:none; -webkit-user-drag:none; }
   .epm-i.drag { z-index:5; box-shadow:0 8px 20px rgba(0,0,0,.45); transition:none; }
   /* 작성 화면: 9:16 틀(올라가면 보일 모습) 안에서 사진 옮기기·확대 */
@@ -1345,7 +1346,7 @@
   try { l = localStorage.getItem('candid_lang'); } catch (e) {}
   if (!L[l]) { l = 'en'; var a = navigator.languages || [navigator.language]; for (var i = 0; i < a.length; i++) { var b = String(a[i] || '').toLowerCase().split('-')[0]; if (L[b]) { l = b; break; } } }
   window.CANDID_LANG = l; document.documentElement.lang = l;
-  if (l !== 'ko') document.write('<script src="i18n/' + l + '.js?v=4"><\/script>');
+  if (l !== 'ko') document.write('<script src="i18n/' + l + '.js?v=5"><\/script>');
 })();
 </script>
 <script src="config.js"></script>
@@ -1739,31 +1740,44 @@ async function checkPushPending() {
 }
 function clearPushPending() { try { window.caches?.open('candid-push').then(c => c.delete('candid-pending-open')); } catch {} }
 // 주소에 ?p=게시물 이 있으면(알림·링크) 화면이 그려진 뒤 그 게시물을 바로 열기
-// ---------- 끌어서 순서 바꾸기(작은 사진 줄·격자 공용) ----------
+// ---------- 길게 눌러 순서 바꾸기(작은 사진 줄·격자 공용) ----------
 // 자식 [data-i] 를 손가락으로 끌면 자리 바꿈. 끝나면 onDone(새 순서의 예전 번호 배열), 그냥 누르면 onTap(번호)
+// 순서 바꾸기(공용): 살짝 길게 누르면(LONG_MS) 들어 올려 끌기, 그냥 밀면 줄 스크롤, 짧게 누르면 onTap
+// 끄는 중 줄 끝에 가면 줄이 저절로 스크롤(멀리 있는 자리로도 옮길 수 있게)
+const LONG_MS = 300;
 function makeSortable(box, onDone, onTap) {
+  if (!box._tmBound) { box._tmBound = true; box.addEventListener('touchmove', e => { if (box._dragging) e.preventDefault(); }, { passive: false }); } // 끄는 동안 스크롤 막기
   box.onpointerdown = e => {
-    const el = e.target.closest('[data-i]'); if (!el || e.target.closest('[data-x], [data-rm]')) return;
-    const r0 = el.getBoundingClientRect(), dx0 = e.clientX - r0.left, dy0 = e.clientY - r0.top, x0 = e.clientX, y0 = e.clientY;
-    let drag = false;
-    const mv = ev => {
-      if (!drag) { if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return; drag = true; el.classList.add('drag'); box.classList.add('sorting'); }
-      ev.preventDefault();
+    const el = e.target.closest('[data-i]'); if (!el || e.target.closest('[data-x], [data-rm]') || e.button > 0) return;
+    const x0 = e.clientX, y0 = e.clientY; let drag = false, moved = false, cx = x0, cy = y0, raf = 0, dx0 = 0, dy0 = 0;
+    const lift = () => { if (moved) return; drag = box._dragging = true; const r0 = el.getBoundingClientRect(); dx0 = cx - r0.left; dy0 = cy - r0.top;
+      el.classList.add('drag'); box.classList.add('sorting'); el.style.transform = 'scale(1.08)'; navigator.vibrate?.(8); raf = requestAnimationFrame(edge); };
+    const lt = setTimeout(lift, LONG_MS);
+    const place = () => {
       el.style.transform = 'none';
-      const over = [...box.querySelectorAll('[data-i]')].find(c => { if (c === el) return false; const r = c.getBoundingClientRect(); return ev.clientX > r.left && ev.clientX < r.right && ev.clientY > r.top && ev.clientY < r.bottom; });
+      const over = [...box.querySelectorAll('[data-i]')].find(c => { if (c === el) return false; const r = c.getBoundingClientRect(); return cx > r.left && cx < r.right && cy > r.top && cy < r.bottom; });
       if (over) { const kids = [...box.children]; box.insertBefore(el, kids.indexOf(over) < kids.indexOf(el) ? over : over.nextSibling);
         box.querySelectorAll('[data-i]').forEach((c, k) => { const b = c.querySelector(':scope > b'); if (b) b.textContent = k + 1; }); } // 번호를 지금 자리대로
       const r = el.getBoundingClientRect();
-      el.style.transform = `translate(${ev.clientX - dx0 - r.left}px, ${ev.clientY - dy0 - r.top}px) scale(1.08)`;
+      el.style.transform = `translate(${cx - dx0 - r.left}px, ${cy - dy0 - r.top}px) scale(1.08)`;
     };
-    const up = () => {
+    const edge = () => { if (!drag) return; const b = box.getBoundingClientRect(), z = 36;
+      const v = cx < b.left + z ? -Math.ceil((b.left + z - cx) / 4) : cx > b.right - z ? Math.ceil((cx - b.right + z) / 4) : 0;
+      if (v && box.scrollWidth > box.clientWidth) { box.scrollLeft += v; place(); }
+      raf = requestAnimationFrame(edge); };
+    const mv = ev => { cx = ev.clientX; cy = ev.clientY;
+      if (!drag) { if (Math.hypot(cx - x0, cy - y0) > 8) { moved = true; clearTimeout(lt); } return; } // 길게 누르기 전에 움직이면 스크롤
+      ev.preventDefault(); place(); };
+    const up = ev => {
+      clearTimeout(lt); cancelAnimationFrame(raf);
       removeEventListener('pointermove', mv); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
-      el.style.transform = ''; el.classList.remove('drag'); box.classList.remove('sorting');
+      box._dragging = false; el.style.transform = ''; el.classList.remove('drag'); box.classList.remove('sorting');
       const order = [...box.querySelectorAll('[data-i]')].map(c => +c.dataset.i);
-      if (drag) { if (order.some((v, i) => v !== i)) onDone(order); } else onTap?.(+el.dataset.i);
+      if (drag) { if (order.some((v, i) => v !== i)) onDone(order); } else if (!moved && ev.type === 'pointerup') onTap?.(+el.dataset.i);
     };
     addEventListener('pointermove', mv, { passive: false }); addEventListener('pointerup', up); addEventListener('pointercancel', up);
   };
+  box.oncontextmenu = e => { if (e.target.closest('[data-i]')) e.preventDefault(); }; // 길게 눌렀을 때 시스템 메뉴 막기
   box.onclick = e => { if (e.target.closest('[data-i]')) e.preventDefault(); };
 }
 
@@ -4427,7 +4441,7 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
       paint();
     }
   }
-  // 아래 줄: 작은 사진들(끌어서 순서 바꾸기, 누르면 그 장으로) + 자르기·회전
+  // 아래 줄: 작은 사진들(옆으로 스크롤, 길게 눌러 순서 바꾸기, 누르면 그 장으로) + 자르기·회전
   function paintStrip() {
     const box = $('#mtools'), strip = $('#mstrip');
     if (!media?.length || media.length < 2) { box.hidden = true; return; }
@@ -6089,7 +6103,7 @@ function editPostText(id) {
         ${items.length > 1 ? `<button class="epm-x" data-rm="${i}" aria-label="${t('이 사진 빼기')}">${II.x}</button>` : ''}</div>`).join('')
       + (canAdd && items.length < 10 ? `<label class="epm-add" aria-label="${t('사진 더하기')}">+<input type="file" accept="image/*,video/*" multiple hidden></label>` : '');
     w.querySelector('#epmh').textContent = items.length < 2 ? t('사진은 1장 이상 있어야 해요. 다 지우려면 게시물을 삭제해 주세요')
-      : asOwner || !p.group_id ? t('끌어서 순서를 바꾸고, ×로 뺄 수 있어요') : g?.closed ? t('끌어서 순서를 바꾸고, ×로 뺄 수 있어요 · 업로드가 마감돼 더할 수는 없어요') : t('끌어서 순서를 바꾸고, 빼거나 더할 수 있어요(최대 10장)');
+      : asOwner || !p.group_id ? t('길게 눌러 순서를 바꾸고, ×로 뺄 수 있어요') : g?.closed ? t('길게 눌러 순서를 바꾸고, ×로 뺄 수 있어요 · 업로드가 마감돼 더할 수는 없어요') : t('길게 눌러 순서를 바꾸고, 빼거나 더할 수 있어요(최대 10장)');
     makeSortable(strip, o => { items = o.map(i => items[i]); paint(); });
     strip.querySelectorAll('[data-rm]').forEach(x => x.onclick = () => { items.splice(+x.dataset.rm, 1); paint(); });
     const inp = strip.querySelector('.epm-add input');
