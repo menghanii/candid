@@ -104,6 +104,15 @@ ok(who.includes('/u/u9') && who.includes('<av>') && who.includes('&lt;b&gt;') ==
   eq(F(0), '', 'libMonthLabel guards zero');
   eq(F(Math.floor(new Date(2026, 10, 15).getTime() / 1000)), '2026년 11월', 'libMonthLabel year/month');
 }
+// albumParams: 앨범 id와 subtype을 함께 전달
+{
+  const line = html.match(/const albumParams = [^\n]+/)[0];
+  const F = new Function(line + '\nreturn albumParams;')();
+  eq(F(null, null), {}, 'no album → no params');
+  eq(F('a', null), { albumId: 'a' }, 'album id only');
+  eq(F(null, 202), { albumSubtype: 202 }, 'album subtype only');
+  eq(F('a', 202), { albumId: 'a', albumSubtype: 202 }, 'album id + subtype');
+}
 
 // 3) 친구/그룹 작성 진입 공통화
 console.log('\n[3] compose unification');
@@ -212,12 +221,17 @@ console.log('\n[8] photo library');
   has(/el\.style\.pointerEvents = 'none'/, 'closing photo sheet stops blocking touches');
   has(/if \(!done\) finish\(null\)/, 'close always cleans up the sheet');
   has(/sheet\.style\.touchAction = 'pan-y'/, 'photo sheet allows native scrolling');
+  has(/\.libw\.full \.lib-grab \{ opacity:\.55/, 'pull handle stays visible in full-screen library');
+  ok(!/e\.target\.closest\('button'\) && !e\.target\.closest\('\.lib-cell'\)/.test(html), 'sheet can be dragged down from the header buttons');
+  has(/sheet\._noClick[\s\S]{0,120}!e\.target\.closest\('\.lib-cell'\)/, 'drag from header does not trigger that button click');
   has(/\.lib-knob b \{ font-size:13px/, 'date label keeps its original 13px');
   has(/\.lib-knob \{[^}]*min-width:112px/, 'date handle is wider');
   has(/\.lib-knob::before \{[^}]*margin-right:16px/, 'space between the grip and the date');
   has(/class="lib-title" data-albums/, 'album dropdown trigger');
   has(/P\.libAlbums\(\)/, 'album list requested from native');
-  has(/P\.libList\(sub != null \? \{ albumSubtype: sub \} : album \? \{ albumId: album \} : \{\}\)/, 'selected album is passed to libList (subtype or id)');
+  has(/P\.libList\(albumParams\(album, sub\)\)/, 'selected album sends both id and subtype');
+  has(/const albumParams = \(album, sub\) =>/, 'album params helper exists');
+  has(/이 모음을 불러오지 못해 최근 항목으로 돌아갈게요/, 'empty album falls back to Recents');
   has(/const seq = \+\+libSeq/, 'stale album loads are ignored');
   has(/data-s=/, 'album rows carry the smart subtype');
   has(/function libMonthLabel\(sec\)/, 'year/month label helper');
@@ -229,6 +243,9 @@ console.log('\n[8] photo library');
   ok(/CAPPluginMethod\(name: "libAlbums"/.test(swift), 'native libAlbums is registered');
   ok(/getString\("albumId"\)/.test(swift), 'native libList accepts albumId');
   ok(/getInt\("albumSubtype"\)/.test(swift), 'native libList accepts album subtype');
+  ok(/PHAsset\.fetchAssets\(in: c, options: albumOpts\)/.test(swift), 'native album fetch avoids the mediaType filter (Videos)');
+  ok(/q\.count > 0/.test(swift), 'native falls through empty album candidates');
+  ok(/picked \?\? PHAsset\.fetchAssets\(with: allOpts\)/.test(swift), 'native falls back to all photos if the album is empty');
   ok(/"subtype"/.test(swift), 'native album list includes the subtype');
   ok(/PHAssetCollection\.fetchAssetCollections\(with: \.smartAlbum/.test(swift), 'native lists smart collections');
   ok(/smartAlbumUserLibrary/.test(swift), 'native skips the duplicate Recents collection');
@@ -310,9 +327,10 @@ console.log('\n[12] image edit quality & composer gestures');
   ok(/PHImageManagerMaximumSize/.test(swift), 'native requests the original image');
   ok(/let edit = img/.test(swift), 'native keeps a full-resolution edit copy');
   has(/\.page-ov \{[^}]*overflow-x:hidden/, 'composer page locks horizontal scroll');
-  has(/\.cfr \{[^}]*touch-action:pan-y/, 'cropper allows vertical page scroll');
-  has(/if \(a\.length < 2\) return;/, 'one finger scrolls, two fingers edit');
-  has(/두 손가락으로 옮기기·확대 · 화면은 한 손가락으로 스크롤/, 'gesture hint');
+  has(/\.cfr \{[^}]*touch-action:pan-y/, 'cropper allows vertical page scroll before zoom');
+  has(/host\.style\.touchAction = ed\.z > 1\.01 \? 'none' : 'pan-y'/, 'zoomed cropper captures one-finger drags');
+  has(/if \(a\.length < 2 && ed\.z <= 1\.01\) return;/, 'dragging after zoom moves the photo');
+  has(/두 손가락으로 확대 · 확대 후 한 손가락으로 옮기기 · 화면은 사진 밖에서 스크롤/, 'gesture hint');
 }
 
 // 13) 최근 수정 회귀 체크
@@ -329,7 +347,8 @@ console.log('\n[13] recent fixes');
   has(/\.mstrip \{[^}]*overscroll-behavior-x:contain/, 'media strip contains horizontal overscroll');
   has(/\.cmp-sugs \{[^}]*overscroll-behavior-x:contain/, 'suggestion strip contains horizontal overscroll');
   has(/\.page-ov \{[^}]*overflow-y:auto/, 'composer page scrolls vertically');
-  has(/if \(a\.length < 2\) return;/, 'one finger scrolls, two fingers edit');
+  has(/if \(a\.length < 2 && ed\.z <= 1\.01\) return;/, 'after zoom, one finger moves the photo');
+  has(/host\.style\.touchAction = ed\.z > 1\.01 \? 'none' : 'pan-y'/, 'zoom switches the cropper to drag mode');
   has(/rotCanvas\(img, ed\.rot \|\| 0, Infinity\)/, 'final crop keeps original resolution');
   has(/view\.src = src;/, 'preview uses the original image');
   has(/el\.style\.pointerEvents = 'none'/, 'closing photo sheet stops blocking touches');
@@ -343,6 +362,22 @@ console.log('\n[13] recent fixes');
   ok(!/draftId/.test(html), 'composer no longer uses a draft id');
   ok(!/TEXT_THEMES\[Math\.floor\(Math\.random/.test(html), 'composer makes no random theme');
   has(/const textTheme = p =>/, 'the actual post gets a random theme from its id');
+}
+
+// 14) 빌드 25 추가 회귀: 앨범 조회 이중화/폴백, 상단 드래그, 확대 후 이동
+console.log('\n[14] build 25 checks');
+{
+  const has = (re, msg) => ok(re.test(html), msg);
+  has(/P\.libList\(albumParams\(album, sub\)\)/, 'album id and subtype are sent together');
+  has(/이 모음을 불러오지 못해 최근 항목으로 돌아갈게요/, 'empty album falls back to Recents');
+  has(/host\.style\.touchAction = ed\.z > 1\.01 \? 'none' : 'pan-y'/, 'zoomed cropper captures drags');
+  has(/if \(a\.length < 2 && ed\.z <= 1\.01\) return;/, 'after zoom, one finger moves the photo');
+  ok(!/e\.target\.closest\('button'\) && !e\.target\.closest\('\.lib-cell'\)/.test(html), 'sheet drag can start on header buttons');
+  has(/sheet\._noClick[\s\S]{0,120}!e\.target\.closest\('\.lib-cell'\)/, 'header drag does not trigger the button click');
+  const swift = fs.readFileSync(path.join(root, 'ios-app/ios/App/App/MediaPickerPlugin.swift'), 'utf8');
+  ok(/PHAsset\.fetchAssets\(in: c, options: albumOpts\)/.test(swift), 'album fetch skips the mediaType filter');
+  ok(/q\.count > 0/.test(swift), 'empty album candidates are skipped');
+  ok(/picked \?\? PHAsset\.fetchAssets\(with: allOpts\)/.test(swift), 'album fetch falls back to all photos');
 }
 
 console.log('\n' + (failed ? `FAILED: ${failed} check(s)` : 'ALL TESTS PASSED'));

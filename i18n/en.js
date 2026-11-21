@@ -243,6 +243,8 @@
  "피드 주인": "Feed owner",
  "답변 {n}개 더 있어요": "{n} more answers",
  "두 손가락으로 옮기기·확대 · 화면은 한 손가락으로 스크롤": "Use two fingers to move/zoom · scroll the page with one finger",
+ "두 손가락으로 확대 · 확대 후 한 손가락으로 옮기기 · 화면은 사진 밖에서 스크롤": "Pinch to zoom · after zooming, drag with one finger · scroll the page outside the photo",
+ "이 모음을 불러오지 못해 최근 항목으로 돌아갈게요": "Couldn't open this collection, so we're back to Recents.",
  "그룹 멤버만 투표할 수 있어요": "Only group members can vote",
  "그룹 멤버 누구나 투표할 수 있어요.": "Anyone in the group can vote.",
  "그룹 멤버 누구나 답할 수 있어요. 답변은 댓글로 남겨요.": "Anyone in the group can answer. Answers appear as comments.",

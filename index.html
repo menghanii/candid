@@ -1010,7 +1010,7 @@
   .lib-h { flex:none; padding:8px 14px 8px; transition:padding .3s; }
   .libw.full .lib-h { padding-top:calc(env(safe-area-inset-top) + 6px); }
   .lib-grab { display:block; width:38px; height:5px; border-radius:3px; background:var(--line); margin:0 auto 8px; }
-  .libw.full .lib-grab { opacity:0; height:0; margin:0; }
+  .libw.full .lib-grab { opacity:.55; height:5px; margin:0 auto 8px; }
   .lib-hr { display:flex; align-items:center; height:40px; }
   .lib-hr b { flex:1; text-align:center; font-size:16px; font-weight:800; }
   .lib-title { flex:1; min-width:0; display:flex; align-items:center; justify-content:center; gap:4px; background:none; border:0; padding:8px 4px; color:var(--fg); font-size:16px; font-weight:800; text-align:center; }
@@ -1862,11 +1862,12 @@ async function renderFrame(src, ed) {
 function mountFramer(host, src, edit0, onChange) {
   host.className = 'ccrop cfr';
   let ed = { rot: 0, z: 1, ox: 0, oy: 0, ...(edit0 || {}) }, img = null, rc = null, dead = false;
-  host.innerHTML = `<img alt="" draggable="false"><i class="cgrid"></i><button type="button" class="crot" aria-label="${t('회전')}">${I.rotate}</button><span class="chint">${t('두 손가락으로 옮기기·확대 · 화면은 한 손가락으로 스크롤')}</span>`;
+  host.innerHTML = `<img alt="" draggable="false"><i class="cgrid"></i><button type="button" class="crot" aria-label="${t('회전')}">${I.rotate}</button><span class="chint">${t('두 손가락으로 확대 · 확대 후 한 손가락으로 옮기기 · 화면은 사진 밖에서 스크롤')}</span>`;
   if (edit0) host.classList.add('touched');
   const view = host.querySelector('img');
   const paint = () => {
     if (!rc || dead) return; const FW = host.clientWidth, FH = host.clientHeight; if (!FW) return;
+    host.style.touchAction = ed.z > 1.01 ? 'none' : 'pan-y'; // 확대 전에는 화면 스크롤, 확대 후에는 사진 이동
     const f = frameMath(rc.width, rc.height, FW, FH, ed); ed.ox = f.ox; ed.oy = f.oy;
     view.style.width = rc.width + 'px'; view.style.height = rc.height + 'px';
     view.style.transform = `translate(${f.left}px, ${f.top}px) scale(${f.k})`;
@@ -1885,7 +1886,7 @@ function mountFramer(host, src, edit0, onChange) {
     if (!pts.has(e.pointerId) || !g0) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (gest && Math.hypot(e.clientX - gest.x, e.clientY - gest.y) > 8) gest.moved = true;
     const a = [...pts.values()];
-    if (a.length < 2) return; // 한 손가락은 화면 스크롤로 양보(가로 흔들림 방지)
+    if (a.length < 2 && ed.z <= 1.01) return; // 확대 전 한 손가락은 화면 스크롤에 양보
     const mx = a.reduce((s, p) => s + p.x, 0) / a.length, my = a.reduce((s, p) => s + p.y, 0) / a.length;
     let z = g0.ed.z; if (a.length > 1 && g0.d) z = Math.max(1, Math.min(6, g0.ed.z * Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) / g0.d));
     // 확대는 손가락 가운데를 기준으로: 그 점이 사진의 같은 곳에 머물게
@@ -6697,6 +6698,7 @@ function libMonthLabel(sec) {
   return d.toLocaleDateString(LANG, { year: 'numeric', month: 'long' });
 }
 const libDur = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+const albumParams = (album, sub) => ({ ...(album ? { albumId: album } : {}), ...(sub != null ? { albumSubtype: sub } : {}) });
 async function openLibrary(max = 10) {
   const P = capPlugin('MediaPicker');
   let st; try { st = (await P.libAuth({ request: true })).status; } catch { return nativePick(); }
@@ -6771,12 +6773,14 @@ async function openLibrary(max = 10) {
       } catch (e) { toast(kerr(e)); b.disabled = false; b.textContent = t('추가 {n}', { n: sel.length }); }
     };
     // 끌기: 머리를 잡고 위(전체 화면)·아래(반/닫기). 반 높이일 땐 사진 칸에서 위로 밀어도 전체 화면
-    const down = e => { if (e.target.closest('.lib-albums')) return; if (e.target.closest('button') && !e.target.closest('.lib-cell')) return; if (e.target.closest('.lib-sc')) return; drag = { y: e.clientY, t: Date.now(), base: full ? 0 : HALF(), grid: false, moved: false }; };
+    const down = e => { if (e.target.closest('.lib-albums')) return; if (e.target.closest('.lib-sc')) return; drag = { y: e.clientY, t: Date.now(), base: full ? 0 : HALF(), grid: false, moved: false }; };
     function move(e) { if (!drag) return; const dy = e.clientY - drag.y; if (!drag.moved && Math.abs(dy) < 8) return; drag.moved = true; if (drag.grid) sc.style.overflowY = 'hidden'; setY(drag.base + dy, false); }
     function up(e) { if (!drag) return; const d = drag; drag = null; if (!d.moved) return; d.cancelClick = true; sheet._noClick = Date.now();
       const dy = e.clientY - d.y, v = dy / Math.max(1, Date.now() - d.t), y = d.base + dy;
       if (v < -0.4 || y < HALF() * .5) snap(true); else if (v > 0.6 || y > HALF() + 120) (full && y < HALF() + 120 ? snap(false) : close()); else snap(full); };
     sheet.addEventListener('pointerdown', down); addEventListener('pointermove', move); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+    // 머리/버튼에서 끌어 내린 뒤에는 그 버튼 클릭이 따라 실행되지 않게(사진 칸 탭은 그대로 허용)
+    el.addEventListener('click', e => { if (sheet._noClick && Date.now() - sheet._noClick < 350 && !e.target.closest('.lib-cell')) { e.stopPropagation(); e.preventDefault(); sheet._noClick = 0; } }, true);
     sheet.style.touchAction = 'pan-y'; const fixTouch = () => { sc.style.touchAction = 'pan-y'; }; fixTouch(); new MutationObserver(fixTouch).observe(el, { attributes: true, attributeFilter: ['class'] });
     // 칸 그리기(보이는 줄만)
     let cell = 0, rows = 0, drawn = '', thumbQ = new Set(), thumbT = 0;
@@ -6843,9 +6847,15 @@ async function openLibrary(max = 10) {
       if (!LIB.ids || Date.now() - LIB.at > 60e3) {
         $('.lib-empty').hidden = false;
         try {
-          const r = await P.libList(sub != null ? { albumSubtype: sub } : album ? { albumId: album } : {});
+          const r = await P.libList(albumParams(album, sub));
           if (seq !== libSeq) return; // 그 사이 다른 앨범으로 바뀌면 이전 결과는 버림
           Object.assign(LIB, { ids: r.ids || [], ts: r.ts || [], dur: r.dur || [], at: Date.now() });
+          if ((album || sub != null) && !LIB.ids.length) { // 앨범을 못 불러오면 최근 항목으로 복구(선택 불가 상태 방지)
+            toast(t('이 모음을 불러오지 못해 최근 항목으로 돌아갈게요'));
+            LIB.album = null; LIB.albumSub = null; LIB.albumName = ''; LIB.ids = null; LIB.at = 0;
+            $title.querySelector('b').textContent = t('최근 항목');
+            return load();
+          }
         } catch (e) { if (seq !== libSeq) return; toast(kerr(e)); return finish(await nativePick()); }
       }
       if (seq !== libSeq) return;

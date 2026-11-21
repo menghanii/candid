@@ -261,16 +261,27 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
         let albumId = call.getString("albumId")
         let albumSub = call.getInt("albumSubtype")
         DispatchQueue.global(qos: .userInitiated).async {
-            let o = PHFetchOptions()
-            o.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
-            o.predicate = NSPredicate(format: "mediaType == %d || mediaType == %d", PHAssetMediaType.image.rawValue, PHAssetMediaType.video.rawValue)
-            var album: PHAssetCollection? = nil
-            if let raw = albumSub, let sub = PHAssetCollectionSubtype(rawValue: raw) {
-                album = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: sub, options: nil).firstObject
-            } else if let aid = albumId, !aid.isEmpty {
-                album = PHAssetCollection.fetchAssetCollections(withLocalIdentifiers: [aid], options: nil).firstObject
+            let albumOpts = PHFetchOptions()
+            albumOpts.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+            let allOpts = PHFetchOptions()
+            allOpts.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+            allOpts.predicate = NSPredicate(format: "mediaType == %d || mediaType == %d", PHAssetMediaType.image.rawValue, PHAssetMediaType.video.rawValue)
+            var albums: [PHAssetCollection] = []
+            if let raw = albumSub, let sub = PHAssetCollectionSubtype(rawValue: raw),
+               let c = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: sub, options: nil).firstObject {
+                albums.append(c)
             }
-            let r = album.map { PHAsset.fetchAssets(in: $0, options: o) } ?? PHAsset.fetchAssets(with: o)
+            if let aid = albumId, !aid.isEmpty,
+               let c = PHAssetCollection.fetchAssetCollections(withLocalIdentifiers: [aid], options: nil).firstObject,
+               !albums.contains(where: { $0.localIdentifier == c.localIdentifier }) {
+                albums.append(c)
+            }
+            var picked: PHFetchResult<PHAsset>? = nil
+            for c in albums { // 앨범은 mediaType 필터 없이(비디오 앨범이 비지 않게) 먼저 시도
+                let q = PHAsset.fetchAssets(in: c, options: albumOpts)
+                if q.count > 0 { picked = q; break }
+            }
+            let r = picked ?? PHAsset.fetchAssets(with: allOpts)
             var ids = [String](), ts = [Int](), dur = [Double](), map = [String: PHAsset]()
             ids.reserveCapacity(r.count); ts.reserveCapacity(r.count); dur.reserveCapacity(r.count)
             r.enumerateObjects { a, _, _ in
