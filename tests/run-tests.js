@@ -159,6 +159,10 @@ console.log('\n[7] media ratios');
   has(/\.dstage\.pic > img \{ aspect-ratio:3\/4;/, 'decorate photo frame is 3:4');
   has(/\.dstage\.vid > img \{ aspect-ratio:9\/16;/, 'decorate video frame is 9:16');
   has(/dstage\$\{m \? \(m\.k === 'video' \? ' vid' : ' pic'\) : ' tstage'\}/, 'decorate frame tagged by kind');
+  {
+    const pi = html.indexOf('id="pick"'), ti = html.indexOf('id="trim"'), mi = html.indexOf('id="mtools"');
+    ok(pi >= 0 && ti > pi && ti < mi, 'video trim bar sits directly below the media, before thumbnails');
+  }
   ok(!/frame9\b/.test(html), 'legacy 9:16 photo frame removed');
 }
 

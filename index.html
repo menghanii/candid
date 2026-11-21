@@ -4346,9 +4346,9 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
       <nav class="cmp-modes intop" role="tablist"${GT ? ' style="display:none"' : ''}><button data-mode="media" role="tab">${t('사진·영상')}</button><button data-mode="poll" role="tab">${t('투표')}</button><button data-mode="question" role="tab">${t('질문')}</button></nav>
       <section data-sec="media">
         <label class="cmp-media" id="pick"><span class="cmp-empty">${I.camera}<b>${t('사진·영상 선택')}</b><small>${t('여러 장 가능(최대 10장) · 영상은 10초까지')}</small></span><input type="file" accept="image/*,video/*" id="file" multiple hidden></label>
+        <div class="trim" id="trim" hidden></div>
         <div class="mtools" id="mtools" hidden><div class="mstrip" id="mstrip"></div></div>
         ${IN_APP && window.Capacitor?.isPluginAvailable?.('MediaPicker') ? `<button type="button" class="camb" id="camb">${I.camera}<span>${t('카메라로 찍기')}</span></button>` : ''}
-        <div class="trim" id="trim" hidden></div>
         <div class="caprow"><span class="capav" id="capav"></span>
           <textarea id="text" maxlength="80" rows="1" placeholder="${GT ? t('한마디 (선택)') : t('{name}에게 한마디…', { name })}" enterkeyhint="done"></textarea></div>
         <div class="capmeta"><div class="cmp-sugs" id="sugs">${['이 표정 레전드 ㅋㅋ', '인생샷 인정 📸', '몰래 찍음 🤫', '이거 기억나?', '너무 잘 나와서 보냄', '박제 완료'].map(x => `<button type="button">${t(x)}</button>`).join('')}</div><span class="capcnt" id="capcnt">0/80</span></div>
