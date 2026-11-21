@@ -25,7 +25,7 @@ An album only your people can see — family, best friends, your club.
 ■ Everyone's feed, filled by everyone (public groups)
 Albums anyone can fill together — events, trips, show-off-your-dog.
 · Anyone can look around, and members post together
-· Discover trending public feeds in the Pink galaxy
+· Discover trending public feeds in the Pink Orbit
 
 ■ Plus
 · Your friends and groups orbit around you, and sparkle when new photos arrive

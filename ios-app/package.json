@@ -8,7 +8,8 @@
     "sync": "node build-www.js && npx cap sync ios",
     "dev": "node build-www.js --demo && npx cap copy ios",
     "release": "node build-www.js --release && npx cap sync ios",
-    "open": "npx cap open ios"
+    "open": "npx cap open ios",
+    "test": "node ../tests/run-tests.js"
   },
   "dependencies": {
     "@capacitor-community/admob": "^7.2.0",

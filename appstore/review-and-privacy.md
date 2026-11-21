@@ -15,7 +15,7 @@ Sign in: tap "Continue with Apple" (Apple로 계속하기) on the first screen t
 
 What the app does: friends send photos to each other's feeds and the feed owner approves which photos appear. Users can also create shared group albums. The home screen ("Candids") shows friends and groups orbiting around the user; tapping one opens their photos full screen.
 
-A new account starts with no friends. To see content right away, tap the search icon (top right) and search "강아지" to open the public group "전국~우리강아지자랑대회🫶" (@album_dqtgh), or swipe to the Pink galaxy on the home screen to see trending public groups. Tap ＋ (bottom) to create your own group or send a photo to a friend's feed.
+A new account starts with no friends. To see content right away, tap the search icon (top right) and search "강아지" to open the public group "전국~우리강아지자랑대회🫶" (@album_dqtgh), or swipe to the Pink Orbit on the home screen to see trending public groups. Tap ＋ (bottom) to create your own group or send a photo to a friend's feed.
 
 User-generated content safeguards (Guideline 1.2):
 - Terms of Service (shown on sign-in) prohibit objectionable content: https://candid-feed.com/terms.html

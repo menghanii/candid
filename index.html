@@ -3015,22 +3015,67 @@ function openCallFriends() {
     </div>`);
 }
 const ctxRow = (av, label, fn) => `<button class="crow2 hl" onclick="closeSheet();${fn.replace(/"/g, '&quot;')}">${av}<span class="ctx"><b>${label}</b><small>${t('지금 보고 있는 곳')}</small></span>${I.chevron}</button>`;
-// 그룹 고르기 (올릴 수 있는 그룹만)
-async function pickGroupToPost() {
-  const w = sheet(`<h3>Post to<i class="pd">.</i></h3><p class="hint">${t('어느 그룹에 올릴까요?')}</p><div id="pgl" class="flist pflist"><p class="hint">${t('불러오는 중…')}</p></div>
-    <div class="sheet-foot"><button class="btn block" onclick="closeSheet();setTimeout(openCreateGroup,250)">${t('+ 새 그룹 만들기')}</button></div>`);
-  await loadMyGroups().catch(() => {});
-  const $l = w.querySelector('#pgl');
-  if (MYG.ok === false) return $l.innerHTML = `<p class="hint">${t('그룹 기능 준비 중이에요')}</p>`;
-  const gl = myGroupList().filter(canPostTo);
-  $l.innerHTML = gl.length ? gl.map(g => listRow({ tag: 'button', cls: 'pfrow', attrs: ` data-g="${g.id}"`, face: gAv(g, 'xs'), title: esc(g.name), sub: gBadge(g), right: `<i class="pf-go">${t('올리기')}</i>` })).join('')
-    : `<div class="empty-dot" style="margin:8px 0 4px">${DOT('look', { size: 52, cls: 'blink' })}</div><p class="hint" style="text-align:center">${t('아직 올릴 수 있는 그룹이 없어요. 새 그룹을 만들거나 초대 링크로 참여해 보세요.')}</p>`;
-  $l.querySelectorAll('[data-g]').forEach(b => b.onclick = () => composeToGroup(MYG.groups.get(b.dataset.g)));
+// ⊕ 만들기 > 친구 피드 채워주기 · 그룹에 올리기: 대상만 다를 뿐 '고르고 → 작성 화면 열기'는 같은 흐름
+//   kind: 'friend' | 'group'. 고른 뒤에는 항상 시트를 닫고 같은 방식으로 작성 화면을 연다.
+async function pickDestination(kind) {
+  const isG = kind === 'group';
+  const w = sheet(`<h3>${isG ? 'Post to' : 'Send to'}<i class="pd">.</i></h3>
+    <p class="hint">${isG ? t('어느 그룹에 올릴까요?') : t('누구의 피드를 채워줄까요?')}</p>
+    ${isG ? '' : `<input class="field" id="pdq" placeholder="${t('친구 이름·아이디로 찾기')}" autocomplete="off" style="margin-bottom:6px">`}
+    <div id="pdl" class="flist pflist"><p class="hint">${t('불러오는 중…')}</p></div>
+    <div class="sheet-foot">${isG
+      ? `<button class="btn block" onclick="closeSheet();setTimeout(openCreateGroup,250)">${t('+ 새 그룹 만들기')}</button>`
+      : `<button class="btn block" onclick="closeSheet();setTimeout(openInvite,250)">${t('앱에 친구 초대하기')}</button>`}</div>`);
+  const $l = w.querySelector('#pdl'), $q = w.querySelector('#pdq');
+  // 고르기 → 시트 닫기 → 작성 화면: 두 흐름이 똑같이 동작하도록 한 곳에서 처리
+  const choose = target => { closeSheet(); setTimeout(() => composeTarget(target), 200); };
+  if (isG) {
+    await loadMyGroups().catch(() => {});
+    if (!w.isConnected) return;
+    if (MYG.ok === false) return $l.innerHTML = `<p class="hint">${t('그룹 기능 준비 중이에요')}</p>`;
+    const gl = myGroupList().filter(canPostTo);
+    $l.innerHTML = gl.length ? gl.map(g => listRow({ tag: 'button', cls: 'pfrow', attrs: ` data-g="${g.id}"`, face: gAv(g, 'xs'), title: esc(g.name), sub: gBadge(g), right: `<i class="pf-go">${t('올리기')}</i>` })).join('')
+      : `<div class="empty-dot" style="margin:8px 0 4px">${DOT('look', { size: 52, cls: 'blink' })}</div><p class="hint" style="text-align:center">${t('아직 올릴 수 있는 그룹이 없어요. 새 그룹을 만들거나 초대 링크로 참여해 보세요.')}</p>`;
+    $l.querySelectorAll('[data-g]').forEach(b => b.onclick = () => choose({ group: MYG.groups.get(b.dataset.g) }));
+    return;
+  }
+  const ids = [...myFollows];
+  if (!ids.length) { $q.hidden = true; $l.innerHTML = `<div class="empty-dot" style="margin:8px 0 4px">${DOT('look', { size: 52, cls: 'blink' })}</div><p class="hint" style="padding:4px 0 12px;text-align:center">${t('아직 친구가 없어요. 친구를 찾아 추가하면 여기서 바로 보낼 수 있어요.')}</p><button class="btn primary block" onclick="closeSheet();setTimeout(openSearch,250)">${t('친구 찾기')}</button>`; return; }
+  const { data, error } = await sb.from('profiles').select('id, name, handle, avatar_url, bio').in('id', ids);
+  if (!w.isConnected) return;
+  if (error) return $l.innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
+  const list = (data || []).sort(byKoName);
+  const paint = () => {
+    const rows = searchMatch(list, $q.value);
+    $l.innerHTML = rows.length ? rows.map(p => listRow({ tag: 'button', cls: 'pfrow', attrs: ` data-id="${p.id}"`, face: avatar(p, 'xs'), title: esc(p.name), sub: p.handle ? '@' + esc(p.handle) : '', right: `<i class="pf-go">${t('보내기')}</i>` })).join('') : `<p class="hint" style="padding:12px 0">${t('찾는 친구가 없어요')}</p>`;
+    $l.querySelectorAll('[data-id]').forEach(b => b.onclick = () => choose(list.find(x => x.id === b.dataset.id)));
+  };
+  $q.oninput = paint; paint();
 }
+function pickFriendToSend() { return pickDestination('friend'); }
+function pickGroupToPost() { return pickDestination('group'); }
 
 // 내 피드 > 친구 탭: 친구 목록 화면
 // 이름 정렬: 한글(가나다) 먼저, 그다음 영문(ABC)·숫자 등
 const byKoName = (a, b) => { const h = x => /^[\uAC00-\uD7A3\u3131-\u318E]/.test(x || '') ? 0 : 1; return h(a.name) - h(b.name) || (a.name || '').localeCompare(b.name || '', 'ko', { sensitivity: 'base' }); };
+// 공통 검색: 앞의 @를 떼고 이름·아이디(·이메일)로 거른다
+const normSearch = q => (q || '').trim().toLowerCase().replace(/^@/, '');
+const searchMatch = (list, q, { email = false } = {}) => {
+  const kw = normSearch(q);
+  return !kw ? list : list.filter(x => (x.name || '').toLowerCase().includes(kw) || (x.handle || '').toLowerCase().includes(kw) || (email && (x.email || '').toLowerCase().includes(kw)));
+};
+// 승인된 최근 글: 피드(owner)·그룹(group) 한 곳 또는 여러 곳(배열)
+const recentPosts = ({ owner, group, limit = 20, since, cols }) => {
+  const ids = group ?? owner;
+  let q = sb.from('posts').select(cols || (group ? GPOST_COLS : POST_COLS)).eq('status', 'approved');
+  if (group) q = Array.isArray(ids) ? q.in('group_id', ids).eq('flagged', false) : q.eq('group_id', ids).eq('flagged', false);
+  else q = Array.isArray(ids) ? q.in('owner_id', ids) : q.eq('owner_id', ids);
+  if (since) q = q.gte('approved_at', since);
+  return q.order('approved_at', { ascending: false }).limit(limit);
+};
+// 그룹 멤버 한 줄의 이름표: 방장 왕관 · 신청 시각 · @아이디
+const memberSub = (m, when) => m.role === 'owner' ? II.crown + ' ' + t('방장') : (when && m.status === 'pending') ? t('{when} 신청', { when: ago(m.created_at) }) : m.prof.handle ? '@' + esc(m.prof.handle) : '';
+const memberWho = (m, when) => `<a href="${feedUrl(m.user_id)}">${avatar(m.prof, 'xs')}<span><b>${esc(m.prof.name)}</b><small>${memberSub(m, when)}</small></span></a>`;
 async function renderFriendsTab($b) {
   const ids = [...myFollows];
   $b.innerHTML = `<div class="flist"><p class="hint" style="padding:16px 20px">${t('불러오는 중…')}</p></div>`;
@@ -3071,8 +3116,7 @@ async function openSearch() {
   const findGroups = async q => { const b = sb.from('groups').select(GCOLS).eq('visibility', 'public'); const { data, error } = await (q ? b.or(q) : b.order('member_count', { ascending: false })).limit(q ? 10 : 6); return error ? [] : data || []; };
   // 친구(사람)와 그룹을 나눠서, 각각 이름순
   const mixHTML = (people, groups, bare, mine) => {
-    const byName = (a, b) => (a.name || '').localeCompare(b.name || '', 'ko');
-    const ps = people.filter(p => p.id !== me?.id).sort(byName), gs = [...groups].sort(byName);
+    const ps = people.filter(p => p.id !== me?.id).sort(byKoName), gs = [...groups].sort(byKoName);
     const sec = (title, arr, fn) => arr.length ? `<div class="label" style="margin-top:8px">${title} · ${arr.length}</div>${arr.map(fn).join('')}<div style="height:6px"></div>` : '';
     const out = sec(t(mine ? '내 친구' : '친구'), ps, row) + sec(t(mine ? '내 그룹' : '그룹'), gs, grow);
     return out || (bare ? '' : `<p class="hint" style="padding:16px 0">${t('아직 가입한 사람이 없어요.')}</p>`);
@@ -3092,7 +3136,7 @@ async function openSearch() {
       const q = term.startsWith('@') ? `handle.ilike.%${clean.toLowerCase()}%` : `name.ilike.%${clean}%,handle.ilike.%${clean.toLowerCase()}%`;
       const [{ data, error }, pubG] = await Promise.all([sb.from('profiles').select('*').or(q).eq('onboarded', true).limit(20), findGroups(q)]);
       if (my !== seq) return;
-      const kw = clean.toLowerCase(), myG = MYG.ok === false ? [] : myGroupList().filter(g => g.name.toLowerCase().includes(kw) || (g.handle || '').includes(kw));
+      const myG = MYG.ok === false ? [] : searchMatch(myGroupList(), clean);
       const gs = [...myG, ...pubG.filter(g => !myG.some(x => x.id === g.id))]; // 늦게 도착한 이전 검색 결과는 무시
       if (error) return $r.innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
       $r.innerHTML = data.length || gs.length ? mixHTML(data, gs, true) : `<p class="hint" style="padding:16px 0">${t("'{q}'(으)로 찾은 친구·그룹이 없어요.", { q: esc(term) })}</p>`;
@@ -3251,16 +3295,16 @@ async function fetchHome() {
   // 게시물·친구 프로필을 동시에, 그다음 좋아요·댓글·투표·스티커를 동시에 (줄 세우지 않기)
   const since = new Date(Date.now() - 14 * 864e5).toISOString(); // 최근 2주 안에서 넉넉히 받아 골라 보여 줌
   const [r, gr, o] = await withTimeout(Promise.all([
-    sb.from('posts').select(POST_COLS).in('owner_id', ids).eq('status', 'approved').gte('approved_at', since).order('approved_at', { ascending: false }).limit(100),
-    gids.length ? sb.from('posts').select(GPOST_COLS).in('group_id', gids).eq('status', 'approved').eq('flagged', false).gte('approved_at', since).order('approved_at', { ascending: false }).limit(100) : Promise.resolve({ data: [] }),
+    recentPosts({ owner: ids, since, limit: 100 }),
+    gids.length ? recentPosts({ group: gids, since, limit: 100 }) : Promise.resolve({ data: [] }),
     ids.length ? sb.from('profiles').select('*').in('id', ids) : Promise.resolve({ data: [] }),
   ]), 10000);
   if (r.error) throw r.error;
   let all = [...r.data, ...(gr.data || [])];
   if (all.length < 10) { // 2주 안에 너무 적으면 기간 없이 최신 40개
     const [r2, g2] = await Promise.all([
-      sb.from('posts').select(POST_COLS).in('owner_id', ids).eq('status', 'approved').order('approved_at', { ascending: false }).limit(40),
-      gids.length ? sb.from('posts').select(GPOST_COLS).in('group_id', gids).eq('status', 'approved').eq('flagged', false).order('approved_at', { ascending: false }).limit(40) : Promise.resolve({ data: [] })]);
+      recentPosts({ owner: ids, limit: 40 }),
+      gids.length ? recentPosts({ group: gids, limit: 40 }) : Promise.resolve({ data: [] })]);
     if (!r2.error) all = [...r2.data, ...(g2.data || [])];
   }
   const posts = rankFeed(all);
@@ -3350,18 +3394,16 @@ async function loadTrending() {
 }
 // 트렌딩 곳을 누르면: 그 피드·그룹의 최근 사진을 받아 Candids 보기로
 async function openTrending(x) {
-  const q = x.g ? sb.from('posts').select(GPOST_COLS).eq('group_id', x.g.id).eq('status', 'approved').eq('flagged', false)
-                : sb.from('posts').select(POST_COLS).eq('owner_id', x.o.id).eq('status', 'approved');
-  const { data, error } = await q.order('approved_at', { ascending: false }).limit(20);
+  const { data, error } = await (x.g ? recentPosts({ group: x.g.id, limit: 20 }) : recentPosts({ owner: x.o.id, limit: 20 }));
   if (error || !data?.length) return go(x.g ? gUrl(x.g) : feedUrl(x.o.id));
   if (x.g && !HOME.groups.has(x.g.id)) HOME.groups.set(x.g.id, x.g);
   openOrbitStack({ ...x, posts: data }, x.o);
 }
 // 은하 3개: 각자 성격·색·궤도 모양·배경·가운데 닷 표정이 다름
 const GALAXIES = [
-  { key: 'my', name: '블루 은하', sub: '내 친구·그룹', c: '#5c7cff', shape: 'rings', th: 'calm', moods: ['look', 'happy'] },
-  { key: 'trend', name: '핑크 은하', sub: '지금 뜨는 곳', c: '#ff4f9a', c2: '#ff8fc4', shape: 'rings', th: 'party', moods: ['wow', 'wink'] },
-  { key: 'interest', name: '퍼플 은하', sub: '내 관심사 · 곧 열려요', c: '#9b7bff', shape: 'eight', th: 'dream', moods: ['sleepy', 'look'] },
+  { key: 'my', name: 'Blue Orbit', sub: '내 친구·그룹', c: '#5c7cff', shape: 'rings', th: 'calm', moods: ['look', 'happy'] },
+  { key: 'trend', name: 'Pink Orbit', sub: '지금 뜨는 곳', c: '#ff4f9a', c2: '#ff8fc4', shape: 'rings', th: 'party', moods: ['wow', 'wink'] },
+  { key: 'interest', name: 'Purple Orbit', sub: '내 관심사 · 곧 열려요', c: '#9b7bff', shape: 'eight', th: 'dream', moods: ['sleepy', 'look'] },
 ];
 const PER_GALAXY = 20;
 let ORBIT_G = 0;
@@ -3448,8 +3490,8 @@ function paintOrbit(posts, owners, top) {
       <span class="oface">${face}${x.fresh ? `<i class="on">${x.fresh}</i>` : ''}</span><b>${esc(x.name)}</b><em>${sub}</em></button>`;
   };
   const defs = `<defs><linearGradient id="ogr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${G.c}"/><stop offset="1" stop-color="${G.c2 || G.c}"/></linearGradient></defs>`;
-  const empty = gi === 2 ? `<div class="oempty" style="top:${cy + 64}px"><b>${t('퍼플 은하는 곧 열려요')}</b><span>${t('내가 좋아할 만한 사람·그룹을 모아 둘게요')}</span></div>${pts.map(P => `<i class="oghost" style="left:${P.X}px;top:${P.Y}px"></i>`).join('')}`
-    : gi === 1 && !here.length ? `<div class="oempty" style="top:${cy + 64}px"><b>${TREND.list ? t('아직 뜨는 곳이 없어요') : t('불러오는 중…')}</b>${TREND.err ? `<span>${t('핑크 은하 준비 중이에요')}</span>` : ''}</div>` : '';
+  const empty = gi === 2 ? `<div class="oempty" style="top:${cy + 64}px"><b>${t('Purple Orbit opens soon')}</b><span>${t('내가 좋아할 만한 사람·그룹을 모아 둘게요')}</span></div>${pts.map(P => `<i class="oghost" style="left:${P.X}px;top:${P.Y}px"></i>`).join('')}`
+    : gi === 1 && !here.length ? `<div class="oempty" style="top:${cy + 64}px"><b>${TREND.list ? t('아직 뜨는 곳이 없어요') : t('불러오는 중…')}</b>${TREND.err ? `<span>${t('Pink Orbit is getting ready')}</span>` : ''}</div>` : '';
   // 2) 궤도 그리기
   document.getElementById('ogal').innerHTML = `<svg class="olines" width="${W}" height="${H}" aria-hidden="true">${defs}${lines.join('')}</svg>
     <div class="ome" role="button" aria-label="${t('닷 콕 찌르기')}" data-mood="${gi === 2 ? G.moods[0] : freshHere || gi === 1 ? G.moods[0] : G.moods[1]}" style="left:${cx}px;top:${cy}px;--accent:${G.c}">${DOT(gi === 2 ? G.moods[0] : freshHere || gi === 1 ? G.moods[0] : G.moods[1], { size: 58, cls: 'float' })}</div>
@@ -3587,9 +3629,23 @@ async function renderHome(fresh) {
   if (pageKey() !== myKey) return;
   paintHome(CACHE.home);
 }
-// 지금 화면(내 피드 등)을 떠나지 않고 특정 친구에게 보내기: 작성 화면이 닫히면 원래 화면 상태로 되돌림
-function composeTo(prof) {
-  const keep = { uid: S.uid, prof: S.prof, isOwner: S.isOwner };
+// 지금 화면(내 피드 등)을 떠나지 않고 특정 대상(친구 피드·그룹)에게 보내기: 작성 화면이 닫히면 원래 화면 상태로 되돌림
+//   target: { id, ... } 프로필 | { group }
+function composeTarget(target) {
+  if (target?.group) {
+    const g = target.group;
+    if (!me) return loginSheet(t('로그인하면 그룹에 사진을 올릴 수 있어요'));
+    if (g.closed) return toast(t('업로드가 마감된 그룹이에요'));
+    const keep = { uid: S.uid, prof: S.prof, isOwner: S.isOwner, group: S.group };
+    Object.assign(S, { group: g });
+    openCompose(0, false, 'media', true); // 버튼을 누른 순간이라 바로 사진첩
+    new MutationObserver((_, ob) => {
+      if (document.querySelector('.composer')) return;
+      ob.disconnect(); Object.assign(S, keep);
+    }).observe(document.body, { childList: true });
+    return;
+  }
+  const prof = target, keep = { uid: S.uid, prof: S.prof, isOwner: S.isOwner };
   Object.assign(S, { uid: prof.id, prof, isOwner: false });
   openCompose(0, false, 'media');
   new MutationObserver((_, ob) => {
@@ -3597,26 +3653,7 @@ function composeTo(prof) {
     ob.disconnect(); Object.assign(S, keep);
   }).observe(document.body, { childList: true });
 }
-// 하단 ⊕ (내 피드 등): 어떤 친구에게 보낼지 고르기
-async function pickFriendToSend() {
-  const w = sheet(`<h3>Send to<i class="pd">.</i></h3><p class="hint">${t('누구의 피드를 채워줄까요?')}</p>
-    <input class="field" id="pfq" placeholder="${t('친구 이름·아이디로 찾기')}" autocomplete="off" style="margin-bottom:6px">
-    <div id="pfl" class="flist pflist"><p class="hint">${t('불러오는 중…')}</p></div>
-    <div class="sheet-foot"><button class="btn block" onclick="closeSheet();setTimeout(openInvite,250)">${t('앱에 친구 초대하기')}</button></div>`);
-  const $l = w.querySelector('#pfl'), $q = w.querySelector('#pfq');
-  const ids = [...myFollows];
-  if (!ids.length) { $q.hidden = true; $l.innerHTML = `<div class="empty-dot" style="margin:8px 0 4px">${DOT('look', { size: 52, cls: 'blink' })}</div><p class="hint" style="padding:4px 0 12px;text-align:center">${t('아직 친구가 없어요. 친구를 찾아 추가하면 여기서 바로 보낼 수 있어요.')}</p><button class="btn primary block" onclick="closeSheet();setTimeout(openSearch,250)">${t('친구 찾기')}</button>`; return; }
-  const { data, error } = await sb.from('profiles').select('id, name, handle, avatar_url, bio').in('id', ids);
-  if (error) return $l.innerHTML = `<p class="hint">${esc(kerr(error))}</p>`;
-  const list = (data || []).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-  const paint = () => {
-    const kw = $q.value.trim().toLowerCase().replace(/^@/, '');
-    const rows = list.filter(p => !kw || p.name.toLowerCase().includes(kw) || (p.handle || '').includes(kw));
-    $l.innerHTML = rows.length ? rows.map(p => listRow({ tag: 'button', cls: 'pfrow', attrs: ` data-id="${p.id}"`, face: avatar(p, 'xs'), title: esc(p.name), sub: p.handle ? '@' + esc(p.handle) : '', right: `<i class="pf-go">${t('보내기')}</i>` })).join('') : `<p class="hint" style="padding:12px 0">${t('찾는 친구가 없어요')}</p>`;
-    $l.querySelectorAll('[data-id]').forEach(b => b.onclick = () => { const p = list.find(x => x.id === b.dataset.id); closeSheet(); setTimeout(() => composeTo(p), 200); });
-  };
-  $q.oninput = paint; paint();
-}
+function composeTo(prof) { composeTarget(prof); }
 // Candids 한 칸(사진·영상·투표 + 정보 + 오른쪽 버튼). 넘기기 화면과 궤도의 사진 보기에서 같이 씀
 function reelSection(p, owners) {
     const o = owners.get(p.owner_id) || { name: t('친구') }, s = (SOC.get(p.id) || { likes: 0, liked: false, comments: 0 });
@@ -4171,8 +4208,7 @@ async function openAdminUsers() {
   if (error) return $l.innerHTML = `<p class="hint">${/not_admin/.test(error.message) ? t('관리자만 볼 수 있어요') : /admin_users|does not exist|PGRST20/.test(error.message) ? t('관리자 기능 준비 중이에요') : esc(kerr(error))}</p>`;
   const list = data || [], day = d => d ? new Date(d).toLocaleDateString(LANG === 'ko' ? 'ko-KR' : undefined, { year: '2-digit', month: 'numeric', day: 'numeric' }) : '-';
   const paint = () => {
-    const kw = $q.value.trim().toLowerCase().replace(/^@/, '');
-    const rows = list.filter(u => !kw || (u.name || '').toLowerCase().includes(kw) || (u.handle || '').includes(kw) || (u.email || '').toLowerCase().includes(kw));
+    const rows = searchMatch(list, $q.value, { email: true });
     const today = list.filter(u => Date.now() - new Date(u.created_at) < 864e5).length;
     $l.innerHTML = `<div class="label">${t('전체 {n}명', { n: list.length })} · ${t('오늘 가입 {n}', { n: today })} · ${t('프로필 미완성 {n}', { n: list.filter(u => !u.onboarded).length })}</div>`
       + rows.map(u => `<a class="frow adm" href="${feedUrl(u.id)}" onclick="closeSheet()">${avatar(u, 'xs')}<span style="flex:1;min-width:0"><b>${esc(u.name)}${u.handle ? ` <small style="display:inline">@${esc(u.handle)}</small>` : ''}${u.is_private ? ' ' + II.lock : ''}${u.onboarded ? '' : ` <em class="adm-new">${t('미완성')}</em>`}</b>
@@ -5898,12 +5934,11 @@ async function pickFriendsToGroup(g) {
   if (!w.isConnected) return;
   const st = new Map((mem.data || []).map(m => [m.user_id, m.status === 'active' ? t('멤버') : t('신청 중')]));
   (inv.data || []).forEach(r => { if (!st.has(r.user_id)) st.set(r.user_id, t('초대함')); });
-  const people = byOrder((pr.data || []).sort((a, b) => a.name.localeCompare(b.name, 'ko')), 'friends');
+  const people = byOrder((pr.data || []).sort(byKoName), 'friends');
   const picked = new Set();
   const $l = w.querySelector('#gpl'), $b = w.querySelector('#gpsend');
   const paint = () => {
-    const q = w.querySelector('#gpq').value.trim().toLowerCase();
-    const list = people.filter(p => !q || p.name.toLowerCase().includes(q) || (p.handle || '').includes(q));
+    const list = searchMatch(people, w.querySelector('#gpq').value);
     $l.innerHTML = !people.length ? `<p class="hint" style="padding:12px 0">${t('아직 친구가 없어요. 친구를 추가하거나 링크로 초대해 보세요.')}</p>`
       : list.map(p => { const s0 = st.get(p.id); return `<label class="frow gpick${s0 ? ' off' : ''}">${avatar(p, 'xs')}<span style="flex:1;min-width:0"><b>${esc(p.name)}</b><small>${p.handle ? '@' + esc(p.handle) : ''}</small></span>
           ${s0 ? `<small class="gp-st">${s0}</small>` : `<input type="checkbox" data-u="${p.id}"${picked.has(p.id) ? ' checked' : ''}>`}</label>`; }).join('') || `<p class="hint" style="padding:12px 0">${t('찾는 친구가 없어요')}</p>`;
@@ -6013,7 +6048,7 @@ async function openGroupMembers() {
   const w = sheet(`<h3>Members<i class="pd">.</i></h3><div id="gml"><p class="hint">${t('불러오는 중…')}</p></div>`);
   let list; try { list = await fetchGroupMembers(g); } catch (e) { return w.querySelector('#gml').innerHTML = `<p class="hint">${esc(kerr(e))}</p>`; }
   const act = list.filter(m => m.status === 'active');
-  w.querySelector('#gml').innerHTML = act.length ? `<div class="flist">${act.map(m => listRow({ href: feedUrl(m.user_id), face: avatar(m.prof, 'xs'), title: esc(m.prof.name), sub: m.role === 'owner' ? II.crown + ' ' + t('방장') : m.prof.handle ? '@' + esc(m.prof.handle) : '' })).join('')}</div>`
+  w.querySelector('#gml').innerHTML = act.length ? `<div class="flist">${act.map(m => listRow({ href: feedUrl(m.user_id), face: avatar(m.prof, 'xs'), title: esc(m.prof.name), sub: memberSub(m) })).join('')}</div>`
     : `<p class="hint">${t('멤버만 멤버 목록을 볼 수 있어요.')}</p>`;
 }
 async function openGroupManage() {
@@ -6024,7 +6059,7 @@ async function openGroupManage() {
     if (!w.isConnected) return;
     const pend = list.filter(m => m.status === 'pending'), act = list.filter(m => m.status === 'active');
     G.pendingN = pend.length;
-    const who = m => `<a href="${feedUrl(m.user_id)}">${avatar(m.prof, 'xs')}<span><b>${esc(m.prof.name)}</b><small>${m.role === 'owner' ? II.crown + ' ' + t('방장') : m.status === 'pending' ? t('{when} 신청', { when: ago(m.created_at) }) : m.prof.handle ? '@' + esc(m.prof.handle) : ''}</small></span></a>`;
+    const who = m => memberWho(m, true);
     w.querySelector('#gml').innerHTML = `
       <div class="label">${t('참여 신청 {n}', { n: pend.length })}</div>
       ${pend.length ? `<div class="flist">${pend.map(m => `<div class="frow">${who(m)}<button class="btn primary" data-ok="${m.user_id}">${t('승인')}</button><button class="btn" data-no="${m.user_id}">${t('거절')}</button></div>`).join('')}</div>`
@@ -6318,18 +6353,7 @@ async function deleteGroupPost(id) {
 }
 
 // ---------- 그룹에 올리기 (작성 화면은 친구에게 보내기와 같은 것을 씀) ----------
-function composeToGroup(g) {
-  if (!me) return loginSheet(t('로그인하면 그룹에 사진을 올릴 수 있어요'));
-  if (!g) return;
-  if (g.closed) return toast(t('업로드가 마감된 그룹이에요'));
-  const keep = { uid: S.uid, prof: S.prof, isOwner: S.isOwner, group: S.group };
-  Object.assign(S, { group: g });
-  openCompose(0, false, 'media', true); // 버튼을 누른 순간이라 바로 사진첩
-  new MutationObserver((_, ob) => {
-    if (document.querySelector('.composer')) return;
-    ob.disconnect(); Object.assign(S, keep);
-  }).observe(document.body, { childList: true });
-}
+function composeToGroup(g) { if (g) composeTarget({ group: g }); }
 
 // ---------- 내 피드 > 그룹 탭 ----------
 async function renderGroupsTab($b) {
