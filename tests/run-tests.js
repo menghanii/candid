@@ -132,6 +132,16 @@ console.log('\n[6] flow wiring');
   has(/setTimeout\(openCreateGroup,250\)/, 'empty group picker offers create');
 }
 
+// 7) 미디어 기본 비율 (사진 3:4 · 영상은 기존 유지)
+console.log('\n[7] media ratios');
+{
+  const has = (re, msg) => ok(re.test(html), msg);
+  has(/\.cmp-media\.has\.frame34 \{ aspect-ratio:3\/4;/, 'photo composer frame is 3:4');
+  has(/const FW = 900, FH = 1200, f = frameMath/, 'photo output crops to 3:4');
+  has(/classList\.toggle\('frame34', m\.kind === 'image'\)/, 'image uses the 3:4 frame');
+  ok(!/frame9\b/.test(html), 'legacy 9:16 photo frame removed');
+}
+
 console.log('\n' + (failed ? `FAILED: ${failed} check(s)` : 'ALL TESTS PASSED'));
 if (require.main === module) process.exit(failed ? 1 : 0);
 else if (failed) throw new Error('candid pre-build tests failed');

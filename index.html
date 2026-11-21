@@ -1036,8 +1036,8 @@
   .epm-i { touch-action:manipulation; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
   .epm-i img { pointer-events:none; -webkit-user-drag:none; }
   .epm-i.drag { z-index:5; box-shadow:0 8px 20px rgba(0,0,0,.45); transition:none; }
-  /* 작성 화면: 9:16 틀(올라가면 보일 모습) 안에서 사진 옮기기·확대 */
-  .cmp-media.has.frame9 { aspect-ratio:9/16; width:auto; height:min(60vh, 60dvh, 620px); max-height:none; margin:0 auto; border-radius:14px; }
+  /* 작성 화면: 사진 3:4 틀(올라가면 보일 모습) 안에서 사진 옮기기·확대 */
+  .cmp-media.has.frame34 { aspect-ratio:3/4; width:auto; height:min(60vh, 60dvh, 620px); max-height:none; margin:0 auto; border-radius:14px; }
   .cmp-media .cfr { position:absolute; inset:0; overflow:hidden; touch-action:none; background:#000; transition:background .3s; }
   .cfr img { position:absolute; left:0; top:0; transform-origin:0 0; user-select:none; -webkit-user-select:none; pointer-events:none; max-width:none; }
   .cfr .chint { position:absolute; left:50%; top:14px; transform:translateX(-50%); padding:6px 11px; border-radius:14px; background:rgba(0,0,0,.55); color:#fff; font-size:12px; font-weight:600; white-space:nowrap; pointer-events:none; transition:opacity .4s; }
@@ -1801,7 +1801,7 @@ function frameMath(rw, rh, FW, FH, ed) {
 }
 async function renderFrame(src, ed) {
   const img = await loadImg(src), rc = rotCanvas(img, ed.rot || 0);
-  const FW = 900, FH = 1600, f = frameMath(rc.width, rc.height, FW, FH, ed);
+  const FW = 900, FH = 1200, f = frameMath(rc.width, rc.height, FW, FH, ed); // 사진 기본 비율 3:4
   const vx0 = Math.max(0, f.left), vy0 = Math.max(0, f.top), vx1 = Math.min(FW, f.left + f.w), vy1 = Math.min(FH, f.top + f.h);
   const sx = (vx0 - f.left) / f.k, sy = (vy0 - f.top) / f.k, sw = (vx1 - vx0) / f.k, sh = (vy1 - vy0) / f.k;
   return { main: await jpegBlob(cropScale(rc, sx, sy, sw, sh, 1080), .85), thumb: await jpegBlob(cropScale(rc, sx, sy, sw, sh, 480), .72) };
@@ -4432,13 +4432,13 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
     const m = media[curPick];
     cropper?.destroy(); cropper = null;
     pk.classList.add('has');
-    pk.classList.remove('frame9');
+    pk.classList.remove('frame34');
     pk.innerHTML = m.kind === 'video'
       ? `<video src="${m.previewUrl}" poster="${m._tu ||= URL.createObjectURL(m.thumb)}" muted playsinline autoplay loop></video><span class="vbadge">${t('{s}초', { s: Math.round((m.end - m.start) * 10) / 10 })}</span>`
       : `<div class="ccrop"></div>`;
     pk.insertAdjacentHTML('beforeend', `<span class="repick">${t(media.length > 1 ? '다시 고르기' : '바꾸기')}</span>`);
     pk.appendChild($file);
-    pk.classList.toggle('frame9', m.kind === 'image');
+    pk.classList.toggle('frame34', m.kind === 'image');
     if (m.kind === 'image') { m.src0 ||= m.previewUrl; cropper = mountFramer(pk.querySelector('.ccrop'), m.src0, m.edit, async ed => { m.edit = ed; m.edited = true; const r = await renderFrame(m.src0, ed); if (m.edit === ed) { if (m._tu) try { URL.revokeObjectURL(m._tu); } catch {} Object.assign(m, { main: r.main, thumb: r.thumb, job: null, _tu: null }); } paintStrip(); }); }
     paintStrip();
     // 영상 구간 자르기: 지금 보이는 장이 영상이면 아래에 구간 선택 바 표시
