@@ -136,29 +136,33 @@ console.log('\n[6] flow wiring');
 console.log('\n[7] media ratios');
 {
   const has = (re, msg) => ok(re.test(html), msg);
-  has(/\.cmp-media\.has\.frame34 \{ aspect-ratio:3\/4;/, 'photo composer frame is 3:4');
-  has(/const FW = 900, FH = 1200, f = frameMath/, 'photo output crops to 3:4');
-  has(/classList\.toggle\('frame34', m\.kind === 'image'\)/, 'image uses the 3:4 frame');
-  has(/if \(m\.tagName === 'IMG'\) return set\(3, 4\);/, 'uploaded photos display at 3:4 (incl. existing)');
-  has(/return set\(9, 16\);/, 'videos display at 9:16');
-  has(/\.rcar \.stage > img \{[^}]*aspect-ratio:3\/4/, 'reel photo default is 3:4');
-  has(/\.rcar \.stage > video \{[^}]*aspect-ratio:9\/16/, 'reel video default is 9:16');
+  // 작성: 새 사진 3:4, 영상 9:16
+  has(/\.cmp-media\.has\.frame34 \{ aspect-ratio:3\/4;/, 'new photo composer frame is 3:4');
+  has(/const FW = 900, FH = 1200, f = frameMath/, 'new photo output crops to 3:4');
+  has(/classList\.toggle\('frame34', m\.kind === 'image'\)/, 'image composer uses the 3:4 frame');
+  has(/\.cmp-media\.has\.frame916 \{ aspect-ratio:9\/16;/, 'video composer frame is 9:16');
+  has(/classList\.toggle\('frame916', m\.kind === 'video'\)/, 'video composer uses the 9:16 frame');
+  // 피드: 사진 3:4 칸 · 영상 9:16 칸, 원본은 잘리지 않게 contain, 남는 곳은 메인 색
+  has(/if \(m\.tagName === 'IMG'\) return set\(3, 4\);/, 'feed photo frame is 3:4');
+  has(/return set\(9, 16\);/, 'feed video frame is 9:16');
   has(/\.rcar \.carwrap\.p:not\(\.multi\) \{ aspect-ratio:3\/4;/, 'reel photo card is 3:4');
-  has(/\.rcar \.carwrap\.v:not\(\.multi\) \{ aspect-ratio:9\/16;/, 'reel video card is 9:16');
   has(/\.rcar \.slide\.p \{ aspect-ratio:3\/4;/, 'reel photo slide is 3:4');
+  has(/\.rcar \.carwrap\.v:not\(\.multi\) \{ aspect-ratio:9\/16;/, 'reel video card is 9:16');
   has(/\.rcar \.slide\.v \{ aspect-ratio:9\/16;/, 'reel video slide is 9:16');
+  has(/\.rcar \.stage\.fit > img \{ aspect-ratio:var\(--ar\); object-fit:contain;/, 'reel photos are contained (no crop)');
+  has(/\.rcar \.stage\.fit > video \{ aspect-ratio:var\(--ar\); object-fit:contain;/, 'reel videos are contained (no crop)');
+  has(/\.post-media \.stage\.fit > img, \.post-media \.stage\.fit > video \{ aspect-ratio:var\(--ar\); object-fit:contain;/, 'post media is contained (no crop)');
+  has(/\.post-media \.slide\.filled, \.post-media \.carwrap\.filled \{ background:var\(--fill\);/, 'post media fills margins with main color');
+  has(/function paintFill\(st, url\) \{[\s\S]*?if \(!box \|\| !url\) return;/, 'main-color fill applies outside reels');
   has(/carwrap\$\{kc\(items\[0\]\)\}/, 'reel carwrap tagged by kind');
   has(/slide\$\{kc\(m\)\}/, 'reel slide tagged by kind');
-  has(/\.post-media \.stage > img \{[^}]*aspect-ratio:3\/4/, 'post photo default is 3:4');
-  has(/\.post-media \.stage > video \{[^}]*aspect-ratio:9\/16/, 'post video default is 9:16');
-  has(/\.cmp-media\.has\.frame916 \{ aspect-ratio:9\/16;/, 'video composer frame is 9:16');
-  has(/classList\.toggle\('frame916', m\.kind === 'video'\)/, 'video uses the 9:16 frame');
-  has(/\.grid button\.p \{ aspect-ratio:3\/4;/, 'grid photo tiles are 3:4');
-  has(/\.grid button\.v \{ aspect-ratio:9\/16;/, 'grid video tiles are 9:16');
-  has(/isText\(p\) \? 't' : isVideo\(p\) \? 'v' : 'p'/, 'profile grid tiles tagged by kind');
+  // 피드 썸네일 격자는 무조건 3:4
+  has(/\.grid button \{[^}]*aspect-ratio:3\/4/, 'feed grid thumbnails are fixed 3:4');
+  ok(!/\.grid button\.(p|v) \{/.test(html), 'no per-kind grid overrides');
+  // 꾸미기 틀: 사진 3:4 · 영상 9:16
   has(/\.dstage\.pic > img \{ aspect-ratio:3\/4;/, 'decorate photo frame is 3:4');
   has(/\.dstage\.vid > img \{ aspect-ratio:9\/16;/, 'decorate video frame is 9:16');
-  has(/dstage\$\{m \? \(m\.k === 'video' \? ' vid' : ' pic'\) : ' tstage'\}/, 'decorate frame tagged by kind');
+  // 영상 구간 바 위치
   {
     const pi = html.indexOf('id="pick"'), ti = html.indexOf('id="trim"'), mi = html.indexOf('id="mtools"');
     ok(pi >= 0 && ti > pi && ti < mi, 'video trim bar sits directly below the media, before thumbnails');

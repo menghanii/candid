@@ -580,12 +580,15 @@
   .stk-layer { z-index:3; }
  /* 썸네일: 스티커는 사진 위, 'from.' 글씨 아래 */
   /* 상세 화면 */
-  .post-media .stage > img { aspect-ratio:3/4; }
+  .post-media .stage > img { aspect-ratio:4/5; }
   .post-media .stage > video { aspect-ratio:9/16; }
   /* 게시물 크게 보기: 원본 비율 그대로(잘림 없음). 너무 긴 사진은 화면 높이 72% 안에 맞추고 양옆은 검은 여백 */
   .post-media .slide, .post-media .carwrap:not(.multi) { display:flex; align-items:center; justify-content:center; background:#000; }
+  .post-media .slide.filled, .post-media .carwrap.filled { background:var(--fill); }
+  .post-media .stage { background:transparent; }
+  .post-media .stage > img, .post-media .stage > video { background:transparent; }
   .post-media .stage.fit { width:min(100%, calc(72dvh * var(--ar))); }
-  .post-media .stage.fit > img, .post-media .stage.fit > video { aspect-ratio:var(--ar); object-fit:cover; }
+  .post-media .stage.fit > img, .post-media .stage.fit > video { aspect-ratio:var(--ar); object-fit:contain; }
   /* 릴스: 4:5 사진 영역을 가운데에, 스티커 위치가 그리드·상세와 똑같이 보이도록 */
   /* 작성 화면 여러 장 미리보기 */
   .cmp-media .carwrap { width:100%; height:100%; }
@@ -667,7 +670,7 @@
   .empty.small { padding:20px 28px 24px; }
   .empty.small h2 { font-size:22px; }
   /* 릴스: 사진은 화면 가운데, 글(from·메시지·시간)은 하단 메뉴 바로 위 */
-  /* 릴스: 사진은 3:4 · 영상은 9:16으로 맞춤(남는 곳은 흐린 배경). 비율은 --ar 로 */
+  /* 릴스: 사진은 저장된 원본 비율 그대로(칸도 사진 비율) · 영상은 9:16. 남는 곳은 흐린 배경 */
   /* 여러 장: 장마다 비율이 달라도 각 장을 같은 영역의 정가운데에(위아래 여백 동일) */
  /* 릴스: 화면 맨 위(상단 바 뒤)에 가려져서, 사진마다 오른쪽 위에 표시(.rmulti) */
   /* 닷 잡기: 색은 파란 닷에 필터를 씌워서(무지개는 색이 계속 변함) */
@@ -1114,7 +1117,7 @@
   .sheet-wrap.from-top .sheet { border-bottom:1px solid var(--line); box-shadow:0 12px 40px rgba(0,0,0,.35); max-height:82vh; border-radius:0 0 24px 24px; padding:calc(12px + env(safe-area-inset-top)) 20px 8px; animation:down .32s cubic-bezier(.32,.72,0,1); padding-top:calc(var(--st) + 14px); }
   .sheet-wrap.from-top .grab { margin:14px auto 4px; }
   /* ===== Candids 칸·사진 (한 곳에 모음) ===== */
-  .rcar .stage > img { transform-origin:center center; background:transparent; max-height:none; aspect-ratio:3/4; }
+  .rcar .stage > img { transform-origin:center center; background:transparent; max-height:none; aspect-ratio:4/5; }
   .rcar .stage > video { transform-origin:center center; background:transparent; max-height:none; aspect-ratio:9/16; }
   .rcar .stage.pinching { overflow:visible; z-index:30; }
   .rcar .stage.pinching .stk-layer { opacity:0; }
@@ -1142,8 +1145,8 @@
   .rcar .slide { display:flex; align-items:center; justify-content:center; background:#000; transition:background .35s; position:relative; }
   .rcar .slide.p { aspect-ratio:3/4; }
   .rcar .slide.v { aspect-ratio:9/16; }
-  .rcar .stage.fit > img { aspect-ratio:var(--ar); object-fit:cover; }
-  .rcar .stage.fit > video { aspect-ratio:var(--ar); object-fit:cover; }
+  .rcar .stage.fit > img { aspect-ratio:var(--ar); object-fit:contain; }
+  .rcar .stage.fit > video { aspect-ratio:var(--ar); object-fit:contain; }
   .rcar .car-dots { display:none; }
   .reel.adslot { display:flex; align-items:center; justify-content:center; background:#000; }
   .rcar .carwrap:not(.multi) { display:flex; align-items:center; justify-content:center; background:#000; transition:background .35s; }
@@ -1155,10 +1158,8 @@
   .rcar .rmulti svg { width:11px; height:11px; }
   .rcar .rmulti b { font-weight:500; }
   /* ===== 사진 격자 (한 곳에 모음) ===== */
-  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; padding-top:2px; align-items:start; }
-  .grid button { padding:0; border:0; aspect-ratio:4/5; background:var(--soft); overflow:hidden; position:relative; container-type:inline-size; }
-  .grid button.p { aspect-ratio:3/4; }
-  .grid button.v { aspect-ratio:9/16; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; padding-top:2px; }
+  .grid button { padding:0; border:0; aspect-ratio:3/4; background:var(--soft); overflow:hidden; position:relative; container-type:inline-size; }
   .grid img { width:100%; height:100%; object-fit:cover; display:block; transition:transform .3s, opacity .3s; }
   .grid button:hover img { transform:scale(1.03); opacity:.92; }
   .grid button::after { content:""; position:absolute; inset:auto 0 0; height:38%; background:linear-gradient(transparent, rgba(0,0,0,.32)); pointer-events:none; display:none; }
@@ -5117,7 +5118,7 @@ async function loadStickers(ids) {
 // 스티커 한 개: 이모지·미니 아이템 그림·텍스트 + 크기(--s)·회전(--r)
 const stickerSpan = (r, cls = '') => `<span class="pst${r.text ? ' tx' : ''} ${cls}" data-id="${r.id}"${cls ? '' : ' role="button" onclick="stkWho(event, this)"'} style="left:${r.x * 100}%;top:${r.y * 100}%;--s:${r.scale};--r:${r.rot || 0}deg">${r.text ? `<span class="ptxt ${r.style || 'plain'}">${esc(r.text)}</span>` : glyph(ITEM[r.item_id])}</span>`;
 const stickerLayer = (postId, idx) => `<div class="stk-layer" data-sl="${postId}:${idx}">${(STK.get(postId) || []).filter(r => r.media_idx === idx).map(r => stickerSpan(r)).join('')}</div>`;
-// 피드 격자 썸네일의 스티커: 칸 비율(사진 3:4 · 영상 9:16)과 꾸미기 화면이 같아 같은 좌표·같은 비율 크기
+// 피드 격자 썸네일의 스티커: 칸이 4:5 가운데 잘라 보기(cover)라 꾸미기 화면(4:5)과 보이는 영역이 같음 → 같은 좌표·같은 비율 크기
 // 첫 장(썸네일 사진)의 스티커만. 투표·질문 카드는 칸 비율이 카드와 달라 위치가 어긋나므로 표시하지 않음
 const gridStickers = p => isText(p) ? '' : stickerLayer(p.id, 0);
 // 보는 화면(게시물·릴스)에서 스티커를 누르면 누가 붙였는지
@@ -5155,13 +5156,13 @@ document.addEventListener('pointerdown', e => { if (!e.target.closest('.stk-tag,
 function refreshStickerLayers(postId) {
   document.querySelectorAll(`[data-sl^="${postId}:"]`).forEach(el => { const st = el.parentElement; el.outerHTML = stickerLayer(postId, +el.dataset.sl.split(':')[1]); if (st?.dataset.ar) fitStickerLayer(st); });
 }
-// 릴스 비율: 사진 3:4 · 영상 9:16으로 칸을 맞춤
+// 릴스 비율: 사진은 저장된 원본 비율(칸도 사진 비율), 영상은 9:16
 function watchReelRatio(st) {
   const m = st.querySelector('img, video'); if (!m) return;
   const set = (w, h) => { if (!w || !h) return; st.dataset.ar = w / h; st.style.setProperty('--ar', w / h); st.classList.add('fit'); fitStickerLayer(st); };
   paintFill(st, m.tagName === 'IMG' ? m.currentSrc || m.src : m.poster);
-  if (m.tagName === 'IMG') return set(3, 4); // 사진은 기존 업로드분도 3:4
-  return set(9, 16); // 영상은 9:16
+  if (m.tagName === 'IMG') return set(3, 4); // 사진 칸 3:4 (남는 곳은 메인 색으로 채움)
+  return set(9, 16); // 영상 칸 9:16
 }
 // 9:16 칸의 남는 곳: 사진의 위·아래 가장자리 색을 골라 그라데이션으로 채움(인스타 스토리처럼)
 const FILLS = new Map();
@@ -5179,7 +5180,7 @@ function edgeColors(url) {
   return FILLS.get(url);
 }
 function paintFill(st, url) {
-  const box = st.closest('.slide') || st.closest('.carwrap'); if (!box || !url || !st.closest('.rcar')) return;
+  const box = st.closest('.slide') || st.closest('.carwrap'); if (!box || !url) return;
   edgeColors(url).then(c => { if (!c) return; const rgb = a => `rgb(${a.join(',')})`; box.style.setProperty('--fill', `linear-gradient(180deg, ${rgb(c.top)}, ${rgb(c.mid)} 50%, ${rgb(c.bot)})`); box.classList.add('filled'); });
 }
 // 영상 재생 바: 9:16 칸 맨 아래 얇은 회색 바(재생 위치), 끌거나 누르면 그 위치로
@@ -5305,7 +5306,7 @@ addEventListener('pointerdown', e => {
 // 여러 장이면 좌우로 넘기는 슬라이드(인스타처럼 점 + 1/3)
 function mediaCarousel(p, mode) {
   const items = mediaOf(p), alt = t('{name}가 보낸 사진', { name: aname(p.author_name) });
-  const kc = m => m && m.k === 'video' ? ' v' : ' p'; // 사진 3:4 · 영상 9:16 칸
+  const kc = m => m && m.k === 'video' ? ' v' : ' p'; // 사진은 원본 비율 칸, 영상은 9:16 칸
   if (items.length <= 1) return `<div class="carwrap${kc(items[0])}" data-idx="0"><div class="stage">${items[0] ? mediaEl(items[0], mode, alt) : ''}${stickerLayer(p.id, 0)}</div></div>`;
   return `<div class="carwrap multi" data-idx="0">
     <div class="car" data-car>${items.map((m, i) => `<div class="slide${kc(m)}"><div class="stage">${mediaEl(m, mode, alt)}${stickerLayer(p.id, i)}</div>${mode === 'reel' ? `<span class="rmulti" aria-label="${t('{n}장 중 {i}번째', { n: items.length, i: i + 1 })}">${I.multi}<b>${i + 1}/${items.length}</b></span>` : ''}</div>`).join('')}</div>

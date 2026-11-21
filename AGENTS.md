@@ -38,6 +38,9 @@ Xcode 빌드에도 강제하려면 Target > Build Phases > **New Run Script Phas
 cd "$SRCROOT/../../.." && node tests/run-tests.js
 ```
 
+### 빌드 업로드는 사용자 확인 후 (필수)
+Archive/TestFlight 업로드·배포는 **사용자에게 먼저 물어보고** 진행한다. 수정할 때마다 자동으로 빌드/업로드하지 않는다. 테스트와 로컬 빌드까지만 수행하고, 업로드는 확인을 받은 뒤에 한다.
+
 ## 1. 테스트 구성 (`tests/run-tests.js`)
 외부 의존성 없이 Node 내장 기능만 사용한다.
 1. `index.html` 인라인 스크립트 4개 문법 검사
