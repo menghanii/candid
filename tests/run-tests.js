@@ -270,8 +270,8 @@ console.log('\n[10] group polls & answers');
   const has = (re, msg) => ok(re.test(html), msg);
   ok(!/if \(GT\) mode = 'media';/.test(html), 'group composer allows poll/question');
   ok(!/cmp-modes intop[^>]*display:none/.test(html), 'composer mode tabs are shown for groups');
-  has(/const row = \{ media_type: 'poll'[\s\S]{0,500}group_id: GT\.id/, 'group poll insert uses group author');
-  has(/const row = \{ media_type: 'question'[\s\S]{0,500}group_id: GT\.id/, 'group question insert uses group author');
+  has(/const row = \{ id: draftId, media_type: 'poll'[\s\S]{0,500}group_id: GT\.id/, 'group poll insert uses group author');
+  has(/const row = \{ id: draftId, media_type: 'question'[\s\S]{0,500}group_id: GT\.id/, 'group question insert uses group author');
   has(/isGroup && !member \? t\('그룹 멤버만 투표할 수 있어요'\)/, 'group poll is limited to members');
   has(/canAnswerQuestion = p =>/, 'question answer eligibility helper');
   has(/p\?\.media_type === 'question' && me && !canAnswerQuestion\(p\)/, 'answer input hidden for ineligible users');
@@ -293,7 +293,7 @@ console.log('\n[11] poll & question cards');
   has(/const TEXT_THEMES =/, 'pastel theme palettes');
   has(/textThemeChar/, 'blue dot background character');
   has(/class="tchar \$\{t\.corner\}/, 'dot placed at a random corner');
-  has(/class="cmp-qcard"/, 'composer shows a clear poll/question card');
+  has(/class="cmp-qcard tcard (poll|question)"/, 'composer shows the same themed poll/question card');
   has(/cmp-qlabel/, 'composer has explicit labels');
   ok(!/머리 스타일은|우리 처음 만난/.test(html), 'example questions removed');
   ok(!/cardDots\(\$reels\)|cardDots\(ov\)/.test(html), 'wandering card dots removed');
@@ -318,19 +318,20 @@ console.log('\n[12] image edit quality & composer gestures');
 {
   const has = (re, msg) => ok(re.test(html), msg);
   has(/m\.src0 \|\|= m\.editUrl \|\| m\.previewUrl/, 'cropper uses the original/edit source');
-  has(/rotCanvas\(img, ed\.rot \|\| 0, Infinity\)/, 'final crop uses original resolution');
-  has(/rotCanvas\(img, ed\.rot, Infinity\)/, 'rotated preview keeps original resolution');
+  has(/rotCanvas\(img, ed\.rot \|\| 0, EDIT_MAX\)/, 'final crop uses the high-res edit copy (capped for iPhone canvas limit)');
+  has(/const EDIT_MAX = 4096;/, 'edit canvas is capped at 4096px (iPhone canvas limit ~16.7M px)');
+  has(/rotCanvas\(img, ed\.rot, EDIT_MAX\)/, 'rotated preview uses the capped high-res copy');
   has(/view\.src = src;/, 'unrotated preview uses the original image');
   has(/function freeMedia[\s\S]*editUrl/, 'edit source is released');
   const swift = fs.readFileSync(path.join(root, 'ios-app/ios/App/App/MediaPickerPlugin.swift'), 'utf8');
   ok(/editPath/.test(swift), 'native export includes an edit copy');
   ok(/PHImageManagerMaximumSize/.test(swift), 'native requests the original image');
-  ok(/let edit = img/.test(swift), 'native keeps a full-resolution edit copy');
+  ok(/let edit = Self\.resize\(img, maxSide: 3024\)/.test(swift) && !/edit = img\b/.test(swift), 'native edit copy is high-res but capped at 3024px (memory · canvas limit)');
   has(/\.page-ov \{[^}]*overflow-x:hidden/, 'composer page locks horizontal scroll');
   has(/\.cfr \{[^}]*touch-action:pan-y/, 'cropper allows vertical page scroll before zoom');
-  has(/host\.style\.touchAction = ed\.z > 1\.01 \? 'none' : 'pan-y'/, 'zoomed cropper captures one-finger drags');
+  has(/const ta = \(pts\.size > 1 \|\| ed\.z > 1\.01\) \? 'none' : 'pan-y'/, 'zoomed cropper captures one-finger drags');
   has(/if \(a\.length < 2 && ed\.z <= 1\.01\) return;/, 'dragging after zoom moves the photo');
-  has(/두 손가락으로 확대 · 확대 후 한 손가락으로 옮기기 · 화면은 사진 밖에서 스크롤/, 'gesture hint');
+  ok(!/class="chint"/.test(html), 'cropper has no edit hint text');
 }
 
 // 13) 최근 수정 회귀 체크
@@ -345,11 +346,13 @@ console.log('\n[13] recent fixes');
   has(/\.composer \{[^}]*overflow-x:hidden/, 'composer locks horizontal scrolling');
   has(/\.cmp-body \{[^}]*overflow-x:hidden/, 'composer body locks horizontal scrolling');
   has(/\.mstrip \{[^}]*overscroll-behavior-x:contain/, 'media strip contains horizontal overscroll');
+  has(/\.mstrip \{[^}]*touch-action:pan-x pan-y/, 'media strip allows vertical page scroll');
+  has(/\.pki \{[^}]*touch-action:pan-x pan-y/, 'media thumbnails allow vertical page scroll');
   has(/\.cmp-sugs \{[^}]*overscroll-behavior-x:contain/, 'suggestion strip contains horizontal overscroll');
   has(/\.page-ov \{[^}]*overflow-y:auto/, 'composer page scrolls vertically');
   has(/if \(a\.length < 2 && ed\.z <= 1\.01\) return;/, 'after zoom, one finger moves the photo');
-  has(/host\.style\.touchAction = ed\.z > 1\.01 \? 'none' : 'pan-y'/, 'zoom switches the cropper to drag mode');
-  has(/rotCanvas\(img, ed\.rot \|\| 0, Infinity\)/, 'final crop keeps original resolution');
+  has(/const ta = \(pts\.size > 1 \|\| ed\.z > 1\.01\) \? 'none' : 'pan-y'/, 'zoom switches the cropper to drag mode');
+  has(/rotCanvas\(img, ed\.rot \|\| 0, EDIT_MAX\)/, 'final crop keeps the capped high-res copy');
   has(/view\.src = src;/, 'preview uses the original image');
   has(/el\.style\.pointerEvents = 'none'/, 'closing photo sheet stops blocking touches');
   has(/sel\.length = 0/, 'album switch clears selection');
@@ -358,10 +361,12 @@ console.log('\n[13] recent fixes');
   has(/classList\.add\('below'\)/, 'info can sit directly under the media');
   has(/\.rinfo\.below \{[^}]*bottom:auto !important/, 'below-media info overrides bottom anchoring');
   has(/requestAnimationFrame\(\(\) => placeReelInfo/, 'info placement runs after media loads');
-  has(/--tbg:var\(--soft\);--tink:var\(--fg\)/, 'composer uses a fixed/static template');
-  ok(!/draftId/.test(html), 'composer no longer uses a draft id');
-  ok(!/TEXT_THEMES\[Math\.floor\(Math\.random/.test(html), 'composer makes no random theme');
-  has(/const textTheme = p =>/, 'the actual post gets a random theme from its id');
+  has(/const draftId = crypto\.randomUUID\(\)/, 'composer prepares the post id up front');
+  has(/const theme = textTheme\(draftId\)/, 'composer preview uses the post theme');
+  has(/textThemeChar\(theme\)/, 'composer preview shows the same theme character');
+  has(/id: draftId, media_type: 'poll'/, 'poll post keeps the preview id');
+  has(/id: draftId, media_type: 'question'/, 'question post keeps the preview id');
+  has(/const textTheme = p =>/, 'the actual post gets the same random theme from its id');
 }
 
 // 14) 빌드 25 추가 회귀: 앨범 조회 이중화/폴백, 상단 드래그, 확대 후 이동
@@ -370,7 +375,7 @@ console.log('\n[14] build 25 checks');
   const has = (re, msg) => ok(re.test(html), msg);
   has(/P\.libList\(albumParams\(album, sub\)\)/, 'album id and subtype are sent together');
   has(/이 모음을 불러오지 못해 최근 항목으로 돌아갈게요/, 'empty album falls back to Recents');
-  has(/host\.style\.touchAction = ed\.z > 1\.01 \? 'none' : 'pan-y'/, 'zoomed cropper captures drags');
+  has(/const ta = \(pts\.size > 1 \|\| ed\.z > 1\.01\) \? 'none' : 'pan-y'/, 'zoomed cropper captures drags');
   has(/if \(a\.length < 2 && ed\.z <= 1\.01\) return;/, 'after zoom, one finger moves the photo');
   ok(!/e\.target\.closest\('button'\) && !e\.target\.closest\('\.lib-cell'\)/.test(html), 'sheet drag can start on header buttons');
   has(/sheet\._noClick[\s\S]{0,120}!e\.target\.closest\('\.lib-cell'\)/, 'header drag does not trigger the button click');
@@ -385,11 +390,61 @@ console.log('\n[15] pull-to-refresh & composer cleanup');
 {
   const has = (re, msg) => ok(re.test(html), msg);
   has(/const blocked = .*\.composer, \.page-ov, \.libw/, 'pull-to-refresh is disabled in library/composer');
-  has(/\.page-ov \{[^}]*overscroll-behavior-y:contain/, 'composer page contains vertical overscroll');
+  ok(!/\.page-ov \{[^}]*overscroll-behavior-y:contain/.test(html), 'composer is not scroll-locked by overscroll-behavior-y');
+  has(/\.page-ov \{[^}]*overflow-y:auto/, 'composer page remains the vertical scroller');
   has(/\.lib-h \{[^}]*touch-action:none/, 'library header owns its drag gesture');
-  ok(!/id="text"/.test(html), 'media composer caption is removed');
-  ok(!/id="sugs"/.test(html), 'media composer suggestion chips are removed');
+  has(/id="text"/, 'media composer has a message field');
+  has(/\{name\}에게 한마디…/, 'message field has a recipient placeholder');
+  ok(!/id="sugs"/.test(html), 'media composer suggestion chips remain removed');
   has(/text: \$\('#text'\)\?\.value\.trim\(\) \|\| null/, 'media posts have no caption when removed');
+  has(/const ok = await ask\(GT[\s\S]{0,220}이 피드를 올릴까요\?/, 'send asks for confirmation before upload');
+  has(/if \(!ok\) return;[\s\S]{0,40}\$send\.disabled = true/, 'cancel keeps the composer from sending');
+}
+
+// 16) 보관함: 내가 보낸 피드 + 승인 전 보내기 취소
+console.log('\n[16] inbox sent posts & cancel');
+{
+  const has = (re, msg) => ok(re.test(html), msg);
+  const sql43 = fs.readFileSync(path.join(root, 'sql/43_my_sent_posts.sql'), 'utf8');
+  ok(/create or replace function public\.my_sent_posts/.test(sql43), 'SQL provides my_sent_posts');
+  ok(/p\.author_id = auth\.uid\(\)/.test(sql43), 'sent posts are scoped to the logged-in author');
+  ok(/p\.status = 'pending'/.test(sql43), 'sent list only includes pending');
+  has(/SENT\.items = error \? \[\] : \(data \|\| \[\]\)\.filter\(x => x\.status === 'pending'\)/, 'approved sent posts are hidden in the inbox');
+  ok(/and status = 'pending'/.test(sql43), 'cancel only deletes pending sends');
+  ok(/already_approved/.test(sql43), 'approved sends return already_approved');
+  has(/>\$\{t\('내가 보낸 피드'\)\}</, 'inbox shows my sent feed');
+  has(/async function cancelSentPost/, 'sent pending rows can be canceled');
+  has(/p\.status === 'pending' \? `<div class="ab"><button class="btn" onclick="cancelSentPost/, 'cancel button is only on pending rows');
+  has(/SENT\.uid !== uid\) loadSent\(\)/, 'sent feed loads for the current owner');
+  ok(!/author \? it\(t\('보낸 사진 삭제'\)/.test(html), 'author cannot delete an approved sent post');
+  ok(!/_more|장 더 올라왔어요/.test(html), 'group posts are no longer collapsed');
+  has(/const stage = v\.closest\('\.stage'\) \|\| reel/, 'video bar is anchored to the video stage');
+  has(/\.rcar \.stage > \.vbar \{[^}]*bottom:0/, 'video bar sits exactly at the video bottom');
+}
+
+// 17) 투표·질문 작성: 같은 문구, 추가 박스/테두리 없음
+console.log('\n[17] poll/question composer prompt');
+{
+  const has = (re, msg) => ok(re.test(html), msg);
+  ok(!/질문을 적어 주세요/.test(html), 'old question prompt is removed');
+  has(/\$\('#pq'\)\.value\.trim\(\)\.length >= 1 && opts\.length >= 2/, 'poll allows a one-character question');
+  has(/\$\('#qq'\)\.value\.trim\(\)\.length >= 1/, 'question allows one character');
+  ok((html.match(/placeholder="\$\{t\('무엇을 물어볼까요\?'\)\}"/g) || []).length >= 2, 'poll and question use the same prompt');
+  ok(!/\.cmp-qcard \.cmp-cap\.big \{[^}]*box-shadow:inset/.test(html), 'poll/question field has no box or border');
+  ok(!/\.cmp-qcard \.cmp-cap\.big:focus/.test(html), 'poll/question field has no focus border');
+
+  has(/host\.addEventListener\('touchmove', blockScroll, \{ passive: false \}\)/, 'two-finger pinch blocks page scroll');
+  has(/raf = requestAnimationFrame\(\(\) => \{ raf = 0; paint\(\); \}\)/, 'cropper paints at most once per frame');
+  ok(!/class="cmp-who"\$\{GT \? ' style="display:none"'/.test(html), 'sender block is visible for groups too');
+  has(/id="text"[\s\S]{0,4000}class="cmp-who"/, 'sender block sits below the message field');
+  has(/const blockPageZoom = e => e\.preventDefault\(\)/, 'page pinch zoom is blocked globally');
+  has(/maximum-scale=1, user-scalable=no/, 'viewport disables page scaling');
+  has(/input, textarea, select \{ font-size:max\(16px, 1em\) !important; \}/, 'iOS form controls stay at least 16px');
+  has(/\.cmp-media\.has\.frame34 \{[^}]*width:min\(45vh, 45dvh, 465px\)[^}]*max-width:100%/, 'composer photo frame is centered within the viewport');
+  const vc = fs.readFileSync(path.join(root, 'ios-app/ios/App/App/AppViewController.swift'), 'utf8');
+  ok(/pinchGestureRecognizer\?\.isEnabled = false/.test(vc), 'native page pinch zoom is disabled');
+  const i18n = ['en', 'ja'].map(l => fs.readFileSync(path.join(root, `i18n/${l}.js`), 'utf8')).join('\n');
+  ok(!/다음 머리 스타일|처음 만난 날/.test(i18n), 'poll/question example prompts are removed from every language');
 }
 
 console.log('\n' + (failed ? `FAILED: ${failed} check(s)` : 'ALL TESTS PASSED'));

@@ -12,7 +12,7 @@
   location.replace('https://candid-feed.com' + location.pathname + location.search + location.hash);
 })();
 </script>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>candid.</title>
 <meta name="description" content="candid. — 친구들이 만들어주는 나의 피드">
 <meta property="og:type" content="website">
@@ -509,7 +509,7 @@
   /* 🎁 뽑기 버튼 */
   @keyframes pop { 40% { transform:scale(1.25); } }
   /* 전체 화면 페이지(뽑기·옷장) */
-  .page-ov { position:fixed; inset:0; z-index:22; overflow-y:auto; overflow-x:hidden; overscroll-behavior-x:none; overscroll-behavior-y:contain; -webkit-overflow-scrolling:touch; background:var(--bg); animation:fade .2s; padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
+  .page-ov { position:fixed; inset:0; z-index:22; overflow-y:auto; overflow-x:hidden; overscroll-behavior-x:none; -webkit-overflow-scrolling:touch; background:var(--bg); animation:fade .2s; padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
   .page-ov > * { max-width:480px; margin-left:auto; margin-right:auto; }
   .pov-h { position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:8px; height:calc(56px + env(safe-area-inset-top)); padding:env(safe-area-inset-top) 12px 0; background:var(--bg); }
   .pov-h b { flex:1; font-family:var(--display); font-weight:800; font-size:22px; letter-spacing:-.04em; }
@@ -575,6 +575,17 @@
   .cmp-qcard .optrow span { color:color-mix(in srgb, var(--tink,#fff) 65%, transparent); }
   .cmp-qcard .cmp-add { color:var(--tacc,var(--accent)); border-color:color-mix(in srgb, var(--tink,#fff) 25%, transparent); }
   .cmp-qcard .cmp-note { color:color-mix(in srgb, var(--tink,#fff) 65%, transparent); }
+  .cmp-qcard.tcard { padding:28px 22px 22px; border-radius:18px; }
+  .cmp-qcard.tcard .tk { font-size:12px; opacity:.65; }
+  .cmp-qcard.tcard .cmp-qlabel { font-size:12px; opacity:.7; margin:10px 0 6px; }
+  .cmp-qcard.tcard .cmp-cap.big { padding:0; font-size:24px; font-weight:800; line-height:1.3; letter-spacing:-.03em; margin:10px 0 18px; }
+  .cmp-qcard.tcard.question .cmp-cap.big { font-size:22px; line-height:1.45; margin:10px 0 16px; }
+  .cmp-qcard.tcard .optrow input { min-height:50px; border:0; border-radius:14px; padding:0 16px; font-size:16px; font-weight:700; }
+  @supports (-webkit-touch-callout:none) {
+    input, textarea, select { font-size:max(16px, 1em) !important; }
+    textarea.cmp-cap.big { font-size:24px !important; }
+    .cmp-qcard.tcard.question .cmp-cap.big { font-size:22px !important; }
+  }
   .cmp-modes { position:fixed; left:50%; bottom:calc(14px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:3; display:flex; gap:2px; padding:4px; border-radius:999px; background:rgba(28,28,30,.92); box-shadow:0 8px 24px rgba(0,0,0,.3); }
   .cmp-modes { width:max-content; max-width:calc(100vw - 24px); white-space:nowrap; }
   .cmp-modes button { flex:none; padding:10px 16px; border:0; border-radius:999px; background:none; color:#aeaeb2; font-size:13px; font-weight:700; }
@@ -600,6 +611,13 @@
   .stk-layer .pst { pointer-events:auto; cursor:pointer; -webkit-tap-highlight-color:transparent; } /* 보는 화면: 누르면 누가 붙였는지 */
   .stk-tag { position:absolute; z-index:5; display:inline-flex; align-items:center; gap:4px; max-width:70%; transform:translate(-6px, -100%); padding:6px 10px; border:0; border-radius:999px 999px 999px 4px; background:rgba(15,15,18,.86); color:#fff; font:inherit; font-size:12px; line-height:1.2; white-space:nowrap; pointer-events:auto; box-shadow:0 4px 14px rgba(0,0,0,.3); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); animation:tagIn .18s ease both; }
   .stk-tag.flip { transform:translate(calc(-100% + 6px), -100%); border-radius:999px 999px 4px 999px; }
+  /* 길게 누르기: 글을 쓰는 칸(입력칸·글상자)에서만 선택·메뉴, 나머지 화면은 선택·확대 메뉴·링크 미리보기 없음 */
+  html { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+  input, textarea, select, [contenteditable="true"] { -webkit-user-select:text; user-select:text; -webkit-touch-callout:default; }
+  img, a { -webkit-user-drag:none; }
+  .stk-tag { position:fixed; z-index:60; pointer-events:auto; text-decoration:none; } /* 화면 위에 띄움: 사진 칸에 잘리지 않고, 스티커 층(누르기 무시)의 설정을 물려받지 않게 */
+  .stk-tag.below { transform:translate(-6px, 6px); border-radius:4px 999px 999px 999px; }
+  .stk-tag.flip.below { transform:translate(calc(-100% + 6px), 6px); border-radius:999px 4px 999px 999px; }
   .stk-tag b { font-weight:700; overflow:hidden; text-overflow:ellipsis; }
   .stk-tag small { opacity:.65; font-size:11px; }
   .stk-tag i { font-style:normal; opacity:.7; margin-left:1px; }
@@ -846,7 +864,6 @@
   .camb { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin:8px 0 0; padding:11px; border:1px solid var(--line); border-radius:14px; background:var(--card); color:var(--fg); font:inherit; font-size:14px; font-weight:600; }
   .camb svg { width:20px; height:20px; }
   /* 하단 메뉴: 안의 사진·아이콘은 누르기를 받지 않고 버튼이 받게(iPhone 에서 이미지 탭이 버튼까지 안 가는 문제), 두 번 탭 확대 대기 없음 */
-  .rmore { display:inline-block; margin:0 0 6px 6px; padding:3px 9px; border-radius:999px; background:rgba(255,255,255,.18); color:#fff; font-size:11.5px; font-weight:700; text-decoration:none; }
   /* Candids: from 위 프로필(피드 주인·그룹) — 배경 없이 사진 + 이름. 사진만 크게 */
   /* 보기 방식 스위치 */
   /* 궤도 */
@@ -908,6 +925,10 @@
   .oreel { position:fixed; inset:0; z-index:30; background:#000; animation:fade .2s; }
   .oreel.out { opacity:0; transition:opacity .2s; }
   .oreel .reels { position:absolute; inset:0; }
+  .rnext { position:absolute; z-index:12; left:50%; bottom:calc(max(env(safe-area-inset-bottom), 10px) + 10px); display:flex; align-items:center; gap:3px; padding:6px 10px 6px 13px; border:0; border-radius:999px; background:rgba(0,0,0,.42); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); color:#fff; font:700 12px/1 var(--sans); letter-spacing:-.01em; transform:translateX(-50%); animation:rnudge 1.8s ease-in-out infinite; transition:opacity .2s; }
+  .rnext.off, .rnext.quiet { opacity:0; pointer-events:none; }
+  @keyframes rnudge { 0%, 100% { transform:translate(-50%, 0); } 50% { transform:translate(-50%, 4px); } }
+  @media (prefers-reduced-motion: reduce) { .rnext { animation:none; } }
   .oreel-h { gap:8px; padding-left:8px; }
   .oreel-h .icon-btn { color:#fff; }
   .oreel-who { display:flex; align-items:center; gap:8px; color:#fff; text-decoration:none; min-width:0; }
@@ -1054,10 +1075,10 @@
  /* 파란 투표 카드 위에선 흰 닷 */
   /* 작성 화면: 고른 사진 줄·자르기 */
   .mtools { display:flex; align-items:center; gap:10px; margin:10px 0 2px; }
-  .mstrip { flex:1; display:flex; gap:6px; overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain; min-height:0; touch-action:pan-x; scrollbar-width:none; padding:4px 2px; margin:-4px -2px; -webkit-overflow-scrolling:touch; }
+  .mstrip { flex:1; display:flex; gap:6px; overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain; min-height:0; touch-action:pan-x pan-y; scrollbar-width:none; padding:4px 2px; margin:-4px -2px; -webkit-overflow-scrolling:touch; }
   .mstrip::-webkit-scrollbar { display:none; }
   .mstrip[hidden] { display:block !important; visibility:hidden; height:0; }
-  .pki { position:relative; flex:none; width:46px; height:46px; padding:0; border:0; border-radius:9px; overflow:hidden; background:var(--soft); transition:transform .15s; touch-action:pan-x; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+  .pki { position:relative; flex:none; width:46px; height:46px; padding:0; border:0; border-radius:9px; overflow:hidden; background:var(--soft); transition:transform .15s; touch-action:pan-x pan-y; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
   .pki img { width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; }
   .pki b { position:absolute; left:3px; top:3px; min-width:15px; height:15px; border-radius:8px; background:rgba(0,0,0,.6); color:#fff; font-size:10px; line-height:15px; text-align:center; }
   .pki.on { box-shadow:inset 0 0 0 2px var(--accent); } .pki.on b { background:var(--accent); }
@@ -1084,12 +1105,10 @@
   .epm-i img { pointer-events:none; -webkit-user-drag:none; }
   .epm-i.drag { z-index:5; box-shadow:0 8px 20px rgba(0,0,0,.45); transition:none; }
   /* 작성 화면: 사진 3:4 틀(올라가면 보일 모습) 안에서 사진 옮기기·확대 */
-  .cmp-media.has.frame34 { aspect-ratio:3/4; width:auto; height:min(60vh, 60dvh, 620px); max-height:none; margin:0 auto; border-radius:14px; }
-  .cmp-media.has.frame916 { aspect-ratio:9/16; width:auto; height:min(60vh, 60dvh, 620px); max-height:none; margin:0 auto; border-radius:14px; }
+  .cmp-media.has.frame34 { aspect-ratio:3/4; width:min(45vh, 45dvh, 465px); max-width:100%; height:auto; max-height:none; margin:0 auto; border-radius:14px; }
+  .cmp-media.has.frame916 { aspect-ratio:9/16; width:min(33.75vh, 33.75dvh, 348.75px); max-width:100%; height:auto; max-height:none; margin:0 auto; border-radius:14px; }
   .cmp-media .cfr { position:absolute; inset:0; overflow:hidden; touch-action:pan-y; background:#000; transition:background .3s; }
   .cfr img { position:absolute; left:0; top:0; transform-origin:0 0; user-select:none; -webkit-user-select:none; pointer-events:none; max-width:none; }
-  .cfr .chint { position:absolute; left:50%; top:14px; transform:translateX(-50%); padding:6px 11px; border-radius:14px; background:rgba(0,0,0,.55); color:#fff; font-size:12px; font-weight:600; white-space:nowrap; pointer-events:none; transition:opacity .4s; }
-  .cfr.touched .chint { opacity:0; }
   .cfr .cgrid { position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .2s; background:linear-gradient(90deg, transparent calc(33.3% - .5px), rgba(255,255,255,.35) 33.3%, transparent calc(33.3% + .5px), transparent calc(66.6% - .5px), rgba(255,255,255,.35) 66.6%, transparent calc(66.6% + .5px)), linear-gradient(transparent calc(33.3% - .5px), rgba(255,255,255,.35) 33.3%, transparent calc(33.3% + .5px), transparent calc(66.6% - .5px), rgba(255,255,255,.35) 66.6%, transparent calc(66.6% + .5px)); }
   .cfr.moving .cgrid { opacity:1; }
   /* 여러 장 표시: 9:16 칸 오른쪽 위 고정, 작고 얇게 */
@@ -1366,6 +1385,7 @@
   .vbar::before { content:""; position:absolute; left:0; right:0; bottom:0; height:2px; background:rgba(255,255,255,.22); }
   .vbar i { position:relative; display:block; width:100%; height:2px; background:rgba(235,235,240,.85); transform-origin:left center; transform:scaleX(0); }
   .vbar.cur { opacity:1; pointer-events:auto; }
+  .rcar .stage > .vbar { left:16px; right:16px; bottom:0; }
   .vbar::before, .vbar i { border-radius:2px; }
   .vbar.on::before, .vbar.on i { height:4px; }
   /* 받기 설정 · 로그인 없이 보냄 표시 */
@@ -1836,6 +1856,7 @@ function makeSortable(box, onDone, onTap) {
 
 // ---------- 사진 자르기·회전: 작성 화면 미리보기 그 자리에서 ----------
 // 틀 모서리를 끌면 크기, 안쪽을 끌면 옮기기(9:16~16:9 사이 자유), 오른쪽 위 버튼으로 90° 회전. 손을 떼면 onChange(edit)
+const EDIT_MAX = 4096; // 자르기·회전용 캔버스 최대 변: iPhone 은 캔버스가 약 1,670만 화소를 넘으면 그림이 비어 버림(2400만·4800만 화소 사진)
 const ROT_CACHE = new Map();
 function rotCanvas(img, rot, max = 2400) {
   const sw = img.naturalWidth, sh = img.naturalHeight, k = Math.min(1, max / Math.max(sw, sh)), w = Math.round(sw * k), h = Math.round(sh * k);
@@ -1853,7 +1874,7 @@ function frameMath(rw, rh, FW, FH, ed) {
   return { k, w, h, left: FW / 2 + cx - w / 2, top: FH / 2 + cy - h / 2, ox: cx / FW, oy: cy / FH };
 }
 async function renderFrame(src, ed) {
-  const img = await loadImg(src), rc = rotCanvas(img, ed.rot || 0, Infinity);
+  const img = await loadImg(src), rc = rotCanvas(img, ed.rot || 0, EDIT_MAX);
   const FW = 900, FH = 1200, f = frameMath(rc.width, rc.height, FW, FH, ed); // 사진 기본 비율 3:4
   const vx0 = Math.max(0, f.left), vy0 = Math.max(0, f.top), vx1 = Math.min(FW, f.left + f.w), vy1 = Math.min(FH, f.top + f.h);
   const sx = (vx0 - f.left) / f.k, sy = (vy0 - f.top) / f.k, sw = (vx1 - vx0) / f.k, sh = (vy1 - vy0) / f.k;
@@ -1862,26 +1883,33 @@ async function renderFrame(src, ed) {
 function mountFramer(host, src, edit0, onChange) {
   host.className = 'ccrop cfr';
   let ed = { rot: 0, z: 1, ox: 0, oy: 0, ...(edit0 || {}) }, img = null, rc = null, dead = false;
-  host.innerHTML = `<img alt="" draggable="false"><i class="cgrid"></i><button type="button" class="crot" aria-label="${t('회전')}">${I.rotate}</button><span class="chint">${t('두 손가락으로 확대 · 확대 후 한 손가락으로 옮기기 · 화면은 사진 밖에서 스크롤')}</span>`;
+  host.innerHTML = `<img alt="" draggable="false"><i class="cgrid"></i><button type="button" class="crot" aria-label="${t('회전')}">${I.rotate}</button>`;
   if (edit0) host.classList.add('touched');
   const view = host.querySelector('img');
+  const pts = new Map(); let g0 = null, gest = null, raf = 0; // gest: 이번 손동작(손가락 최대 수·움직임) — 두 번 톡 판단용
+  const setTouchAction = () => {
+    const ta = (pts.size > 1 || ed.z > 1.01) ? 'none' : 'pan-y'; // 두 손가락/확대 중에는 페이지 스크롤 금지
+    if (host.style.touchAction !== ta) host.style.touchAction = ta;
+  };
   const paint = () => {
     if (!rc || dead) return; const FW = host.clientWidth, FH = host.clientHeight; if (!FW) return;
-    host.style.touchAction = ed.z > 1.01 ? 'none' : 'pan-y'; // 확대 전에는 화면 스크롤, 확대 후에는 사진 이동
     const f = frameMath(rc.width, rc.height, FW, FH, ed); ed.ox = f.ox; ed.oy = f.oy;
-    view.style.width = rc.width + 'px'; view.style.height = rc.height + 'px';
     view.style.transform = `translate(${f.left}px, ${f.top}px) scale(${f.k})`;
   };
+  const schedule = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; paint(); }); };
+  const setSize = () => { if (!rc) return; view.style.width = rc.width + 'px'; view.style.height = rc.height + 'px'; };
   const fill = () => edgeColors(view.src).then(c => { if (!c || dead) return; const rgb = a => `rgb(${a.join(',')})`; host.style.background = `linear-gradient(180deg, ${rgb(c.top)}, ${rgb(c.mid)} 50%, ${rgb(c.bot)})`; });
-  const redraw = () => { if ((ed.rot || 0) % 360 === 0) { rc = { width: img.naturalWidth, height: img.naturalHeight }; view.src = src; } else { rc = rotCanvas(img, ed.rot, Infinity); view.src = rc.toDataURL('image/jpeg', .94); } paint(); fill(); };
+  const redraw = () => { if ((ed.rot || 0) % 360 === 0) { rc = { width: img.naturalWidth, height: img.naturalHeight }; view.src = src; } else { rc = rotCanvas(img, ed.rot, EDIT_MAX); view.src = rc.toDataURL('image/jpeg', .94); } setSize(); paint(); fill(); };
   loadImg(src).then(im => { if (dead) return; img = im; redraw(); }).catch(() => {});
   const emit = () => onChange({ ...ed });
-  host.querySelector('.crot').onclick = e => { e.preventDefault(); e.stopPropagation(); if (!img) return; ed = { rot: (ed.rot + 270) % 360, z: 1, ox: 0, oy: 0 }; redraw(); emit(); };
-  // 손가락: 1개 옮기기, 2개 확대(가운데 기준)
-  const pts = new Map(); let g0 = null, gest = null; // gest: 이번 손동작(손가락 최대 수·움직임) — 두 번 톡 판단용
-  const start = () => { const a = [...pts.values()]; const FW = host.clientWidth, FH = host.clientHeight;
-    g0 = { ed: { ...ed }, mx: a.reduce((s, p) => s + p.x, 0) / a.length, my: a.reduce((s, p) => s + p.y, 0) / a.length, d: a.length > 1 ? Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) : 0, FW, FH }; };
-  host.addEventListener('pointerdown', e => { if (e.target.closest('.crot')) return; e.preventDefault(); host.setPointerCapture?.(e.pointerId); if (!pts.size) gest = { n: 0, x: e.clientX, y: e.clientY, moved: false }; pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); gest.n = Math.max(gest.n, pts.size); start(); host.classList.add('moving', 'touched'); });
+  host.querySelector('.crot').onclick = e => { e.preventDefault(); e.stopPropagation(); if (!img) return; ed = { rot: (ed.rot + 270) % 360, z: 1, ox: 0, oy: 0 }; redraw(); setTouchAction(); emit(); };
+  const start = () => { const a = [...pts.values()]; const R = host.getBoundingClientRect(), FW = host.clientWidth, FH = host.clientHeight;
+    g0 = { ed: { ...ed }, mx: a.reduce((s, p) => s + p.x, 0) / a.length, my: a.reduce((s, p) => s + p.y, 0) / a.length, d: a.length > 1 ? Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) : 0, left: R.left, top: R.top, FW, FH }; };
+  const blockScroll = e => { if (pts.size > 1 || ed.z > 1.01) e.preventDefault(); };
+  const blockStart = e => { if (e.touches.length > 1) e.preventDefault(); };
+  host.addEventListener('touchstart', blockStart, { passive: false });
+  host.addEventListener('touchmove', blockScroll, { passive: false });
+  host.addEventListener('pointerdown', e => { if (e.target.closest('.crot')) return; e.preventDefault(); host.setPointerCapture?.(e.pointerId); if (!pts.size) gest = { n: 0, x: e.clientX, y: e.clientY, moved: false }; pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); gest.n = Math.max(gest.n, pts.size); start(); setTouchAction(); host.classList.add('moving', 'touched'); });
   host.addEventListener('pointermove', e => {
     if (!pts.has(e.pointerId) || !g0) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (gest && Math.hypot(e.clientX - gest.x, e.clientY - gest.y) > 8) gest.moved = true;
@@ -1890,25 +1918,26 @@ function mountFramer(host, src, edit0, onChange) {
     const mx = a.reduce((s, p) => s + p.x, 0) / a.length, my = a.reduce((s, p) => s + p.y, 0) / a.length;
     let z = g0.ed.z; if (a.length > 1 && g0.d) z = Math.max(1, Math.min(6, g0.ed.z * Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) / g0.d));
     // 확대는 손가락 가운데를 기준으로: 그 점이 사진의 같은 곳에 머물게
-    const R = host.getBoundingClientRect(), px = g0.mx - R.left - g0.FW / 2, py = g0.my - R.top - g0.FH / 2, r = z / g0.ed.z;
+    const px = g0.mx - g0.left - g0.FW / 2, py = g0.my - g0.top - g0.FH / 2, r = z / g0.ed.z;
     const ox = (px - (px - g0.ed.ox * g0.FW) * r + (mx - g0.mx)) / g0.FW, oy = (py - (py - g0.ed.oy * g0.FH) * r + (my - g0.my)) / g0.FH;
-    ed = { ...ed, z, ox, oy }; paint();
+    ed = { ...ed, z, ox, oy }; setTouchAction(); schedule();
   });
   let lastTap = 0;
   const end = e => {
     if (!pts.delete(e.pointerId)) return; if (pts.size) return start();
-    g0 = null; host.classList.remove('moving');
+    g0 = null; host.classList.remove('moving'); setTouchAction();
     if (gest?.n === 1 && !gest.moved && rc) { // 한 손가락 톡: 두 번이면 꽉 채우기 ↔ 다 보이기
       const now = Date.now();
-      if (now - lastTap < 320) { const FW = host.clientWidth, FH = host.clientHeight, fit = Math.min(FW / rc.width, FH / rc.height), cover = Math.max(FW / rc.width, FH / rc.height); ed = { ...ed, z: ed.z > 1.01 ? 1 : cover / fit, ox: 0, oy: 0 }; paint(); lastTap = 0; return emit(); }
+      if (now - lastTap < 320) { const FW = host.clientWidth, FH = host.clientHeight, fit = Math.min(FW / rc.width, FH / rc.height), cover = Math.max(FW / rc.width, FH / rc.height); ed = { ...ed, z: ed.z > 1.01 ? 1 : cover / fit, ox: 0, oy: 0 }; paint(); setTouchAction(); lastTap = 0; return emit(); }
       lastTap = now; return;
     }
+    if (raf) { cancelAnimationFrame(raf); raf = 0; paint(); }
     emit();
   };
   host.addEventListener('pointerup', end); host.addEventListener('pointercancel', end);
-  host.addEventListener('wheel', e => { e.preventDefault(); ed = { ...ed, z: Math.max(1, Math.min(6, ed.z * (e.deltaY < 0 ? 1.08 : 1 / 1.08))) }; paint(); clearTimeout(host._w); host._w = setTimeout(emit, 250); }, { passive: false });
+  host.addEventListener('wheel', e => { e.preventDefault(); ed = { ...ed, z: Math.max(1, Math.min(6, ed.z * (e.deltaY < 0 ? 1.08 : 1 / 1.08))) }; setTouchAction(); schedule(); clearTimeout(host._w); host._w = setTimeout(emit, 250); }, { passive: false });
   const ro = new ResizeObserver(paint); ro.observe(host); // 틀 크기가 바뀌면 다시 맞춤(지난 수정에서 빠졌던 줄)
-  return { destroy() { dead = true; ro.disconnect(); } };
+  return { destroy() { dead = true; if (raf) cancelAnimationFrame(raf); ro.disconnect(); host.removeEventListener('touchstart', blockStart); host.removeEventListener('touchmove', blockScroll); } };
 }
 
 // ---------- 피드 주인: 승인한 사진 순서 바꾸기·빼기 (36 SQL) ----------
@@ -2663,13 +2692,14 @@ function wanderEngine(w, getBox, { tap = false, speed: SPEED = 34, start = true 
 // ---------- 프로필 ----------
 function tabOf(t) { return t === 'inbox' ? t : 'grid'; } // 내 피드 탭: 피드 · 보관함(친구·그룹은 위 숫자를 눌러 새 페이지)
 const S = { tab: tabOf(new URLSearchParams(location.search).get('tab')) };
+const SENT = { uid: null, items: null, loading: false, error: null };
 
 async function renderProfile(uid, fresh, quiet) { // quiet: 돌아왔을 때 뒤에서만 갱신(저장된 화면을 다시 그리지 않음)
   CUR = pageKey();
   const myKey = CUR;
   // 한 번 본 피드는 저장해 둔 화면을 바로 보여주고, 최신 데이터는 뒤에서 받아 갱신
   const cached = CACHE.prof.get(uid);
-  if (cached && !fresh && !quiet) { Object.assign(S, cached, { uid }); if (!S.isOwner) S.tab = 'grid'; paintProfile(); }
+  if (cached && !fresh && !quiet) { Object.assign(S, cached, { uid }); if (!S.isOwner) S.tab = 'grid'; if (S.tab === 'inbox' && S.isOwner && me) loadSent(true); paintProfile(); }
   // 처음 여는 피드: 서버 응답을 기다리는 동안에도 누른 게 바로 보이게(로딩 로고 + 아래 메뉴 표시)
   else if (!cached && !quiet && !document.querySelector('#splash:not(.out)')) { $app.classList.remove('has-nav'); $app.innerHTML = `<div class="authwait"><span class="logo">${LOGO_DOT}</span></div>${navBar(me?.id === uid ? 'feed' : '')}`; }
   let res;
@@ -2780,7 +2810,33 @@ function paintProfile() {
   if (isOwner && !INVITES.list) loadInvites().then(l => { if (l?.length && S.isOwner) paintProfile(); }).catch(() => {});
 }
 
-function setTab(t) { S.tab = t; paintProfile(); }
+function setTab(t) { S.tab = t; if (t === 'inbox' && me && S.isOwner) loadSent(true); paintProfile(); }
+
+// 보관함 '내가 보낸 피드': 승인 전(pending)은 취소, 승인된 글은 읽기만
+async function loadSent(force) {
+  const uid = S.uid;
+  if (!me || !S.isOwner || !uid) return;
+  if (SENT.uid !== uid) { SENT.uid = uid; SENT.items = null; SENT.loading = false; SENT.error = null; }
+  if (!force && (SENT.loading || SENT.items)) return;
+  SENT.loading = true; SENT.error = null; if (force) SENT.items = null;
+  const { data, error } = await sb.rpc('my_sent_posts');
+  if (S.uid !== uid) return;
+  SENT.loading = false; SENT.error = error || null; SENT.items = error ? [] : (data || []).filter(x => x.status === 'pending');
+  if (S.tab === 'inbox' && S.isOwner) renderBody();
+}
+async function cancelSentPost(id) {
+  const p = (SENT.items || []).find(x => x.id === id); if (!p) return;
+  if (p.status !== 'pending') return toast(t('이미 승인되어 취소할 수 없어요'));
+  if (!(await ask(t('이 피드 보내기를 취소할까요?\n상대방이 아직 승인하지 않았어요.'), { ok: t('보내기 취소'), danger: true }))) return;
+  const { error } = await sb.rpc('delete_my_post', { p_post: id });
+  if (error) {
+    toast(/already_approved|not_pending/.test(error.message || '') ? t('이미 승인되어 취소할 수 없어요') : kerr(error));
+    return loadSent(true);
+  }
+  SENT.items = SENT.items.filter(x => x.id !== id);
+  renderBody();
+  toast(t('보내기를 취소했어요'));
+}
 // 🔔 새 소식: 승인함 탭을 열고 탭 위치로 스크롤
 // 상단 오른쪽 아이콘(검색 · 알림 · 메뉴): 내 피드와 릴스에서 똑같이
 // 공통 상단 바: 메인 화면은 로고, 하위 화면(친구 피드·그룹)은 ← + 제목. 오른쪽은 어디서나 🔍 🔔 ☰
@@ -2872,6 +2928,24 @@ function renderBody() {
             <button class="btn primary" onclick="restorePost('${p.id}')">${t('다시 올리기')}</button>
           </div>
         </div>`).join('')}` : '';
+    const sent = SENT.uid === uid ? SENT.items : null;
+    const sentLoading = SENT.uid === uid && SENT.loading;
+    const sentError = SENT.uid === uid && SENT.error;
+    const sentHTML = isOwner && me ? `<div class="isec"><b>${t('내가 보낸 피드')}</b><span>${sent ? sent.length : ''}</span></div>` + (
+      sentLoading ? `<div class="note">${t('불러오는 중…')}</div>` :
+      sentError ? `<div class="note">${t('보낸 피드를 불러오지 못했어요.')}</div>` :
+      sent === null ? '' :
+      sent.length ? `<div class="note">${t('아직 상대방이 승인하지 않은 피드는 보내기를 취소할 수 있어요.')}</div>` + sent.map(p => `
+        <div class="row">
+          <div class="thumb" style="position:relative">${isText(p) ? textTile(p) : `<img src="${thumbUrl(p)}" alt="${t('{name}님에게 보낸 사진', { name: esc(p.owner_name) })}" loading="lazy">`}${mediaOf(p).length > 1 ? `<span class="vplay">${I.multi}</span>` : isVideo(p) ? `<span class="vplay">${I.play}</span>` : ''}</div>
+          <div class="meta">
+            <div class="t">${esc(p.text) || '<span style="color:var(--sub)">코멘트 없음</span>'}</div>
+            <small>${t('{name}님에게', { name: esc(p.owner_name) })}${p.owner_handle ? ' · @' + esc(p.owner_handle) : ''} · ${t('승인 대기')} · ${ago(p.created_at)}</small>
+          </div>
+          ${p.status === 'pending' ? `<div class="ab"><button class="btn" onclick="cancelSentPost('${p.id}')">${t('보내기 취소')}</button></div>` : ''}
+        </div>`).join('') :
+      `<div class="note">${t('승인 대기 중인 보낸 피드가 없어요.')}</div>`
+    ) : '';
     $b.innerHTML = `<div class="isec"><b>${t('승인 대기')}</b><span>${pending.length}</span></div>` + (pending.length
       ? `<div class="note">${t('승인한 것만 피드에 올라가요. 거절해도 친구에게 알림이 가지 않아요.')}</div>
          ${pending.map(p => `
@@ -2886,7 +2960,8 @@ function renderBody() {
               ${p.media_type === 'question' ? `<button class="btn primary" onclick="openAnswer('${p.id}')">${t('답하기')}</button>` : `<button class="btn primary" onclick="approve('${p.id}')">${t('승인')}</button>`}
             </div>
           </div>`).join('')}`
-      : `<div class="empty small"><div class="empty-dot">${DOT('happy', { size: 52 })}</div><h2>All clear<i class="pd">.</i></h2><p>${t('승인을 기다리는 게시물이 없어요.<br>친구가 보내면 여기에 모여요.')}</p></div>`) + hiddenHTML;
+      : `<div class="empty small"><div class="empty-dot">${DOT('happy', { size: 52 })}</div><h2>All clear<i class="pd">.</i></h2><p>${t('승인을 기다리는 게시물이 없어요.<br>친구가 보내면 여기에 모여요.')}</p></div>`) + sentHTML + hiddenHTML;
+    if (isOwner && me && SENT.uid !== uid) loadSent();
     return;
   }
   if (me && !isOwner && BLOCKED.has(uid)) {
@@ -3325,7 +3400,7 @@ function mountComments(w, id, ownerId, p) {
 
 // ---------- 홈: 친구 피드의 최신 사진을 릴스로 ----------
 let muted = true, HIDE_STK = false; // HIDE_STK: 릴스에서 스티커 숨김(세션 동안 유지)
-// ---------- Candids 정렬: 안 본 것 먼저 · 최신 · 친한 친구 · 반응 · 약간의 무작위, 같은 곳 연속 2개까지, 그룹 몰아 올리기는 묶음 ----------
+// ---------- Candids 정렬: 안 본 것 먼저 · 최신 · 친한 친구 · 반응 · 약간의 무작위, 같은 곳 연속 2개까지 ----------
 const SEEN_MS = 300; // 이만큼 멈춰 보면 '본 것'(빨리 넘겨도 멈춘 사진은 셈, 스크롤 중 스쳐 간 사진은 안 셈)
 const SEEN_KEY = 'candid_seen_v1', AFF_KEY = 'candid_aff_v1';
 const lsGet = k => { try { return JSON.parse(localStorage.getItem(k) || '{}') || {}; } catch { return {}; } };
@@ -3338,15 +3413,8 @@ const FEED_SEED = (() => { try { let v = sessionStorage.getItem('candid_seed'); 
 const jitter = id => { let h = 2166136261; for (const c of FEED_SEED + id) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return ((h >>> 0) % 1000) / 1000; };
 function rankFeed(all) {
   const seen = lsGet(SEEN_KEY), aff = lsGet(AFF_KEY), now = Date.now();
-  // 1) 그룹에 30분 안에 몰아 올린 사진은 2장만 보여 주고 나머지는 '+N장'
-  const byTime = [...all].sort((a, b) => new Date(b.approved_at) - new Date(a.approved_at)), burst = new Map(), keep = [];
-  for (const p of byTime) {
-    if (!p.group_id) { keep.push(p); continue; }
-    const b = burst.get(p.group_id), t = new Date(p.approved_at).getTime();
-    if (b && b.last - t < 30 * 60e3) { b.last = t; if (b.shown.length < 2) { b.shown.push(p); keep.push(p); } else b.shown[1]._more = (b.shown[1]._more || 0) + 1; }
-    else { burst.set(p.group_id, { last: t, shown: [p] }); keep.push(p); }
-  }
-  // 2) 점수: 최신(하루마다 절반) + 안 봤으면 크게 + 자주 반응한 친구·그룹 + 좋아요·댓글 + 섞기
+  const keep = [...all];
+  // 1) 점수: 최신(하루마다 절반) + 안 봤으면 크게 + 자주 반응한 친구·그룹 + 좋아요·댓글 + 섞기
   const score = p => {
     const ageH = (now - new Date(p.approved_at).getTime()) / 36e5, so = SOC.get(p.id);
     return 100 * Math.pow(0.5, ageH / 24) + (seen[p.id] ? 0 : 70) + Math.min(aff[srcOf(p)] || 0, 10) * 3
@@ -3660,6 +3728,20 @@ function openReelViewer({ list, title, face, link, extraOwner, startId, restore,
   $r.classList.toggle('hide-stk', HIDE_STK);
   if (startId) { const st = $r.querySelector(`.reel[data-id="${startId}"]`); if (st) $r.scrollTop = st.offsetTop; }
   wireReels($r);
+  // 아래로 넘기기 안내: 볼 게 여러 장이면 아래 가운데에 'n장 더 ⌄'(누르면 다음 장). 마지막 장에서는 사라짐
+  if (list.length > 1) {
+    ov.insertAdjacentHTML('beforeend', `<button type="button" class="rnext" aria-label="${t('다음 사진 보기')}"><span></span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`);
+    const nb = ov.querySelector('.rnext'); let ut;
+    const upd = () => {
+      const rs = [...$r.querySelectorAll('.reel[data-id]')], mid = $r.scrollTop + $r.clientHeight / 2;
+      const ci = rs.findIndex(x => x.offsetTop <= mid && x.offsetTop + x.offsetHeight > mid), left = ci < 0 ? 0 : rs.length - ci - 1;
+      nb.classList.toggle('off', left <= 0);
+      if (left > 0) nb.querySelector('span').textContent = t('{n}장 더', { n: left });
+    };
+    $r.addEventListener('scroll', () => { nb.classList.add('quiet'); clearTimeout(ut); ut = setTimeout(() => { upd(); nb.classList.remove('quiet'); }, 140); }, { passive: true });
+    nb.onclick = e => { e.stopPropagation(); const cur = $r.scrollTop, nx = [...$r.querySelectorAll('.reel')].find(x => x.offsetTop > cur + 10); if (nx) $r.scrollTo({ top: nx.offsetTop, behavior: 'smooth' }); };
+    requestAnimationFrame(upd);
+  }
   loadSocial(list.map(p => p.id)).then(() => list.forEach(p => paintSoc(p.id))).catch(() => {});
   loadStickers(list.map(p => p.id)).then(() => list.forEach(p => refreshStickerLayers(p.id))).catch(() => {});
   // 뒤로가기(제스처·버튼)로 닫힘
@@ -3743,7 +3825,7 @@ function reelSection(p, owners) {
       <div class="rinfo">
 
         ${gg ? '' : `<a class="rgroup rowner" href="${feedUrl(p.owner_id)}" aria-label="${t('{name} 피드로 가기', { name: esc(o.name) })}">${avatar(o, 'xs')}<span>${esc(o.name)}</span></a>`}
-        ${gg ? `<a class="rgroup" href="${gUrl(gg)}">${gAv(gg, 'xs')}<span>${esc(gg.name)}</span></a>${p._more ? `<a class="rmore" href="${gUrl(gg)}">${t('+{n}장 더 올라왔어요', { n: p._more })}</a>` : ''}` : ''}
+        ${gg ? `<a class="rgroup" href="${gUrl(gg)}">${gAv(gg, 'xs')}<span>${esc(gg.name)}</span></a>` : ''}
         ${p.text && !isText(p) ? `<div class="rtext">“${esc(p.text)}”</div>` : ''}
         <div class="rfrom">from<i class="pd">.</i> ${p.author_id ? `<a class="rname" href="${feedUrl(p.author_id)}"><b>${gg ? esc(p.author_name) : aname(p.author_name)}</b></a>` : `<b>${gg ? esc(p.author_name) : aname(p.author_name)}</b>`} <span class="rago">· ${ago(p.approved_at)}</span></div>
 
@@ -4460,7 +4542,7 @@ function postItems(id) {
     !p.group_id && owner && !p.author_id && p.author_name !== '탈퇴한 친구' ? it(t(isAnonName(p.author_name) ? '이 익명 친구 차단' : '보낸 사람 차단'), `blockAnon('${id}')`, true) : '',
     p.group_id ? (owner || author ? it(t('삭제'), `deleteGroupPost('${id}')`, true) : '')
       : owner ? (st === 'approved' ? it(t('피드에서 내리기'), `closeSheet();closeViewer();setTimeout(() => hidePost('${id}'), 250)`, true) : it(t(st === 'pending' ? '거절하기' : '완전히 삭제'), `removePost('${id}')`, true))
-      : author ? it(t('보낸 사진 삭제'), `deleteMyPost('${id}')`, true) : '',
+      : author && st === 'pending' ? it(t('보낸 사진 삭제'), `deleteMyPost('${id}')`, true) : '',
   ].join('');
 }
 function postMenu(id) { const h = postItems(id); if (h) menu(h); }
@@ -4482,7 +4564,8 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
   const nick = (myProf?.name || saved).slice(0, 12);
   const GT = S.group || null; // 그룹에 올리기: 사진·영상·투표·질문, 내 이름으로, 바로 게시
   const name = esc(GT ? GT.name : S.prof.name);
-  const qstyle = '--tbg:var(--soft);--tink:var(--fg);--tacc:var(--accent);--tdot:var(--accent)'; // 작성 화면은 고정 템플릿
+  const draftId = crypto.randomUUID(); // 작성 미리보기와 실제 게시물이 같은 테마를 쓰도록 id를 먼저 정함
+  const theme = textTheme(draftId), qstyle = textThemeVars(theme), qchar = textThemeChar(theme);
   const el = pageOverlay('composer', `
     <header class="pov-h cmp-h"><button class="icon-btn" data-x aria-label="${t('닫기')}">${I.close}</button><b class="cmp-to">${GT ? gAv(GT, 'xs') : avatar(S.prof, 'xs')}<span>${GT ? name : t('{name}에게', { name })}</span></b><span class="cmp-hsp"></span></header>
     <div class="cmp-body">
@@ -4492,9 +4575,10 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
         <div class="trim" id="trim" hidden></div>
         <div class="mtools" id="mtools" hidden><div class="mstrip" id="mstrip"></div></div>
         ${IN_APP && window.Capacitor?.isPluginAvailable?.('MediaPicker') ? `<button type="button" class="camb" id="camb">${I.camera}<span>${t('카메라로 찍기')}</span></button>` : ''}
+        <div class="caprow"><textarea id="text" maxlength="80" rows="2" placeholder="${GT ? t('한마디 (선택)') : t('{name}에게 한마디…', { name })}" enterkeyhint="done"></textarea></div>
       </section>
       <section data-sec="poll">
-        <div class="cmp-qcard" style="${qstyle}"><div class="tinner">
+        <div class="cmp-qcard tcard poll" style="${qstyle}">${qchar}<div class="tinner">
           <span class="tk">POLL</span>
           <label class="cmp-qlabel" for="pq">${t('투표 질문')}</label>
           <textarea class="cmp-cap big" id="pq" maxlength="80" rows="2" placeholder="${t('무엇을 물어볼까요?')}"></textarea>
@@ -4504,16 +4588,16 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
         </div></div>
       </section>
       <section data-sec="question">
-        <div class="cmp-qcard" style="${qstyle}"><div class="tinner">
+        <div class="cmp-qcard tcard question" style="${qstyle}">${qchar}<div class="tinner">
           <span class="tk">Q&amp;A</span>
           <label class="cmp-qlabel" for="qq">${t('질문')}</label>
-          <textarea class="cmp-cap big" id="qq" maxlength="120" rows="3" placeholder="${t('질문을 적어 주세요')}"></textarea>
+          <textarea class="cmp-cap big" id="qq" maxlength="120" rows="3" placeholder="${t('무엇을 물어볼까요?')}"></textarea>
           <p class="cmp-note">${GT ? t('그룹 멤버 누구나 답할 수 있어요. 답변은 댓글로 남겨요.') : t('답은 {name}님만 할 수 있어요. 여러 개 남길 수 있어요.', { name })}</p>
         </div></div>
       </section>
-      <div class="cmp-who"${GT ? ' style="display:none"' : ''}>
+      <div class="cmp-who">
         <div class="cmp-whohead"><span>${t('보내는 사람')}</span>
-          <div class="cmp-seg" role="radiogroup"${S.prof?.allow_anon === false && !GT ? ' hidden' : ''}><button data-who="name" role="radio">${t('이름')}</button><button data-who="anon" role="radio">${II.mask} ${t('익명')}</button></div></div>
+          <div class="cmp-seg" role="radiogroup"${S.prof?.allow_anon === false || GT ? ' hidden' : ''}><button data-who="name" role="radio">${t('이름')}</button><button data-who="anon" role="radio">${II.mask} ${t('익명')}</button></div></div>
         <div class="cmp-whoval" id="whoval"></div>
       </div>
     </div>
@@ -4536,7 +4620,7 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
 
   const refresh = () => {
     const opts = [...el.querySelectorAll('#opts input')].map(i => i.value.trim()).filter(Boolean);
-    $send.disabled = !(mode === 'media' ? media : mode === 'poll' ? $('#pq').value.trim().length >= 2 && opts.length >= 2 : $('#qq').value.trim().length >= 2);
+    $send.disabled = !(mode === 'media' ? media : mode === 'poll' ? $('#pq').value.trim().length >= 1 && opts.length >= 2 : $('#qq').value.trim().length >= 1);
   };
   const setMode = m => {
     mode = m;
@@ -4680,6 +4764,10 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
     const typed = $('#author')?.value.trim() || '';
     const author = who === 'anon' ? '익명의 친구' : me ? (myProf?.name || '친구').slice(0, 12) : (typed || '익명의 친구');
     const by = who === 'anon' ? { author_name: '익명의 친구', author_id: null } : { author_name: author };
+    const ok = await ask(GT
+      ? t("'{name}' 그룹에 이 피드를 올릴까요?", { name: GT.name })
+      : t('이 피드를 올릴까요?'), { ok: t(GT ? '올리기' : '보내기') });
+    if (!ok) return;
     $send.disabled = true;
     const status = x => { $send.textContent = x; };
     let ins;
@@ -4687,13 +4775,13 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
       if (mode === 'poll') {
         status(t('보내는 중…'));
         const opts = [...el.querySelectorAll('#opts input')].map(i => i.value.trim()).filter(Boolean);
-        const row = { media_type: 'poll', mission: '투표', text: $('#pq').value.trim(), poll_options: opts };
+        const row = { id: draftId, media_type: 'poll', mission: '투표', text: $('#pq').value.trim(), poll_options: opts };
         ins = GT
           ? await sb.from('posts').insert({ group_id: GT.id, author_id: me.id, author_name: (myProf?.name || '친구').slice(0, 12), status: 'approved', ...row })
           : await sendPost({ owner_id: S.uid, ...row, ...by });
       } else if (mode === 'question') {
         status(t('보내는 중…'));
-        const row = { media_type: 'question', mission: '질문', text: $('#qq').value.trim() };
+        const row = { id: draftId, media_type: 'question', mission: '질문', text: $('#qq').value.trim() };
         ins = GT
           ? await sb.from('posts').insert({ group_id: GT.id, author_id: me.id, author_name: (myProf?.name || '친구').slice(0, 12), status: 'approved', ...row })
           : await sendPost({ owner_id: S.uid, ...row, ...by });
@@ -5270,7 +5358,7 @@ async function stkWho(e, s) {
   const L = s.closest('.stk-layer'), postId = L.dataset.sl.split(':')[0];
   const r = (STK.get(postId) || []).find(x => x.id === s.dataset.id); if (!r) return;
   s.classList.remove('ping'); void s.offsetWidth; s.classList.add('ping');
-  const open = L.querySelector(`.stk-tag[data-for="${r.id}"]`);
+  const open = document.querySelector(`.stk-tag[data-for="${r.id}"]`);
   document.querySelectorAll('.stk-tag').forEach(t => t.remove());
   if (open) return; // 같은 스티커를 다시 누르면 이름표 닫기
   if (!STK_WHO.has(r.user_id)) {
@@ -5278,22 +5366,30 @@ async function stkWho(e, s) {
     STK_WHO.set(r.user_id, data || null);
   }
   const u = STK_WHO.get(r.user_id), mine = me && r.user_id === me.id;
-  const tag = document.createElement(u ? 'button' : 'span');
+  if (!s.isConnected) return; // 불러오는 사이 화면이 바뀌었으면 그만
+  // 이름표는 화면 위에 띄움(사진 칸 밖으로 잘리지 않게). 링크라서 누르면 보기를 닫고 그 친구 피드로(공통 링크 처리)
+  const tag = document.createElement(u ? 'a' : 'span');
   tag.className = 'stk-tag'; tag.dataset.for = r.id;
+  if (u) tag.href = feedUrl(u.id);
   tag.innerHTML = mine ? t('내 스티커') : u ? `<b>${esc(u.name)}</b>${u.handle ? `<small>@${esc(u.handle)}</small>` : ''}<i>›</i>` : t('알 수 없는 친구');
   if (u) tag.setAttribute('aria-label', mine ? t('내 피드로 가기') : t('{name} 피드로 가기', { name: u.name }));
-  // 위치: 스티커 오른쪽 위(오른쪽 끝에 가까우면 왼쪽 위)
-  const lr = L.getBoundingClientRect(), sr = s.getBoundingClientRect();
-  const right = sr.left + sr.width / 2 > lr.left + lr.width * 0.62;
-  tag.style.top = `${((sr.top - lr.top) / lr.height) * 100}%`;
-  tag.style.left = `${(((right ? sr.left : sr.right) - lr.left) / lr.width) * 100}%`;
+  // 위치: 스티커 오른쪽 위(화면 오른쪽에 가까우면 왼쪽 위). 화면 위쪽 끝이면 스티커 아래로
+  const sr = s.getBoundingClientRect();
+  const right = sr.left + sr.width / 2 > innerWidth * 0.62;
+  const below = sr.top < 64;
+  tag.style.top = `${below ? sr.bottom : sr.top}px`;
+  tag.style.left = `${right ? sr.left : sr.right}px`;
   if (right) tag.classList.add('flip');
-  tag.onclick = ev => { ev.stopPropagation(); ev.preventDefault(); if (u) go(feedUrl(u.id)); };
-  L.appendChild(tag);
+  if (below) tag.classList.add('below');
+  tag.addEventListener('pointerdown', ev => ev.stopPropagation()); // 릴스 두 번 탭·확대로 넘어가지 않게
+  (s.closest('.oreel, .overlay, .page-ov') || document.body).appendChild(tag);
   setTimeout(() => tag.remove(), 4000);
 }
 // 다른 곳을 누르면 이름표 닫기
 document.addEventListener('pointerdown', e => { if (!e.target.closest('.stk-tag, .stk-layer .pst')) document.querySelectorAll('.stk-tag').forEach(t => t.remove()); }, true);
+document.addEventListener('scroll', () => document.querySelectorAll('.stk-tag').forEach(t => t.remove()), true); // 넘기면 이름표 닫기
+// 길게 누르면 뜨는 시스템 메뉴(복사·저장 등): 글을 쓰는 칸에서만
+document.addEventListener('contextmenu', e => { if (!e.target.closest?.('input, textarea, select, [contenteditable="true"]')) e.preventDefault(); });
 function refreshStickerLayers(postId) {
   document.querySelectorAll(`[data-sl^="${postId}:"]`).forEach(el => { const st = el.parentElement; el.outerHTML = stickerLayer(postId, +el.dataset.sl.split(':')[1]); if (st?.dataset.ar) fitStickerLayer(st); });
 }
@@ -5303,7 +5399,7 @@ function placeReelInfo(reel) {
   if (!wrap || !info) return;
   const R = reel.getBoundingClientRect(), C = wrap.getBoundingClientRect();
   if (!R.height || !C.height) return;
-  const top = C.bottom - R.top + 12, maxTop = R.height - info.offsetHeight - 16;
+  const top = C.bottom - R.top + 12, maxTop = R.height - info.offsetHeight - 56; // 아래 '넘기기 안내' 자리는 비워 둠
   if (C.height < R.height - 32 && top <= maxTop) {
     info.style.setProperty('--rtop', Math.max(0, top).toFixed(1) + 'px');
     info.classList.add('below');
@@ -5345,9 +5441,10 @@ function paintFill(st, url) {
 // 영상 재생 바: 9:16 칸 맨 아래 얇은 회색 바(재생 위치), 끌거나 누르면 그 위치로
 function addVideoBar(v) {
   const reel = v.closest('.reel'); if (!reel || v._bar) return;
-  reel.insertAdjacentHTML('beforeend', '<div class="vbar" role="slider" aria-label="' + t('재생 위치') + '"><i></i></div>');
-  const bar = v._bar = reel.lastElementChild, fill = bar.firstElementChild;
-  const show = () => { reel.querySelectorAll(':scope > .vbar').forEach(b => b.classList.toggle('cur', b === bar)); }; // 여러 장이면 지금 재생 중인 영상의 바만
+  const stage = v.closest('.stage') || reel;
+  stage.insertAdjacentHTML('beforeend', '<div class="vbar" role="slider" aria-label="' + t('재생 위치') + '"><i></i></div>');
+  const bar = v._bar = stage.lastElementChild, fill = bar.firstElementChild;
+  const show = () => { reel.querySelectorAll('.vbar').forEach(b => b.classList.toggle('cur', b === bar)); }; // 여러 장이면 지금 재생 중인 영상의 바만
   let raf = 0;
   const paint = () => { if (v.duration) fill.style.transform = `scaleX(${Math.min(1, v.currentTime / v.duration)})`; };
   const loop = () => { paint(); raf = v.paused ? 0 : requestAnimationFrame(loop); };
@@ -5444,7 +5541,9 @@ function enableZoom(stage, { snap = false } = {}) {
   img.addEventListener('dragstart', e => e.preventDefault());
 }
 // iPhone Safari: 게시물을 크게 볼 때 화면 전체가 확대되지 않게(사진 확대는 위 기능으로)
-document.addEventListener('gesturestart', e => { if (document.querySelector('.overlay, .reels')) e.preventDefault(); });
+const blockPageZoom = e => e.preventDefault();
+document.addEventListener('gesturestart', blockPageZoom, { passive: false });
+document.addEventListener('gesturechange', blockPageZoom, { passive: false });
 // 썸네일 → 원본 교체: 지금 보이는 장과 다음 장만(나머지는 넘길 때)
 function upgradeFull(root, idx = 0) {
   const slides = root.querySelectorAll('.slide');
@@ -5725,13 +5824,17 @@ addEventListener('pagehide', () => [...pendingDeletes.keys()].forEach(commitDele
 // 피드에서 내리기: 삭제하지 않고 보관함의 '숨긴 사진'으로(나만 보임)
 async function hidePost(id) {
   const p = findPost(id); if (!p || p.status !== 'approved') return;
+  const inViewer = !!document.querySelector('.oreel');
   closeLayers();
   const at = new Date().toISOString();
   const { error } = await sb.from('posts').update({ status: 'hidden', hidden_at: at }).eq('id', id);
   if (error) return toast(/check|constraint|23514/i.test(error.message + error.code) ? t('아직 준비 중이에요') : kerr(error));
   S.approved = S.approved.filter(x => x.id !== id);
   Object.assign(p, { status: 'hidden', hidden_at: at }); (S.hidden = S.hidden || []).unshift(p);
-  paintProfile();
+  if (HOME.posts) HOME.posts = HOME.posts.filter(x => x.id !== id);
+  document.querySelector(`.reel[data-id="${id}"]`)?.remove(); VIEWER = VIEWER.filter(x => x.id !== id);
+  if (inViewer) closeViewer();
+  if (document.getElementById('body') && S.prof) paintProfile();
   toast(t('피드에서 내렸어요 · 보관함의 숨긴 사진에 있어요'), { label: t('되돌리기'), fn: () => restorePost(id) });
 }
 // 다시 올리기: 원래 위치(처음 승인한 시간)로 복귀
@@ -6400,10 +6503,12 @@ function refreshAfterEdit(id) {
 }
 async function deleteMyPost(id) {
   closeSheet();
+  const inViewer = !!document.querySelector('.oreel');
   if (!(await ask(t('친구 피드에서 이 사진을 지울까요? 되돌릴 수 없어요.'), { ok: t('삭제'), danger: true }))) return;
   const { error } = await sb.rpc('delete_my_post', { p_post: id });
   if (error) return toast(kerr(error));
-  document.querySelector('.overlay')?.remove();
+  if (inViewer) closeViewer(); else document.querySelector('.overlay')?.remove();
+  VIEWER = VIEWER.filter(x => x.id !== id);
   if (S.approved) { S.approved = S.approved.filter(x => x.id !== id); if (document.getElementById('body') && S.prof) paintProfile(); }
   if (HOME.posts) { HOME.posts = HOME.posts.filter(x => x.id !== id); document.querySelector(`.reel[data-id="${id}"]`)?.remove(); }
   toast(t('보낸 사진을 지웠어요'));
@@ -6513,16 +6618,18 @@ async function openBlockedList() {
 }
 async function deleteGroupPost(id) {
   closeSheet();
+  const inViewer = !!document.querySelector('.oreel');
   if (!(await ask(t('이 사진을 그룹에서 지울까요? 되돌릴 수 없어요.'), { ok: t('삭제'), danger: true }))) return;
   const { error } = await sb.from('posts').delete().eq('id', id);
   if (error) return toast(kerr(error));
-  document.querySelector('.overlay')?.remove();
+  if (inViewer) closeViewer(); else document.querySelector('.overlay')?.remove();
+  VIEWER = VIEWER.filter(x => x.id !== id);
   G.posts = G.posts.filter(x => x.id !== id);
   if (HOME.posts) HOME.posts = HOME.posts.filter(x => x.id !== id);
   document.querySelector(`.reel[data-id="${id}"]`)?.remove();
   CACHE.home = null;
+  if (G.g) paintGroup();
   toast(t('삭제했어요'));
-  if (G.g && !document.querySelector('.reels')) paintGroup();
 }
 
 // ---------- 그룹에 올리기 (작성 화면은 친구에게 보내기와 같은 것을 씀) ----------

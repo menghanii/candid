@@ -8,5 +8,9 @@ class AppViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(MediaPickerPlugin())
         bridge?.registerPluginInstance(AppleSignInPlugin())
         bridge?.registerPluginInstance(NativeAdsPlugin())
+        if let scroll = webView?.scrollView {
+            scroll.pinchGestureRecognizer?.isEnabled = false
+        }
+        webView?.allowsLinkPreview = false // 링크를 길게 눌러도 미리보기 창이 뜨지 않게
     }
 }

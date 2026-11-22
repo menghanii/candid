@@ -80,7 +80,7 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
                     defer { group.leave() }
                     guard let img = obj as? UIImage else { return }
                     let main = Self.resize(img, maxSide: 1080), thumb = Self.resize(main, maxSide: 480)
-                    let edit = img
+                    let edit = Self.resize(img, maxSide: 3024)
                     guard let mp = self.saveJPEG(main, 0.82), let tp = self.saveJPEG(thumb, 0.7), let ep = self.saveJPEG(edit, 0.9) else { return }
                     put(i, ["kind": "image", "path": mp, "thumbPath": tp, "editPath": ep,
                             "width": Int(main.size.width), "height": Int(main.size.height)])
@@ -226,7 +226,7 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
                 if let v = self.videoInfo(dst) { call.resolve(["items": [v], "skipped": 0]) } else { call.reject("video_failed") }
             } else if let img = info[.originalImage] as? UIImage {
                 let main = Self.resize(img, maxSide: 1080), thumb = Self.resize(main, maxSide: 480)
-                let edit = img
+                let edit = Self.resize(img, maxSide: 3024)
                 guard let mp = self.saveJPEG(main, 0.82), let tp = self.saveJPEG(thumb, 0.7), let ep = self.saveJPEG(edit, 0.9) else { call.reject("image_failed"); return }
                 call.resolve(["items": [["kind": "image", "path": mp, "thumbPath": tp, "editPath": ep, "width": Int(main.size.width), "height": Int(main.size.height)]], "skipped": 0])
             } else { call.reject("no_media") }
@@ -365,7 +365,7 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
                 PHImageManager.default().requestImage(for: a, targetSize: PHImageManagerMaximumSize, contentMode: .aspectFit, options: io) { img, _ in
                     defer { g.leave() }
                     guard let img = img else { return }
-                    let main = Self.resize(img, maxSide: 1080), thumb = Self.resize(main, maxSide: 480), edit = img
+                    let main = Self.resize(img, maxSide: 1080), thumb = Self.resize(main, maxSide: 480), edit = Self.resize(img, maxSide: 3024)
                     guard let mp = self.saveJPEG(main, 0.82), let tp = self.saveJPEG(thumb, 0.7), let ep = self.saveJPEG(edit, 0.9) else { return }
                     put(i, ["kind": "image", "path": mp, "thumbPath": tp, "editPath": ep, "width": Int(main.size.width), "height": Int(main.size.height)])
                 }
