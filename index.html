@@ -6864,8 +6864,10 @@ async function openLibrary(max = 10) {
     $albums.querySelector('.lib-albums-dim').onclick = () => { $albums.hidden = true; };
     $('[data-ok]').onclick = async () => {
       const b = $('[data-ok]'); b.disabled = true; b.textContent = t('준비 중…');
+      let prog = null; // iCloud 에서 받는 중이면 진행률(앱이 알려 줌)
+      try { prog = await P.addListener?.('libProgress', e => { b.textContent = t('iCloud에서 받는 중 {p}%', { p: Math.min(99, Math.round((e?.p || 0) * 100)) }); }); } catch {}
       try {
-        const r = await P.libExport({ ids: sel.slice() });
+        const r = await P.libExport({ ids: sel.slice() }).finally(() => { try { prog?.remove?.(); } catch {} });
         if (r.skipped) toast(t('{n}개는 열 수 없어서 뺐어요', { n: r.skipped }));
         const items = await Promise.all(r.items.map(async it => {
           if (it.kind === 'image') { const main = await capFile(it.path, 'image/jpeg'), thumb = await capFile(it.thumbPath, 'image/jpeg'); const edit = it.editPath ? await capFile(it.editPath, 'image/jpeg') : null; return { kind: 'image', main, thumb, previewUrl: URL.createObjectURL(main), ...(edit ? { editUrl: URL.createObjectURL(edit) } : {}) }; }

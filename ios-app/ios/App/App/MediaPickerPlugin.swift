@@ -3,10 +3,12 @@ import UIKit
 import Capacitor
 import PhotosUI
 import AVFoundation
+import ImageIO
 import UniformTypeIdentifiers
 
 // 사진·영상 고르기와 준비를 iPhone 기능으로(웹보다 빠르고 안정적)
-//  · pick: iPhone 사진 선택창(여러 장, 고른 순서대로) → 사진은 1080px 본문 + 480px 썸네일(JPEG)로 줄이고, 영상은 원본 복사 + 대표 이미지
+//  · pick: iPhone 사진 선택창(여러 장, 고른 순서대로) → 사진은 1080px 본문 + 480px 썸네일 + 3024px 편집용(JPEG), 영상은 원본 복사 + 대표 이미지
+//  · libExport(앱 안 사진첩): 사진은 3024px 로만 요청, 영상은 원본을 복사 없이 그대로, iCloud 면 진행률(libProgress) 알림
 //    (사진첩 전체 접근 권한을 묻지 않음 — 사용자가 고른 것만 받음)
 //  · exportVideo: 영상의 고른 구간만 잘라 720p MP4 로(파일이 9MB 를 넘으면 540p 로 한 번 더)
 //  결과 파일은 앱 임시 폴더에 쓰고, 경로를 웹에 돌려줌 → 웹이 읽어서 Supabase 에 올림
@@ -74,16 +76,16 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
                     do { try FileManager.default.copyItem(at: url, to: dst) } catch { return }
                     if let v = self.videoInfo(dst) { put(i, v) }
                 }
-            } else if p.canLoadObject(ofClass: UIImage.self) {
+            } else if p.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
                 group.enter()
-                p.loadObject(ofClass: UIImage.self) { obj, _ in
-                    defer { group.leave() }
-                    guard let img = obj as? UIImage else { return }
-                    let main = Self.resize(img, maxSide: 1080), thumb = Self.resize(main, maxSide: 480)
-                    let edit = Self.resize(img, maxSide: 3024)
-                    guard let mp = self.saveJPEG(main, 0.82), let tp = self.saveJPEG(thumb, 0.7), let ep = self.saveJPEG(edit, 0.9) else { return }
-                    put(i, ["kind": "image", "path": mp, "thumbPath": tp, "editPath": ep,
-                            "width": Int(main.size.width), "height": Int(main.size.height)])
+                // 파일에서 3024px 로 바로 줄여 읽기(4800만 화소 원본 전체를 풀지 않음). 안 되면 예전처럼 통째로
+                p.loadFileRepresentation(forTypeIdentifier: UTType.image.identifier) { url, _ in
+                    if let url = url, let img = Self.downsample(url, maxSide: 3024), let v = self.imageItem(img) { put(i, v); group.leave(); return }
+                    guard p.canLoadObject(ofClass: UIImage.self) else { group.leave(); return }
+                    p.loadObject(ofClass: UIImage.self) { obj, _ in
+                        defer { group.leave() }
+                        if let img = obj as? UIImage, let v = self.imageItem(img) { put(i, v) }
+                    }
                 }
             }
         }
@@ -344,37 +346,85 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
         let ids = call.getArray("ids", String.self) ?? []
         cleanOld()
         let g = DispatchGroup(), lock = NSLock(); var out = [Int: [String: Any]]()
-        let put = { (i: Int, v: [String: Any]) in lock.lock(); out[i] = v; lock.unlock() }
+        let put = { (i: Int, v: [String: Any]?) in if let v = v { lock.lock(); out[i] = v; lock.unlock() } }
+        // iCloud 에서 받는 중이면 진행률을 웹에 알림(받는 항목들의 평균, 0.2초에 한 번까지)
+        var prog = [Int: Double](), lastSent = Date.distantPast
+        let progress = { (i: Int, p: Double) in
+            lock.lock(); prog[i] = p; let avg = prog.values.reduce(0, +) / Double(prog.count), n = prog.count
+            let now = Date(), send = now.timeIntervalSince(lastSent) > 0.2 || p >= 1; if send { lastSent = now }; lock.unlock()
+            if send { self.notifyListeners("libProgress", data: ["p": avg, "n": n]) }
+        }
         for (i, id) in ids.enumerated() {
             guard let a = byId[id] else { continue }
             g.enter()
-            if a.mediaType == .video {
-                let vo = PHVideoRequestOptions(); vo.isNetworkAccessAllowed = true; vo.deliveryMode = .highQualityFormat; vo.version = .current
-                PHImageManager.default().requestAVAsset(forVideo: a, options: vo) { av, _, _ in
-                    if let u = (av as? AVURLAsset)?.url {
-                        let dst = self.newFile(u.pathExtension.isEmpty ? "mov" : u.pathExtension.lowercased())
-                        if (try? FileManager.default.copyItem(at: u, to: dst)) != nil, let v = self.videoInfo(dst) { put(i, v) }
-                        g.leave()
-                    } else if let av = av, let ex = AVAssetExportSession(asset: av, presetName: AVAssetExportPresetHighestQuality) { // 슬로모 등
-                        let dst = self.newFile("mp4"); ex.outputURL = dst; ex.outputFileType = .mp4
-                        ex.exportAsynchronously { if ex.status == .completed, let v = self.videoInfo(dst) { put(i, v) }; g.leave() }
-                    } else { g.leave() }
-                }
-            } else {
-                let io = PHImageRequestOptions(); io.isNetworkAccessAllowed = true; io.deliveryMode = .highQualityFormat; io.resizeMode = .exact; io.version = .current
-                PHImageManager.default().requestImage(for: a, targetSize: PHImageManagerMaximumSize, contentMode: .aspectFit, options: io) { img, _ in
-                    defer { g.leave() }
-                    guard let img = img else { return }
-                    let main = Self.resize(img, maxSide: 1080), thumb = Self.resize(main, maxSide: 480), edit = Self.resize(img, maxSide: 3024)
-                    guard let mp = self.saveJPEG(main, 0.82), let tp = self.saveJPEG(thumb, 0.7), let ep = self.saveJPEG(edit, 0.9) else { return }
-                    put(i, ["kind": "image", "path": mp, "thumbPath": tp, "editPath": ep, "width": Int(main.size.width), "height": Int(main.size.height)])
-                }
-            }
+            if a.mediaType == .video { loadVideo(a, progress: { progress(i, $0) }) { put(i, $0); g.leave() } }
+            else { loadImage(a, progress: { progress(i, $0) }) { put(i, $0); g.leave() } }
         }
         g.notify(queue: .main) {
             let items = (0..<ids.count).compactMap { out[$0] }
             call.resolve(["items": items, "skipped": ids.count - items.count])
         }
+    }
+
+    // 사진: 쓸 크기(최대 3024px)로만 요청 — 4800만 화소 원본 전체를 풀지 않아 빠르고 메모리도 적게 씀
+    //  먼저 기기에 있는 것으로, 없으면(iCloud) 받아 오면서 진행률 알림
+    private func loadImage(_ a: PHAsset, progress: @escaping (Double) -> Void, done: @escaping ([String: Any]?) -> Void) {
+        let k = min(1, 3024 / CGFloat(max(1, max(a.pixelWidth, a.pixelHeight))))
+        let target = CGSize(width: (CGFloat(a.pixelWidth) * k).rounded(), height: (CGFloat(a.pixelHeight) * k).rounded())
+        let req = { (net: Bool, then: @escaping (UIImage?) -> Void) in
+            let o = PHImageRequestOptions(); o.isNetworkAccessAllowed = net; o.deliveryMode = .highQualityFormat; o.resizeMode = .exact; o.version = .current
+            if net { o.progressHandler = { p, _, _, _ in progress(p) } }
+            PHImageManager.default().requestImage(for: a, targetSize: target, contentMode: .aspectFit, options: o) { img, info in
+                then((info?[PHImageResultIsDegradedKey] as? Bool) == true ? nil : img)
+            }
+        }
+        req(false) { img in
+            if let img = img { DispatchQueue.global(qos: .userInitiated).async { done(self.imageItem(img)) }; return }
+            req(true) { img2 in
+                guard let img2 = img2 else { done(nil); return }
+                progress(1); DispatchQueue.global(qos: .userInitiated).async { done(self.imageItem(img2)) }
+            }
+        }
+    }
+    private func imageItem(_ img: UIImage) -> [String: Any]? {
+        let main = Self.resize(img, maxSide: 1080), thumb = Self.resize(main, maxSide: 480)
+        let edit = Self.resize(img, maxSide: 3024)
+        guard let mp = saveJPEG(main, 0.82), let tp = saveJPEG(thumb, 0.7), let ep = saveJPEG(edit, 0.9) else { return nil }
+        return ["kind": "image", "path": mp, "thumbPath": tp, "editPath": ep, "width": Int(main.size.width), "height": Int(main.size.height)]
+    }
+
+    // 영상: 기기에 있으면 원본을 복사하지 않고 그대로 씀(올릴 때 고른 10초만 잘라 720p 로 만듦)
+    //  iCloud 에만 있으면 720p 판으로 받음(원본 전체를 받지 않음 — 어차피 720p 로 올림) + 진행률 알림
+    private var keepAssets = [String: AVAsset]() // 원본 파일을 계속 읽을 수 있게 붙잡아 둠
+    private let keepLock = NSLock()
+    private func loadVideo(_ a: PHAsset, progress: @escaping (Double) -> Void, done: @escaping ([String: Any]?) -> Void) {
+        let local = PHVideoRequestOptions(); local.isNetworkAccessAllowed = false; local.deliveryMode = .highQualityFormat; local.version = .current
+        PHImageManager.default().requestAVAsset(forVideo: a, options: local) { av, _, _ in
+            if let av = av { self.useVideo(av, done); return }
+            let net = PHVideoRequestOptions(); net.isNetworkAccessAllowed = true; net.deliveryMode = .mediumQualityFormat; net.version = .current
+            net.progressHandler = { p, _, _, _ in progress(p) }
+            PHImageManager.default().requestAVAsset(forVideo: a, options: net) { av2, _, _ in
+                guard let av2 = av2 else { done(nil); return }
+                progress(1); self.useVideo(av2, done)
+            }
+        }
+    }
+    private func useVideo(_ av: AVAsset, _ done: @escaping ([String: Any]?) -> Void) {
+        if let u = (av as? AVURLAsset)?.url {
+            if Self.readable(u) { keepLock.lock(); keepAssets[u.path] = av; keepLock.unlock(); done(videoInfo(u)); return }
+            let dst = newFile(u.pathExtension.isEmpty ? "mov" : u.pathExtension.lowercased()) // 읽을 수 없으면 예전처럼 복사
+            done((try? FileManager.default.copyItem(at: u, to: dst)) != nil ? videoInfo(dst) : nil)
+            return
+        }
+        // 슬로모 등(여러 조각을 이어 붙인 영상): 720p 로 한 번 만들어 씀(최고 화질 전체 변환보다 훨씬 빠름. 어차피 720p 로 올림)
+        guard let ex = AVAssetExportSession(asset: av, presetName: AVAssetExportPreset1280x720) else { done(nil); return }
+        let dst = newFile("mp4"); ex.outputURL = dst; ex.outputFileType = .mp4; ex.shouldOptimizeForNetworkUse = false
+        ex.exportAsynchronously { done(ex.status == .completed ? self.videoInfo(dst) : nil) }
+    }
+    static func readable(_ u: URL) -> Bool { // 앱이 실제로 열 수 있는지 1바이트 읽어 봄(권한 확인)
+        guard let h = try? FileHandle(forReadingFrom: u) else { return false }
+        defer { try? h.close() }
+        return ((try? h.read(upToCount: 1)) ?? nil)?.count == 1
     }
     @objc func libManage(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
@@ -393,6 +443,13 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
             let m = (try? u.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
             if m < limit { try? FileManager.default.removeItem(at: u) }
         }
+    }
+    static func downsample(_ url: URL, maxSide: CGFloat) -> UIImage? {
+        guard let src = CGImageSourceCreateWithURL(url as CFURL, [kCGImageSourceShouldCache: false] as CFDictionary) else { return nil }
+        let opts: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceCreateThumbnailWithTransform: true,
+                                     kCGImageSourceThumbnailMaxPixelSize: maxSide, kCGImageSourceShouldCacheImmediately: true]
+        guard let cg = CGImageSourceCreateThumbnailAtIndex(src, 0, opts as CFDictionary) else { return nil }
+        return UIImage(cgImage: cg)
     }
     static func resize(_ img: UIImage, maxSide: CGFloat) -> UIImage {
         let s = img.size, k = min(1, maxSide / max(s.width, s.height))
