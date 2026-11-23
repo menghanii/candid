@@ -152,9 +152,9 @@ console.log('\n[6] flow wiring');
   // 그룹 화면 → 사진 올리기
   has(/onclick="composeToGroup\(G\.g\)"/, 'group page upload buttons enter composeToGroup');
   // 궤도(홈) 탭 동선
-  has(/if \(x\.trend\) return openTrending\(x\);/, 'orbit tap on trending opens source');
+  has(/if \(x\.trend\) return orbDive\(orb, \(\) => openTrending\(x\)\);/, 'orbit tap on trending opens source (through warp-in)');
   has(/if \(!x\.posts\.length\) return go\(x\.g \? gUrl\(x\.g\) : feedUrl\(x\.o\.id\)\);/, 'orbit tap without posts navigates to feed/group');
-  has(/openOrbitStack\(x\);/, 'orbit tap with posts opens stack');
+  has(/orbDive\(orb, \(\) => openOrbitStack\(x\)\);/, 'orbit tap with posts opens stack (through warp-in)');
   // 트렌딩 → 최근 사진 → 보기 / 없으면 이동
   has(/x\.g \? recentPosts\(\{ group: x\.g\.id, limit: 20 \}\) : recentPosts\(\{ owner: x\.o\.id, limit: 20 \}\)/, 'trending fetches recent posts by source');
   has(/if \(error \|\| !data\?\.length\) return go\(x\.g \? gUrl\(x\.g\) : feedUrl\(x\.o\.id\)\);/, 'trending empty/error falls back to source page');
