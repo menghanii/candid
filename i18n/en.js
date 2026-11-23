@@ -959,5 +959,6 @@
  "길게 눌러 순서를 바꾸고, 빼거나 더할 수 있어요(최대 10장)": "Press and hold to reorder, remove or add photos (up to 10)",
  "{n}장 더": "{n} more",
  "다음 사진 보기": "Next photo",
+ "사진만 고를 수 있어요": "You can only pick photos",
  "iCloud에서 받는 중 {p}%": "Downloading from iCloud {p}%",
 };

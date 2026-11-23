@@ -1077,6 +1077,7 @@
   .lib-cell { position:absolute; left:0; top:0; padding:0; border:0; background:var(--soft); overflow:hidden; }
   .lib-cell img { width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; }
   .lib-cell.on img { opacity:.72; }
+  .lib-cell.dim { opacity:.35; } /* 사진만 고르는 곳에서 영상은 흐리게 */
   .lib-cell.on::after { content:""; position:absolute; inset:0; box-shadow:inset 0 0 0 3px var(--accent); }
   .lib-n { position:absolute; top:6px; right:6px; width:22px; height:22px; border-radius:50%; border:1.5px solid rgba(255,255,255,.9); background:rgba(0,0,0,.18); color:#fff; font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; }
   .lib-cell.on .lib-n { background:var(--accent); border-color:var(--accent); }
@@ -1109,7 +1110,8 @@
   /* 사진 정리(주인) */
   .ogrid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; touch-action:none; }
   /* 일관성: 그룹 사진도 사람처럼 파란 테두리(모양은 둥근 네모 유지) */
-  .ghead .avwrap { display:inline-block; padding:2px; border-radius:26px; border:1.5px solid var(--accent); }
+  .ghead .avwrap { display:inline-block; padding:2px; border-radius:23.5px; border:1.5px solid var(--accent); } /* = 안쪽 사진 둥글기 20 + 틈 2 + 선 1.5 → 모서리 틈 없음 */
+  .ghead .avwrap .gav { border-radius:20px; }
   .ghead .avwrap .gav, .ghead .avwrap > button { display:block; }
   /* 일관성: 고정 표시도 여러 장·영상 표시처럼 흰 아이콘 + 그림자(배경 동그라미 없음) */
   /* 작성 화면: 미리보기 그 자리 자르기 */
@@ -2300,11 +2302,13 @@ function renderSetup(first) {
   };
   paint();
   $app.querySelectorAll('button.avopt').forEach(o => o.onclick = () => { choice = o.dataset.c; paint(); });
-  $('#avfile').onchange = async e => {
-    const f = e.target.files[0]; if (!f) return;
-    customBlob = await resizeSquare(f, 400);
+  const setCustom = async f => {
+    if (!f) return;
+    try { customBlob = await resizeSquare(f, 400); } catch { return toast(t('이 사진은 열 수 없어요')); }
     customUrl = URL.createObjectURL(customBlob); choice = 'custom'; paint();
   };
+  $('#avfile').onchange = e => setCustom(e.target.files[0]);
+  useLibraryPicker($('#avfile'), { max: 1 }, items => setCustom(items[0].main)); // 앱: 작성 화면과 같은 사진첩
   $('#skip').onclick = async () => {
     if (first) { const { error } = await sb.from('profiles').update({ onboarded: true }).eq('id', me.id); if (error) return toast(kerr(error)); myProf.onboarded = true; }
     route();
@@ -6285,11 +6289,13 @@ async function openGroupEdit() {
   w.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { mode = b.dataset.m; paint(); });
   w.querySelectorAll('[data-l]').forEach(b => b.onclick = () => { limit = +b.dataset.l; paint(); });
   $('#ghandle').oninput = () => { const i = $('#ghandle'); i.value = i.value.toLowerCase().replace(/[^a-z0-9_]/g, ''); };
-  $('#gcf').onchange = async () => {
-    const f = $('#gcf').files[0]; if (!f) return;
+  const setCover = async f => {
+    if (!f) return;
     try { const blob = await resizeSquare(f, 512); cover = { blob, url: URL.createObjectURL(blob) }; $('.gedit-cover .gav').outerHTML = `<img class="gav lg" src="${cover.url}" alt="">`; }
     catch { toast(t('이 사진은 열 수 없어요')); }
   };
+  $('#gcf').onchange = () => setCover($('#gcf').files[0]);
+  useLibraryPicker($('#gcf'), { max: 1 }, items => setCover(items[0].main)); // 앱: 작성 화면과 같은 사진첩
   paint();
   $('#gsave').onclick = async () => {
     const btn = $('#gsave'); btn.disabled = true; btn.textContent = t('저장 중…');
@@ -6532,6 +6538,9 @@ function editPostText(id) {
     makeSortable(strip, o => { items = o.map(i => items[i]); paint(); });
     strip.querySelectorAll('[data-rm]').forEach(x => x.onclick = () => { items.splice(+x.dataset.rm, 1); paint(); });
     const inp = strip.querySelector('.epm-add input');
+    useLibraryPicker(inp, { max: () => 10 - items.length, photosOnly: false }, its => { // 앱: 작성 화면과 같은 사진첩
+      its.forEach(m => { if (m.kind === 'video') { m.start = 0; m.end = Math.min(m.duration, MAX_VIDEO_SEC); } items.push(m); }); paint();
+    });
     if (inp) inp.onchange = async () => {
       let files = [...inp.files].slice(0, 10 - items.length);
       for (const f of files) {
@@ -6905,7 +6914,19 @@ function libMonthLabel(sec) {
 }
 const libDur = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
 const albumParams = (album, sub) => ({ ...(album ? { albumId: album } : {}), ...(sub != null ? { albumSubtype: sub } : {}) });
-async function openLibrary(max = 10) {
+// 사진 고르기(공통): 앱에서는 작성 화면과 같은 앱 안 사진첩, 웹은 원래 파일 선택 그대로
+//  input: <input type=file>(이걸 감싼 label 을 누르면 사진첩) · max: 고를 수(함수면 그때 계산) · photosOnly: 영상 빼기
+function useLibraryPicker(input, { max = 1, photosOnly = true } = {}, onItems) {
+  if (!input || !IN_APP || !window.Capacitor?.isPluginAvailable?.('MediaPicker')) return;
+  (input.closest('label') || input).addEventListener('click', async e => {
+    e.preventDefault(); e.stopPropagation();
+    const n = typeof max === 'function' ? max() : max; if (n <= 0) return;
+    let items = LIB_ON() ? await openLibrary(n, { photosOnly }) : await nativePick();
+    items = (items || []).filter(x => !photosOnly || x.kind === 'image').slice(0, n);
+    if (items.length) onItems(items);
+  });
+}
+async function openLibrary(max = 10, { photosOnly = false } = {}) {
   const P = capPlugin('MediaPicker');
   let st; try { st = (await P.libAuth({ request: true })).status; } catch { return nativePick(); }
   if (st === 'denied' || st === 'notDetermined') { toast(t('설정에서 사진 접근을 허용하면 여기서 바로 골라요')); return nativePick(); }
@@ -7002,7 +7023,7 @@ async function openLibrary(max = 10) {
       for (let i = r0 * COLS; i < Math.min(LIB.ids.length, r1 * COLS); i++) {
         const id = LIB.ids[i], u = LIB.thumbs.get(id), n = sel.indexOf(id) + 1, r = Math.floor(i / COLS), c = i % COLS;
         if (!u) thumbQ.add(id);
-        h += `<button class="lib-cell${n ? ' on' : ''}" data-i="${i}" style="transform:translate(${c * (cell + GAP)}px,${r * (cell + GAP)}px);width:${cell}px;height:${cell}px">${u ? `<img src="${u}" alt="" draggable="false">` : ''}${LIB.dur[i] ? `<span class="lib-dur">${libDur(LIB.dur[i])}</span>` : ''}<span class="lib-n">${n || ''}</span></button>`;
+        h += `<button class="lib-cell${n ? ' on' : ''}${photosOnly && LIB.dur[i] ? ' dim' : ''}" data-i="${i}" style="transform:translate(${c * (cell + GAP)}px,${r * (cell + GAP)}px);width:${cell}px;height:${cell}px">${u ? `<img src="${u}" alt="" draggable="false">` : ''}${LIB.dur[i] ? `<span class="lib-dur">${libDur(LIB.dur[i])}</span>` : ''}<span class="lib-n">${n || ''}</span></button>`;
       }
       inner.innerHTML = h;
       clearTimeout(thumbT); thumbT = setTimeout(askThumbs, scrubbing ? 160 : 40);
@@ -7014,7 +7035,9 @@ async function openLibrary(max = 10) {
     inner.addEventListener('click', e => {
       const b = e.target.closest('.lib-cell'); if (!b) return;
       const id = LIB.ids[+b.dataset.i], k = sel.indexOf(id);
-      if (k >= 0) sel.splice(k, 1); else if (sel.length >= max) return toast(t('최대 {n}장까지 고를 수 있어요', { n: max })); else sel.push(id);
+      if (photosOnly && LIB.dur[+b.dataset.i]) return toast(t('사진만 고를 수 있어요'));
+      if (k >= 0) sel.splice(k, 1); else if (max === 1) { sel.length = 0; sel.push(id); } // 한 장만: 다른 걸 누르면 바꿈
+      else if (sel.length >= max) return toast(t('최대 {n}장까지 고를 수 있어요', { n: max })); else sel.push(id);
       const ok = $('[data-ok]'); ok.disabled = !sel.length; ok.textContent = sel.length ? t('추가 {n}', { n: sel.length }) : t('추가');
       drawn = ''; render();
     });
