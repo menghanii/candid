@@ -892,9 +892,10 @@
   .ostack ~ .overlay { z-index:40; } /* 사진 더미 위로 사진 페이지 */
   /* 피드·대기 피드 탭: 아이콘 */
   /* 새 사진을 다 봤을 때: 흐리게 두지 않고 모두 밝게, 하나씩 페이드인 */
-  .orbitv.allseen .orb.seen { opacity:1; animation:ofadein .7s ease both, ofloat var(--d,6s) ease-in-out infinite; animation-delay:var(--fi,0s), var(--dl,0s); }
+  .orbitv.allseen .orb.seen { opacity:1; animation:ofadein .45s ease both, ofloat var(--d,6s) ease-in-out infinite; animation-delay:var(--fi,0s), var(--dl,0s); }
   .orbitv.allseen .orb .oface { box-shadow:0 4px 16px rgba(0,0,0,.45), 0 0 18px 2px rgba(255,255,255,.07); } /* 테두리 없이 살짝 띄우기 */
   @keyframes ofadein { from { opacity:0; scale:.7; } to { opacity:1; scale:1; } }
+  .ogal { transition:opacity .3s ease; } .ogal.pre { opacity:0; transition:none; } /* 궤도 요소는 한꺼번에 */
   .frow.adm { text-decoration:none; color:inherit; align-items:flex-start; }
   .frow.adm small { white-space:normal; }
   .adm-new { font-style:normal; font-size:11px; color:var(--accent); }
@@ -925,15 +926,24 @@
   .oreel { position:fixed; inset:0; z-index:30; background:#000; animation:fade .2s; }
   .oreel.out { opacity:0; transition:opacity .2s; }
   .oreel .reels { position:absolute; inset:0; }
-  .rnext { position:absolute; z-index:12; left:50%; bottom:calc(max(env(safe-area-inset-bottom), 10px) + 10px); display:flex; align-items:center; gap:3px; padding:6px 10px 6px 13px; border:0; border-radius:999px; background:rgba(0,0,0,.42); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); color:#fff; font:700 12px/1 var(--sans); letter-spacing:-.01em; transform:translateX(-50%); animation:rnudge 1.8s ease-in-out infinite; transition:opacity .2s; }
-  .rnext.off, .rnext.quiet { opacity:0; pointer-events:none; }
+  .rnext { position:absolute; z-index:12; left:50%; bottom:calc(max(env(safe-area-inset-bottom), 10px) + 8px); display:block; padding:4px; border:0; background:none; line-height:0; transform:translateX(-50%); animation:rnudge 1.6s ease-in-out infinite; transition:opacity .2s; filter:drop-shadow(0 2px 6px rgba(0,0,0,.45)); -webkit-tap-highlight-color:transparent; }
+  .rnext svg { display:block; }
+  .rnext.off { opacity:0; pointer-events:none; }
   @keyframes rnudge { 0%, 100% { transform:translate(-50%, 0); } 50% { transform:translate(-50%, 4px); } }
   @media (prefers-reduced-motion: reduce) { .rnext { animation:none; } }
   .oreel-h { gap:8px; padding-left:8px; }
   .oreel-h .icon-btn { color:#fff; }
-  .oreel-who { display:flex; align-items:center; gap:8px; color:#fff; text-decoration:none; min-width:0; }
-  .oreel-who .av.xs, .oreel-who .gav.xs { width:32px; height:32px; }
-  .oreel-who b { font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* 오른쪽 맨 위: 피드 주인(그룹) 프로필 — 예전 왼쪽 위와 같은 크기 */
+  .rown { display:block; margin-bottom:2px; line-height:0; border-radius:50%; filter:drop-shadow(0 1px 6px rgba(0,0,0,.35)); -webkit-tap-highlight-color:transparent; }
+  .rown .av.xs, .rown .gav.xs { width:32px; height:32px; box-shadow:0 0 0 1.5px rgba(255,255,255,.95); }
+  .rown .gav.xs { border-radius:30%; }
+  /* 메시지 왼쪽: 보낸 친구 프로필(메시지·from 두 줄 높이 가운데) */
+  .rmsg { display:flex; align-items:center; gap:10px; }
+  .rmt { flex:1; min-width:0; }
+  .rmt .rtext { margin-top:0; margin-bottom:3px; }
+  .rav { flex:none; display:block; width:32px; height:32px; border-radius:50%; text-decoration:none; -webkit-tap-highlight-color:transparent; }
+  .rav .gfrom { display:block; width:32px; height:32px; border-radius:50%; overflow:hidden; background:#3a3a3e; box-shadow:0 0 0 1.5px rgba(255,255,255,.9); }
+  .rav .gfrom img, .rav .gfrom svg { display:block; width:100%; height:100%; object-fit:cover; }
   .oreel ~ .overlay { z-index:40; }
   /* 하우스 광고 카드 */
   .adcard { position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.82); display:flex; align-items:center; justify-content:center; padding:24px; animation:fade .2s; }
@@ -2191,7 +2201,7 @@ document.addEventListener('click', e => {
   if (u.origin !== location.origin || u.pathname !== location.pathname) return;
   e.preventDefault();
   const pg = a.closest('.overlay.page'), ore = a.closest('.oreel');
-  if (ore?._desc) { const R = ore.querySelector('#sreels'), V = R.getBoundingClientRect(); const cur = [...R.querySelectorAll('.reel[data-id]')].find(e => Math.abs(e.getBoundingClientRect().top - V.top) < 40); saveViewState({ viewer: { ...ore._desc, startId: cur?.dataset.id || ore._desc.startId } }); }
+  if (ore?._desc) { const R = ore.querySelector('#sreels'), V = R.getBoundingClientRect(); const cur = curReel(R); saveViewState({ viewer: { ...ore._desc, startId: cur?.dataset.id || ore._desc.startId } }); }
   else if (pg?.dataset.pid) saveViewState({ postId: pg.dataset.pid });
   if (a.closest('.overlay, .sheet-wrap')) { document.querySelector('.overlay')?.remove(); closeSheet(); } // 게시물·시트 안의 링크(작성자·댓글 단 사람 등): 닫고 이동
   if (ore) { dropLayer('oreel'); FEED_ADS.hide(); document.querySelectorAll('.oreel').forEach(o => o.remove()); VIEWER = []; } // Candids 보기 안의 링크(from 이름 등): 보기를 닫고 이동(뒤로 오면 다시 열림)
@@ -3472,6 +3482,7 @@ function saveHomeCache(d) {
     const ps = d.posts, ids = new Set(ps.map(p => p.id)); // 다 저장해야 새로 받은 것과 같은지 비교돼 다시 그리지 않음
     localStorage.setItem(HOME_KEY, JSON.stringify({ uid: me.id, at: Date.now(), prof: myProf, posts: ps,
       owners: [...d.owners], groups: [...d.groups], // 궤도는 사진이 없는 친구·그룹도 보여 주므로 전부 저장(일부만 저장하면 시작할 때 나머지가 늦게 나타남)
+      mg: [...MYG.mem], mf: [...MYG.fol], gth: [...GTHUMBS], // 내 그룹 관계·그룹 표지: 시작할 때 그룹도 친구와 같이 바로 그리려고
       soc: [...SOC].filter(([id]) => ids.has(id)), stk: [...STK].filter(([id]) => ids.has(id)) }));
   } catch {}
 }
@@ -3497,6 +3508,11 @@ function restoreMyFeed() {
     CACHE.prof.set(c.uid, c.data);
   } catch {}
 }
+// 내 그룹 관계·표지도 저장본으로(서버에서 받기 전에도 그룹이 친구와 같이 뜨게). 받아 오면 바뀜(MYG.at 은 그대로 0 → 곧 새로 받음)
+function restoreSnapGroups(c) {
+  if (!MYG.at) { if (c.mg) MYG.mem = new Map(c.mg); if (c.mf) MYG.fol = new Map(c.mf); }
+  (c.gth || []).forEach(([k, v]) => { if (!GTHUMBS.has(k)) GTHUMBS.set(k, v); });
+}
 function prePaintHome() {
   restoreMyFeed();
   const c = HOME_SNAP; if (!c || DEMO || CACHE.home || $app.querySelector('.reels')) return;
@@ -3504,6 +3520,7 @@ function prePaintHome() {
     if (!me) me = { id: c.uid }; if (!myProf) myProf = c.prof; // boot 이 곧 진짜 값으로 바꿈
     c.soc.forEach(([id, v]) => SOC.set(id, v)); c.stk.forEach(([id, v]) => STK.set(id, v));
     CACHE.home = { posts: c.posts, owners: new Map(c.owners), groups: new Map(c.groups) };
+    restoreSnapGroups(c);
     PREPAINTED = true; CUR = pageKey();
     paintHome(CACHE.home);
   } catch { PREPAINTED = false; CACHE.home = null; }
@@ -3637,7 +3654,7 @@ function paintOrbit(posts, owners, top) {
     const px = Math.max(s / 2 + 6, Math.min(W - s / 2 - 6, P.X));
     const face = x.g ? gAv(x.g, 'xs') : avatar(x.o || { name: x.name }, 'xs');
     const sub = x.trend ? `${I.flame}${t('이번 주 {n}장', { n: x.trend.posts })}` : x.fresh ? (x.g ? t('새 사진 {n}장', { n: x.fresh }) : t('새 사진')) : x.posts.length ? t('다 봤어요') : t('조용해요');
-    return `<button class="orb${x.g ? ' grp' : ''}${x.trend ? ' hot' : x.fresh ? ' new' : ' seen'}" style="left:${px}px;top:${P.Y}px;--s:${s}px;--d:${5 + i % 4}s;--dl:-${(i * .7).toFixed(1)}s;--fi:${(i * .06).toFixed(2)}s" data-k="${x.k}">
+    return `<button class="orb${x.g ? ' grp' : ''}${x.trend ? ' hot' : x.fresh ? ' new' : ' seen'}" style="left:${px}px;top:${P.Y}px;--s:${s}px;--d:${5 + i % 4}s;--dl:-${(i * .7).toFixed(1)}s;--fi:0s" data-k="${x.k}">
       <span class="oface">${face}${x.fresh ? `<i class="on">${x.fresh}</i>` : ''}</span><b>${esc(x.name)}</b><em>${sub}</em></button>`;
   };
   const defs = `<defs><linearGradient id="ogr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${G.c}"/><stop offset="1" stop-color="${G.c2 || G.c}"/></linearGradient></defs>`;
@@ -3647,6 +3664,12 @@ function paintOrbit(posts, owners, top) {
   document.getElementById('ogal').innerHTML = `<svg class="olines" width="${W}" height="${H}" aria-hidden="true">${defs}${lines.join('')}</svg>
     <div class="ome" role="button" aria-label="${t('닷 콕 찌르기')}" data-mood="${gi === 2 ? G.moods[0] : freshHere || gi === 1 ? G.moods[0] : G.moods[1]}" style="left:${cx}px;top:${cy}px;--accent:${G.c}">${DOT(gi === 2 ? G.moods[0] : freshHere || gi === 1 ? G.moods[0] : G.moods[1], { size: 58, cls: 'float' })}</div>
     ${here.map(orb).join('')}${empty}`;
+  // 친구·그룹·가운데 닷을 한꺼번에: 프로필 사진이 준비될 때까지(최대 0.25초) 숨겼다가 같이 부드럽게(하나씩 툭툭 뜨지 않게)
+  if (!recent) {
+    const og = document.getElementById('ogal'); og.classList.add('pre');
+    const imgs = [...og.querySelectorAll('img')].map(im => im.complete ? null : (im.decode ? im.decode().catch(() => {}) : null)).filter(Boolean);
+    Promise.race([Promise.all(imgs), new Promise(r => setTimeout(r, 250))]).then(() => requestAnimationFrame(() => og.classList.remove('pre')));
+  }
   const v = document.getElementById('orbitv');
   v.querySelectorAll('.gdots button').forEach(b => b.onclick = () => warpTo(+b.dataset.g, +b.dataset.g > gi ? 1 : -1));
   // 누르기·옆으로 밀기: iPhone 이 움직이는 화면에서 click 을 안 줄 때가 있어 손을 뗄 때 직접 처리
@@ -3727,29 +3750,25 @@ function openReelViewer({ list, title, face, link, extraOwner, startId, restore,
   VIEWER = list;
   const owners = new Map(CACHE.home?.owners || HOME.owners || []); if (extraOwner) owners.set(extraOwner.id, extraOwner);
   const ov = document.createElement('div'); ov.className = 'oreel';
-  ov.innerHTML = `<div class="reels" id="sreels"><header class="rtop oreel-h"><button class="icon-btn" data-x aria-label="${t('뒤로')}">${I.back}</button>
-      <a class="oreel-who" href="${link}">${face}<b>${esc(title)}</b></a><div class="sp"></div>${withMenu ? `<button class="icon-btn" data-more aria-label="${t('더보기')}">${I.more}</button>` : ''}</header>
-    ${FEED_ADS.weave(list, p => reelSection(p, owners))}</div>`;
+  // 맨 위 줄(뒤로·⋯)은 스크롤 칸 밖에 둠: 투표·질문 카드(흐림 효과)가 iPhone 에서 위에 덮여 ⋯ 가 안 눌리지 않게
+  ov.innerHTML = `<header class="rtop oreel-h"><button class="icon-btn" data-x aria-label="${t('뒤로')}">${I.back}</button><div class="sp"></div>${withMenu ? `<button class="icon-btn" data-more aria-label="${t('더보기')}">${I.more}</button>` : ''}</header>
+    <div class="reels" id="sreels">${FEED_ADS.weave(list, p => reelSection(p, owners, { face, link, title }))}</div>`;
   ov._desc = { list, title, face, link, extraOwner, startId, withMenu }; // 링크로 떠났다가 뒤로 오면 이걸로 다시 엶
   document.body.appendChild(ov);
   const $r = ov.querySelector('#sreels');
   $r.classList.toggle('hide-stk', HIDE_STK);
   if (startId) { const st = $r.querySelector(`.reel[data-id="${startId}"]`); if (st) $r.scrollTop = st.offsetTop; }
   wireReels($r);
-  // 아래로 넘기기 안내: 볼 게 여러 장이면 아래 가운데에 'n장 더 ⌄'(누르면 다음 장). 마지막 장에서는 사라짐
+  // 아래로 넘기기 안내: 볼 게 여러 장이면 아래 가운데에 블루닷(아래를 봄, 누르면 다음 장). 열자마자 보이고, 마지막 장까지 다 볼 때 사라짐
   if (list.length > 1) {
-    ov.insertAdjacentHTML('beforeend', `<button type="button" class="rnext" aria-label="${t('다음 사진 보기')}"><span></span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`);
-    const nb = ov.querySelector('.rnext'); let ut;
-    const upd = () => {
-      const rs = [...$r.querySelectorAll('.reel[data-id]')], mid = $r.scrollTop + $r.clientHeight / 2;
-      const ci = rs.findIndex(x => x.offsetTop <= mid && x.offsetTop + x.offsetHeight > mid), left = ci < 0 ? 0 : rs.length - ci - 1;
-      nb.classList.toggle('off', left <= 0);
-      if (left > 0) nb.querySelector('span').textContent = t('{n}장 더', { n: left });
-    };
-    $r.addEventListener('scroll', () => { nb.classList.add('quiet'); clearTimeout(ut); ut = setTimeout(() => { upd(); nb.classList.remove('quiet'); }, 140); }, { passive: true });
+    ov.insertAdjacentHTML('beforeend', `<button type="button" class="rnext" aria-label="${t('다음 사진 보기')}">${DOT('down', { size: 38 })}</button>`);
+    const nb = ov.querySelector('.rnext'); let raf = 0;
+    const upd = () => { raf = 0; const rs = [...$r.querySelectorAll('.reel[data-id]')], c = curReel($r); nb.classList.toggle('off', !c || rs.indexOf(c) >= rs.length - 1); };
+    $r.addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(upd); }, { passive: true });
     nb.onclick = e => { e.stopPropagation(); const cur = $r.scrollTop, nx = [...$r.querySelectorAll('.reel')].find(x => x.offsetTop > cur + 10); if (nx) $r.scrollTo({ top: nx.offsetTop, behavior: 'smooth' }); };
-    requestAnimationFrame(upd);
+    upd();
   }
+  fillTileFaces(ov); // 메시지 왼쪽 보낸 친구 프로필 사진
   loadSocial(list.map(p => p.id)).then(() => list.forEach(p => paintSoc(p.id))).catch(() => {});
   loadStickers(list.map(p => p.id)).then(() => list.forEach(p => refreshStickerLayers(p.id))).catch(() => {});
   // 뒤로가기(제스처·버튼)로 닫힘
@@ -3763,11 +3782,12 @@ function openReelViewer({ list, title, face, link, extraOwner, startId, restore,
   const bx = ov.querySelector('[data-x]'); let bxAt = 0;
   bx.addEventListener('pointerup', () => { bxAt = Date.now(); ov._close(); });
   bx.onclick = () => { if (Date.now() - bxAt > 600) ov._close(); };
-  ov.querySelector('[data-more]')?.addEventListener('click', () => { const R = $r.getBoundingClientRect(); const cur = [...$r.querySelectorAll('.reel[data-id]')].find(e => Math.abs(e.getBoundingClientRect().top - R.top) < 40); if (cur) postMenu(cur.dataset.id); });
-  ov.querySelector('.oreel-who').addEventListener('click', () => { dropLayer('oreel'); FEED_ADS.hide(); ov.remove(); });
+  ov.querySelector('[data-more]')?.addEventListener('click', () => { const cur = curReel($r); if (cur) postMenu(cur.dataset.id); });
   edgeSwipeBack(ov, ov._close);
 }
 const closeViewer = () => document.querySelector('.oreel')?._close?.();
+// 지금 보고 있는 칸: 화면 가운데에 걸친 칸(칸 위쪽이 화면 위와 딱 맞지 않아도 찾음)
+const curReel = R => { const mid = R.scrollTop + R.clientHeight / 2; return [...R.querySelectorAll('.reel[data-id]')].find(x => x.offsetTop <= mid && x.offsetTop + x.offsetHeight > mid) || null; };
 function fillHomeExtras(posts) {
   posts.forEach(p => {
     paintSoc(p.id); refreshStickerLayers(p.id);
@@ -3821,10 +3841,17 @@ function composeTarget(target) {
 }
 function composeTo(prof) { composeTarget(prof); }
 // Candids 한 칸(사진·영상·투표 + 정보 + 오른쪽 버튼). 넘기기 화면과 궤도의 사진 보기에서 같이 씀
-function reelSection(p, owners) {
+function reelSection(p, owners, fb = {}) {
     const o = owners.get(p.owner_id) || { name: t('친구') }, s = (SOC.get(p.id) || { likes: 0, liked: false, comments: 0 });
     const gg = p.group_id ? HOME.groups.get(p.group_id) : null; // 그룹 사진: 오른쪽 위 아바타 = 그룹, 아래에 그룹 이름 배지
     const cmtAct = p.media_type === 'question' ? `focusAnswer('${p.id}')` : `openComments('${p.id}','${gg ? gg.owner_id : p.owner_id}')`;
+    // 오른쪽 맨 위: 피드 주인(그룹이면 그룹) 프로필 → 누르면 그 피드로
+    const own = gg ? { face: gAv(gg, 'xs'), link: gUrl(gg), name: gg.name } : owners.has(p.owner_id) ? { face: avatar(o, 'xs'), link: feedUrl(p.owner_id), name: o.name } : { face: fb.face || avatar(o, 'xs'), link: fb.link || feedUrl(p.owner_id), name: fb.title || o.name };
+    // 메시지 왼쪽: 보낸 친구 프로필(누르면 그 친구 피드). 익명·로그인 안 한 친구는 누를 수 없음
+    const au = p.author_id && owners.get(p.author_id), anon = !p.author_id && isAnonName(p.author_name);
+    const afc = p.author_id ? (au ? `<span class="gfrom" data-au="${p.author_id}" data-done="1">${au.avatar_url ? `<img src="${esc(avSrc(au.avatar_url))}" alt="" referrerpolicy="no-referrer">` : DEFAULT_AV}</span>` : `<span class="gfrom" data-au="${p.author_id}">${DEFAULT_AV}</span>`)
+      : `<span class="gfrom${anon ? ' anon' : ''}">${anon ? ANON_AV : DEFAULT_AV}</span>`;
+    const aface = p.author_id ? `<a class="rav" href="${feedUrl(p.author_id)}" aria-label="${t('{name} 피드로 가기', { name: esc(p.author_name) })}">${afc}</a>` : `<span class="rav">${afc}</span>`;
     return `<section class="reel" data-id="${p.id}">
       ${isText(p) ? `<div class="rbg" style="background:${textTheme(p).bg};filter:none"></div><div class="rmedia rtc">${textStage(p)}</div>` : ''}
       ${isText(p) ? '' : `<div class="rmedia rcar">${mediaCarousel(p, 'reel')}</div>
@@ -3834,15 +3861,19 @@ function reelSection(p, owners) {
 
         ${gg ? '' : `<a class="rgroup rowner" href="${feedUrl(p.owner_id)}" aria-label="${t('{name} 피드로 가기', { name: esc(o.name) })}">${avatar(o, 'xs')}<span>${esc(o.name)}</span></a>`}
         ${gg ? `<a class="rgroup" href="${gUrl(gg)}">${gAv(gg, 'xs')}<span>${esc(gg.name)}</span></a>` : ''}
+        <div class="rmsg">${aface}<div class="rmt">
         ${p.text && !isText(p) ? `<div class="rtext">“${esc(p.text)}”</div>` : ''}
         <div class="rfrom">from<i class="pd">.</i> ${p.author_id ? `<a class="rname" href="${feedUrl(p.author_id)}"><b>${gg ? esc(p.author_name) : aname(p.author_name)}</b></a>` : `<b>${gg ? esc(p.author_name) : aname(p.author_name)}</b>`} <span class="rago">· ${ago(p.approved_at)}</span></div>
+        </div></div>
 
       </div>
       <div class="rside">
+        <a class="rown" href="${own.link}" aria-label="${t('{name} 피드로 가기', { name: esc(own.name || '') })}">${own.face}</a>
         <button class="rbtn" data-like="${p.id}" aria-label="${t('좋아요')}" aria-pressed="${s.liked}" onclick="toggleLike('${p.id}')"><span>${s.liked ? I.heartOn : I.heart}</span><b>${s.likes || t('좋아요')}</b></button>
         <button class="rbtn" data-cmt="${p.id}" aria-label="${p.media_type === 'question' ? t('답변') : t('댓글')}" onclick="${cmtAct}"><span>${I.comment}</span><b>${s.comments || t(p.media_type === 'question' ? '답변' : '댓글')}</b></button>
         ${me ? `<button class="rbtn" aria-label="${t('스티커로 꾸며주기')}" onclick="decorateFromReel('${p.id}', this)"><span>${I.sparkle}</span><b>${t('꾸며주기')}</b></button>` : ''}
         <button class="rbtn" aria-label="${t('이 사진 공유하기')}" onclick="sharePost('${p.id}')"><span>${I.send}</span><b>${t('공유')}</b></button>
+        <button class="rbtn" data-stk-toggle aria-pressed="${HIDE_STK}" aria-label="${t(HIDE_STK ? '스티커 보이기' : '스티커 숨기기')}" onclick="toggleReelStickers()"><span>${HIDE_STK ? I.eyeOff : I.eye}</span><b>${t(HIDE_STK ? '숨김' : '스티커')}</b></button>
         <button class="rbtn rmorebtn" aria-label="${t('더보기')}" onclick="reelMore('${p.id}')"><span>${I.more}</span></button>
 
       </div>
@@ -3864,6 +3895,16 @@ function paintHome({ posts, owners, groups }) {
     return;
   }
   return paintOrbit(arguments[0].all || posts, owners, top); // 홈은 궤도 하나(예전 넘기기 목록은 지움)
+}
+// 릴스에서 붙은 스티커 전체 보이기/숨기기(새로 그려져도 상태 유지)
+function toggleReelStickers() {
+  HIDE_STK = !HIDE_STK;
+  document.querySelectorAll('.reels').forEach(r => r.classList.toggle('hide-stk', HIDE_STK));
+  document.querySelectorAll('[data-stk-toggle]').forEach(btn => {
+    btn.setAttribute('aria-pressed', HIDE_STK); btn.setAttribute('aria-label', t(HIDE_STK ? '스티커 보이기' : '스티커 숨기기'));
+    btn.querySelector('span').innerHTML = HIDE_STK ? I.eyeOff : I.eye; btn.querySelector('b').textContent = t(HIDE_STK ? '숨김' : '스티커');
+  });
+  document.querySelectorAll('.stk-tag').forEach(x => x.remove());
 }
 // 칸 연결: 보이는 영상만 재생·1초 보면 '본 것'·여러 장 넘기기·확대·두 번 탭 좋아요
 function wireReels($reels) {
@@ -4411,7 +4452,7 @@ const FEED_ADS = {
     if (sec.dataset.kind !== 'native') return;
     // 맨 위 줄(뒤로·친구 이름)은 가리지 않게 그 아래부터
     // 화면 안에 보이는 부분만(넘기는 중이면 멈춘 뒤 다시 맞춤), 맨 위 줄은 가리지 않게
-    const R = sec.getBoundingClientRect(), hb = sec.closest('.oreel, .reels')?.querySelector('.rtop')?.getBoundingClientRect().bottom || 0;
+    const R = sec.getBoundingClientRect(), hb = (sec.closest('.oreel') || sec.closest('.reels'))?.querySelector('.rtop')?.getBoundingClientRect().bottom || 0;
     const y = Math.max(R.top, hb, 0), bottom = Math.min(R.bottom, innerHeight);
     if (bottom - y < 200) return;
     capPlugin('NativeAds').show({ id: sec.dataset.ad, x: R.left, y, w: R.width, h: bottom - y, label: t('광고') }).catch(() => {});
