@@ -609,6 +609,7 @@
   .stk-layer { position:absolute; inset:0; pointer-events:none; z-index:1; container-type:inline-size; } /* 스티커 크기는 이 영역 폭 기준 */
   .pst { position:absolute; transform:translate(-50%,-50%); font-size:calc(var(--s, 1) * 13cqw); line-height:1; filter:drop-shadow(0 2px 4px rgba(0,0,0,.3)); user-select:none; -webkit-user-select:none; }
   .stk-layer .pst { pointer-events:auto; cursor:pointer; -webkit-tap-highlight-color:transparent; } /* 보는 화면: 누르면 누가 붙였는지 */
+  .stk-layer .pst::after { content:""; position:absolute; inset:-12px; } /* 작은 스티커도 손가락으로 잘 눌리게 */
   .stk-tag { position:absolute; z-index:5; display:inline-flex; align-items:center; gap:4px; max-width:70%; transform:translate(-6px, -100%); padding:6px 10px; border:0; border-radius:999px 999px 999px 4px; background:rgba(15,15,18,.86); color:#fff; font:inherit; font-size:12px; line-height:1.2; white-space:nowrap; pointer-events:auto; box-shadow:0 4px 14px rgba(0,0,0,.3); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); animation:tagIn .18s ease both; }
   .stk-tag.flip { transform:translate(calc(-100% + 6px), -100%); border-radius:999px 999px 4px 999px; }
   /* 길게 누르기: 글을 쓰는 칸(입력칸·글상자)에서만 선택·메뉴, 나머지 화면은 선택·확대 메뉴·링크 미리보기 없음 */
@@ -926,17 +927,13 @@
   .oreel { position:fixed; inset:0; z-index:30; background:#000; animation:fade .2s; }
   .oreel.out { opacity:0; transition:opacity .2s; }
   .oreel .reels { position:absolute; inset:0; }
-  .rnext { position:absolute; z-index:12; left:50%; bottom:calc(max(env(safe-area-inset-bottom), 10px) + 6px); display:flex; flex-direction:column; align-items:center; padding:2px 12px; border:0; background:none; color:#fff; line-height:0; transform:translateX(-50%); transition:opacity .2s; filter:drop-shadow(0 2px 6px rgba(0,0,0,.45)); -webkit-tap-highlight-color:transparent; }
+  .rnext { position:absolute; z-index:12; left:50%; bottom:calc(max(env(safe-area-inset-bottom), 10px) - 4px); display:flex; flex-direction:column; align-items:center; padding:12px 18px; border:0; background:none; color:#fff; line-height:0; transform:translateX(-50%); transition:opacity .2s; filter:drop-shadow(0 2px 6px rgba(0,0,0,.45)); -webkit-tap-highlight-color:transparent; }
   .rnext svg { display:block; }
-  .rnext .rnd { display:block; animation:rhop 1.3s ease-in-out infinite; }
-  .rnext .rch { display:flex; flex-direction:column; align-items:center; margin-top:1px; }
-  .rnext .rch svg { width:32px; height:11px; opacity:.25; animation:rchev 1.3s ease-in-out infinite; }
-  .rnext.calm .rnd { animation-duration:2.6s; }
-  .rnext.calm .rch svg { animation:none; opacity:.6; }
+  .rnext svg { width:30px; height:12px; animation:rdown 1.3s ease-in-out infinite; }
+  .rnext.calm svg { animation-duration:2.4s; }
   .rnext.off { opacity:0; pointer-events:none; }
-  @keyframes rhop { 0%, 100% { transform:translateY(0); } 35% { transform:translateY(5px); } 55% { transform:translateY(2px); } }
-  @keyframes rchev { 0%, 100% { opacity:.25; transform:translateY(-2px); } 40% { opacity:1; transform:translateY(2px); } }
-  @media (prefers-reduced-motion: reduce) { .rnext .rnd, .rnext .rch svg { animation:none; } .rnext .rch svg { opacity:.7; } }
+  @keyframes rdown { 0% { opacity:0; transform:translateY(-6px); } 45% { opacity:1; } 100% { opacity:0; transform:translateY(8px); } }
+  @media (prefers-reduced-motion: reduce) { .rnext svg { animation:none; opacity:.85; } }
   .oreel-h { gap:8px; padding-left:8px; }
   .oreel-h .icon-btn { color:#fff; }
   /* 오른쪽 맨 위: 피드 주인(그룹) 프로필 — 예전 왼쪽 위와 같은 크기 */
@@ -945,7 +942,7 @@
   .rown .av.xs, .rown .gav.xs { width:32px; height:32px; }
   .rown .gav.xs { border-radius:30%; }
   /* 메시지 위 댓글 말풍선(하나씩 올라옴) */
-  .rcpeek { position:relative; height:46px; margin:0 0 8px; }
+  .rcpeek { position:absolute; left:0; right:0; bottom:calc(100% + 8px); height:46px; } /* 글 위에 떠 있음: 댓글이 있든 없든 메시지·from 자리는 같음 */
   .rcb { position:absolute; left:0; bottom:0; max-width:calc(100% - 56px); display:flex; align-items:center; gap:8px; padding:6px 12px 6px 6px; border:0; border-radius:18px; background:rgba(0,0,0,.45); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); color:#fff; font:500 13px/1.32 var(--sans); text-align:left; text-shadow:none; transition:transform .4s ease, opacity .4s ease; -webkit-tap-highlight-color:transparent; }
   .rcb.enter { opacity:0; transform:translateY(14px); }
   .rcb.leave { opacity:0; transform:translateY(-14px); pointer-events:none; }
@@ -1164,6 +1161,7 @@
   .bnav.dark button.on { background:rgba(255,255,255,.16) !important; }
   .bnav button * { pointer-events:none; -webkit-user-drag:none; }
   /* ===== Candids 글·오른쪽 버튼 (한 곳에 모음) ===== */
+  .rinfo, .rside { pointer-events:none; } .rinfo a, .rinfo button, .rside a, .rside button { pointer-events:auto; } /* 빈 곳에 가려 스티커가 안 눌리지 않게 */
   .rinfo { position:absolute; z-index:2; left:16px; text-shadow:0 1px 8px rgba(0,0,0,.4); right:20px; bottom:calc(62px + max(env(safe-area-inset-bottom), 10px)) !important; }
   .rinfo.below { top:var(--rtop, 0); bottom:auto !important; }
   .rfrom { font-size:13px; margin-top:0; }
@@ -3776,7 +3774,7 @@ function openReelViewer({ list, title, face, link, extraOwner, startId, restore,
   wireReels($r);
   // 아래로 넘기기 안내: 볼 게 여러 장이면 아래 가운데에 블루닷(아래를 봄, 누르면 다음 장). 열자마자 보이고, 마지막 장까지 다 볼 때 사라짐
   if (list.length > 1) {
-    ov.insertAdjacentHTML('beforeend', `<button type="button" class="rnext" aria-label="${t('다음 사진 보기')}"><i class="rnd">${DOT('down', { size: 32 })}</i><i class="rch"><svg viewBox="0 0 32 11" aria-hidden="true"><path d="M3 2.5l13 6.5 13-6.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i></button>`);
+    ov.insertAdjacentHTML('beforeend', `<button type="button" class="rnext" aria-label="${t('다음 사진 보기')}"><svg viewBox="0 0 30 12" aria-hidden="true"><path d="M3 2.5l12 7 12-7" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`);
     const nb = ov.querySelector('.rnext'), t0 = Date.now(); let raf = 0;
     const upd = () => { raf = 0; const rs = [...$r.querySelectorAll('.reel[data-id]')], c = curReel($r); nb.classList.toggle('off', !c || rs.indexOf(c) >= rs.length - 1); };
     setTimeout(() => nb.classList.add('calm'), 4000); // 처음 몇 번만 또렷하게, 그다음은 은은하게
@@ -3789,7 +3787,7 @@ function openReelViewer({ list, title, face, link, extraOwner, startId, restore,
   // 댓글 말풍선: 댓글 있는 칸은 자리를 잡아 두고(넘길 때 글이 들썩이지 않게), 지금 보는 칸만 몇 초마다 하나씩 올라옴
   loadCommentPeek(list).then(() => {
     if (!ov.isConnected) return;
-    $r.querySelectorAll('.reel[data-id]').forEach(r => { const s = r.querySelector('.rcpeek'); if (s && CPEEK.get(r.dataset.id)?.length) { s.hidden = false; placeReelInfo(r); } });
+    $r.querySelectorAll('.reel[data-id]').forEach(r => { const s = r.querySelector('.rcpeek'); if (s && CPEEK.get(r.dataset.id)?.length) s.hidden = false; });
     $r._cpId = undefined; startPeek($r);
   }).catch(() => {});
   $r.addEventListener('scroll', () => { clearTimeout($r._cpS); $r._cpS = setTimeout(() => startPeek($r), 250); }, { passive: true });
@@ -5491,11 +5489,16 @@ async function stkWho(e, s) {
   if (below) tag.classList.add('below');
   tag.addEventListener('pointerdown', ev => ev.stopPropagation()); // 릴스 두 번 탭·확대로 넘어가지 않게
   (s.closest('.oreel, .overlay, .page-ov') || document.body).appendChild(tag);
+  for (let el = s.parentElement; el; el = el.parentElement) el._stkPos = el.scrollTop + el.scrollLeft; // 지금 스크롤 위치(여기서 크게 움직이면 닫힘)
+  document.scrollingElement._stkPos = document.scrollingElement.scrollTop;
   setTimeout(() => tag.remove(), 4000);
 }
 // 다른 곳을 누르면 이름표 닫기
 document.addEventListener('pointerdown', e => { if (!e.target.closest('.stk-tag, .stk-layer .pst')) document.querySelectorAll('.stk-tag').forEach(t => t.remove()); }, true);
-document.addEventListener('scroll', () => document.querySelectorAll('.stk-tag').forEach(t => t.remove()), true); // 넘기면 이름표 닫기
+document.addEventListener('scroll', e => { // 넘기면 이름표 닫기(칸 맞춤 같은 몇 픽셀 움직임은 무시)
+  const el = e.target?.nodeType === 1 ? e.target : document.scrollingElement;
+  document.querySelectorAll('.stk-tag').forEach(t => { const k = el._stkPos; if (k == null) { el._stkPos = el.scrollTop + el.scrollLeft; return; } if (Math.abs(el.scrollTop + el.scrollLeft - k) > 12) { t.remove(); el._stkPos = null; } });
+}, true);
 // 길게 누르면 뜨는 시스템 메뉴(복사·저장 등): 글을 쓰는 칸에서만
 document.addEventListener('contextmenu', e => { if (!e.target.closest?.('input, textarea, select, [contenteditable="true"]')) e.preventDefault(); });
 function refreshStickerLayers(postId) {
