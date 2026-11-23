@@ -925,6 +925,20 @@
   @media (prefers-reduced-motion: reduce) { .orbitv.warping .ogal, .orbitv.warping .ostars, .orbitv.warpin .ogal, .orbitv.warpin .ostars { transition:none; animation:none; } }
   /* 궤도에서 연 Candids 보기 */
   .oreel { position:fixed; inset:0; z-index:30; background:#000; animation:fade .2s; }
+  /* 궤도 → 보기: 별로 빨려 들어가기 */
+  .odive { position:fixed; inset:0; z-index:29; pointer-events:none; overflow:hidden; }
+  .odive-face { position:absolute; transform:translate(-50%, -50%); overflow:hidden; will-change:transform; transition:transform .42s cubic-bezier(.7,0,.84,0); box-shadow:0 0 30px 8px rgba(120,150,255,.55); }
+  .odive-face > * { width:100% !important; height:100% !important; }
+  .odive.go .odive-face { transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(var(--k)); }
+  .odive-rays { position:absolute; width:0; height:0; }
+  .odive-rays i { position:absolute; left:-1px; bottom:0; width:2px; height:var(--h); border-radius:2px; background:linear-gradient(to top, rgba(170,190,255,0), rgba(255,255,255,.95)); transform-origin:50% 100%; transform:rotate(var(--a)) translateY(-6vmax) scaleY(0); opacity:0; }
+  .odive.go .odive-rays i { animation:oray .42s cubic-bezier(.5,0,.9,.35) var(--d) forwards; }
+  @keyframes oray { 30% { opacity:1; } 100% { transform:rotate(var(--a)) translateY(-95vmax) scaleY(1); opacity:0; } }
+  .odive-flash { position:absolute; inset:0; opacity:0; background:radial-gradient(circle at var(--cx) var(--cy), rgba(255,255,255,.85), rgba(160,180,255,.25) 45%, rgba(0,0,0,0) 75%); }
+  .odive.go .odive-flash { animation:oflash .3s .26s ease-out forwards; }
+  @keyframes oflash { 40% { opacity:1; } 100% { opacity:0; } }
+  .orbitv.diving .ogal { transition:transform .42s cubic-bezier(.55,0,.85,.35), opacity .3s .08s; transform:scale(2.6); opacity:0; }
+  .orbitv.diving .ostars { transition:transform .45s cubic-bezier(.55,0,.85,.35), opacity .4s; transform:scale(3.2); opacity:0; filter:blur(.6px); }
   .oreel.out { opacity:0; transition:opacity .2s; }
   .oreel .reels { position:absolute; inset:0; }
   .rnext { position:absolute; z-index:12; left:50%; bottom:calc(max(env(safe-area-inset-bottom), 10px) - 4px); display:flex; flex-direction:column; align-items:center; padding:12px 18px; border:0; background:none; color:#fff; line-height:0; transform:translateX(-50%); transition:opacity .2s; filter:drop-shadow(0 2px 6px rgba(0,0,0,.45)); -webkit-tap-highlight-color:transparent; }
@@ -3694,7 +3708,8 @@ function paintOrbit(posts, owners, top) {
   v.addEventListener('pointerdown', e => { if (PERF) console.log('[candid] orb down ' + e.pointerType + ' ' + (e.target.closest('.orb')?.dataset.k || e.target.className)); if (e.target.closest('.rtop, .gdots, .bnav')) return; d0 = { x: e.clientX, y: e.clientY, t: Date.now(), orb: e.target.closest('.orb'), me: e.target.closest('.ome') }; });
   const openSrc = k => {
     const x = src.find(z => z.k === k); if (!x) return; v._openedAt = Date.now();
-    try { if (x.trend) return openTrending(x); if (!x.posts.length) return go(x.g ? gUrl(x.g) : feedUrl(x.o.id)); openOrbitStack(x); }
+    const orb = v.querySelector(`.orb[data-k="${CSS.escape(k)}"]`);
+    try { if (x.trend) return orbDive(orb, () => openTrending(x)); if (!x.posts.length) return go(x.g ? gUrl(x.g) : feedUrl(x.o.id)); orbDive(orb, () => openOrbitStack(x)); }
     catch (err) { console.log('[candid] orb open fail ' + k + ' ' + (err?.message || err) + ' @ ' + String(err?.stack || '').split('\n').slice(0, 3).join(' | ')); }
   };
   // 보조: iPhone 이 pointerup 을 안 주고 click 만 주는 경우
@@ -3747,6 +3762,33 @@ function warpTo(ng, dir) {
   }, 300);
 }
 // 궤도에서 누르면: 그 친구·그룹 사진을 Candids 넘기기처럼(위아래로 다음 사진, 좌우로 여러 장). 안 본 것부터
+// 궤도에서 친구·그룹을 누르면: 그 별로 빛의 속도로 빨려 들어가듯(약 0.45초) → Candids 보기
+//  누른 별이 화면 가운데로 커지며 덮고, 둘레로 빛줄기가 뻗고, 나머지 은하는 그 별을 중심으로 확 커지며 사라짐
+//  위치·크기·투명도만 움직여서 가벼움. '동작 줄이기'면 효과 없이 바로
+function orbDive(orb, open) {
+  const v = document.getElementById('orbitv'), face = orb?.querySelector('.oface');
+  if (!face || !v || matchMedia('(prefers-reduced-motion: reduce)').matches) return open();
+  if (v.classList.contains('diving')) return;
+  const r = face.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, W = innerWidth, H = innerHeight;
+  const cover = 2.2 * Math.hypot(Math.max(cx, W - cx), Math.max(cy, H - cy)) / r.width; // 화면을 다 덮는 배율
+  let rays = '';
+  for (let i = 0; i < 40; i++) rays += `<i style="--a:${i * 9 + (i % 3) * 2}deg;--d:${((i * 7) % 5) * 0.018}s;--h:${18 + (i * 13) % 22}vmax"></i>`;
+  const fx = document.createElement('div'); fx.className = 'odive';
+  fx.innerHTML = `<div class="odive-rays" style="left:${cx}px;top:${cy}px">${rays}</div>
+    <div class="odive-face" style="left:${cx}px;top:${cy}px;width:${r.width}px;height:${r.height}px;border-radius:${getComputedStyle(face).borderRadius};--dx:${W / 2 - cx}px;--dy:${H / 2 - cy}px;--k:${cover}">${face.innerHTML}</div>
+    <div class="odive-flash" style="--cx:${W / 2}px;--cy:${H / 2}px"></div>`;
+  fx.querySelectorAll('.odive-face .on').forEach(e => e.remove()); // 숫자 배지는 빼고 얼굴만
+  document.body.appendChild(fx);
+  const og = v.querySelector('.ogal'), st = v.querySelector('.ostars');
+  [og, st].forEach(e => { if (e) e.style.transformOrigin = `${cx}px ${cy}px`; });
+  orb.style.visibility = 'hidden';
+  requestAnimationFrame(() => requestAnimationFrame(() => { v.classList.add('diving'); fx.classList.add('go'); }));
+  const t0 = Date.now();
+  setTimeout(() => { try { open(); } catch (e) { console.log('[candid] dive open fail', e?.message); } }, 330);
+  const done = () => { fx.remove(); v.classList.remove('diving'); orb.style.visibility = ''; [og, st].forEach(e => { if (e) e.style.transformOrigin = ''; }); };
+  const wait = () => { if (document.querySelector('.oreel') || !v.isConnected || Date.now() - t0 > 4000) setTimeout(done, 220); else setTimeout(wait, 60); }; // 보기가 덮은 뒤 정리(트렌딩은 받아 오는 동안 기다림)
+  setTimeout(wait, 360);
+}
 function openOrbitStack(x, extraOwner) {
   if (!x?.posts.length) return;
   const seen = lsGet(SEEN_KEY), list = [...x.posts].sort((a, b) => (!!seen[a.id] - !!seen[b.id]) || new Date(b.approved_at) - new Date(a.approved_at));
