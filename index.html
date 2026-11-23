@@ -2223,7 +2223,7 @@ function edgeSwipeBack(el, back) {
   }, { passive: true });
   el.addEventListener('touchend', e => {
     if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null;
-    if (dx > 90) back(); else { el.style.transition = 'transform .2s'; el.style.transform = ''; setTimeout(() => el.style.transition = '', 220); }
+    if (dx > 90) { el._swiped = true; back(); } else { el.style.transition = 'transform .2s'; el.style.transform = ''; setTimeout(() => el.style.transition = '', 220); } // 넘겨 닫으면 표시(닫는 효과가 손가락 방향을 이어 감)
   });
 }
 // 뒤로가기/앞으로가기: 주소가 바뀐 경우에만 화면 다시 그림(시트 닫기용 히스토리는 무시)
@@ -3815,8 +3815,12 @@ function orbDive(orb, open) {
   wait();
 }
 let WARP_FROM = null; // 워프 인으로 연 보기가 돌아갈 별
-// 워프 아웃(warp-out): 워프 인으로 연 보기를 닫으면, 보기가 그 별로 빨려 들어가며 작아지고 은하가 다시 펼쳐짐(약 0.3초). 그 밖에는 흐려지며 닫힘
+// 워프 아웃(warp-out): 워프 인으로 연 보기를 뒤로 버튼·기기 뒤로가기로 닫으면, 보기가 그 별로 빨려 들어가며 작아지고 은하가 다시 펼쳐짐(약 0.3초). 그 밖에는 흐려지며 닫힘
 function warpOut(ov) {
+  if (ov._swiped) { // 왼쪽 끝에서 밀어 닫으면: 워프 아웃 대신 밀던 방향 그대로 오른쪽으로 빠져나감(iPhone 뒤로가기처럼)
+    ov.style.transition = 'transform .22s cubic-bezier(.2,.7,.3,1)'; ov.style.transform = 'translateX(100%)';
+    document.getElementById('orbitv')?.classList.remove('diving'); setTimeout(() => ov.remove(), 240); return;
+  }
   const w = ov._warp, v0 = document.getElementById('orbitv');
   if (!w || !v0 || matchMedia('(prefers-reduced-motion: reduce)').matches) { ov.classList.add('out'); setTimeout(() => ov.remove(), 200); return; }
   const f = v0.querySelector(`.orb[data-k="${CSS.escape(w.k)}"] .oface`)?.getBoundingClientRect();
