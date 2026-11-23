@@ -3,7 +3,7 @@
 //  - post_stickers INSERT: 친구가 내 사진을 스티커로 꾸밈 (한 번 저장에 여러 개면 알림 1번)
 //  - posts INSERT (그룹): 그룹 새 사진 → 알림 켠 팔로워에게. 10분 안에 또 올라오면 묶어서 다음에 'N장'
 //  - group_members INSERT: 그룹 참여 신청 → 방장에게 (웹훅 notify-group-join 필요)
-//  - 호출될 때마다: 지워진 그룹 사진·영상 파일 정리(storage_trash)
+//  - 호출될 때마다: 지워진 그룹 사진·영상 파일 정리(storage_trash) — Supabase 저장소 + Cloudflare R2(워커 /media/trash)
 // 필요한 Secrets: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, WEBHOOK_SECRET, SITE_URL
 // iPhone 앱 푸시(선택, 32 SQL): APNS_KEY_P8(키 파일 내용), APNS_KEY_ID, APNS_TEAM_ID, APNS_TOPIC(앱 번들 ID). 없으면 웹 푸시만
 import webpush from 'npm:web-push@3.6.7';
@@ -59,11 +59,17 @@ function setup(): string | null {
 
 // 지워진 그룹 게시물의 파일 정리 (실패해도 알림에는 영향 없음)
 async function purgeTrash() {
-  const { data } = await sb!.from('storage_trash').select('path').limit(200);
+  const { data } = await sb!.from('storage_trash').select('path').limit(100);
   const paths = (data ?? []).map((r: { path: string }) => r.path);
   if (!paths.length) return;
-  const { error } = await sb!.storage.from('photos').remove(paths);
-  if (!error) await sb!.from('storage_trash').delete().in('path', paths);
+  const { error } = await sb!.storage.from('photos').remove(paths); // 예전 저장소(Supabase)
+  if (error) return;
+  // 새 저장소(Cloudflare R2): 워커가 이 서버 키로 storage_trash 를 읽어 보고, 목록에 있는 파일만 지움
+  const r = await fetch(`${env('MEDIA_API') || 'https://candid-feed.com'}/media/trash`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'x-service-key': env('SUPABASE_SERVICE_ROLE_KEY') }, body: JSON.stringify({ paths }),
+  });
+  if (!r.ok) return; // R2 정리 실패 → 목록에 남겨 두고 다음에 다시
+  await sb!.from('storage_trash').delete().in('path', paths);
 }
 
 // ---------- iPhone 앱 푸시(APNs) ----------

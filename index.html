@@ -1692,13 +1692,12 @@ const sb = DEMO ? demoClient() : (window.supabase ? supabase.createClient(cfg.SU
   global: { fetch: fetchT },
   auth: supabase.processLock ? { lock: supabase.processLock } : {},
 }) : null);
-// 사진·영상 주소: 직접 연결한 도메인(candid-feed.com)에서는 Cloudflare 캐시 중계(/p/…)로 → Supabase 전송량 절약
-// 그 밖(workers.dev·로컬)에서는 캐시가 안 되므로 Supabase 주소 그대로. 외부 주소(데모 친구 사진)도 그대로
+// 사진·영상 주소: 워커(/p/…)가 Cloudflare 캐시 → R2 저장소에서 보내 줌(예전 Supabase 파일도 워커가 찾아 줌)
+// 워커가 있는 주소(candid-feed.com·workers.dev·로컬 8788)면 그 주소로, 아니면(다른 로컬 서버) candid-feed.com 으로. 데모·외부 주소는 그대로
 // iOS 앱(Capacitor) 안에서는 주소가 capacitor://localhost → 사진·공유 링크는 항상 candid-feed.com 으로
 const IN_APP = location.protocol === 'capacitor:' || !!window.Capacitor?.isNativePlatform?.();
-const MEDIA_PROXY = IN_APP || /(^|\.)candid-feed\.com$/.test(location.hostname) || location.port === '8788';
-const MEDIA_BASE = IN_APP ? 'https://candid-feed.com' : location.origin;
-const photoUrl = path => /^(https?|data|blob):/.test(path) ? path : MEDIA_PROXY ? `${MEDIA_BASE}/p/${path}` : sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
+const MEDIA_BASE = !IN_APP && (/(^|\.)candid-feed\.com$|\.workers\.dev$/.test(location.hostname) || location.port === '8788') ? location.origin : 'https://candid-feed.com';
+const photoUrl = path => /^(https?|data|blob):/.test(path) ? path : DEMO ? sb.storage.from('photos').getPublicUrl(path).data.publicUrl : `${MEDIA_BASE}/p/${path}`;
 // 밖으로 보내는 링크(카톡 공유·초대)는 항상 새 주소로 — 예전 주소로 설치한 홈 화면 앱에서 공유해도 candid-feed.com 링크가 나감
 // 카톡은 같은 주소의 미리보기(이미지·제목)를 오래 저장해 둠 → 미리보기를 바꿀 때마다 이 숫자를 올려 공유 링크 주소를 바꿈(카톡이 새로 읽어 감)
 const OGV = '7';
@@ -5817,7 +5816,9 @@ async function commitDelete(id) {
   pendingDeletes.delete(id); clearTimeout(job.timer);
   const { error } = await sb.from('posts').delete().eq('id', id);
   if (error) { toast(kerr(error)); return job.restore(); }
-  sb.storage.from('photos').remove(mediaOf(job.p).flatMap(m => [m.p, m.t]).filter(x => x && !/^https?:/.test(x)));
+  const paths = mediaOf(job.p).flatMap(m => [m.p, m.t]).filter(x => x && !/^https?:/.test(x));
+  sb.storage.from('photos').remove(paths); // 예전 저장소(Supabase)에 있던 파일
+  if (!DEMO) sb.auth.getSession().then(({ data }) => data.session && fetch(`${MEDIA_BASE}/media/delete`, { method: 'POST', keepalive: true, headers: { Authorization: `Bearer ${data.session.access_token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ paths }) })).catch(() => {});
 }
 addEventListener('pagehide', () => [...pendingDeletes.keys()].forEach(commitDelete));
 
@@ -7050,9 +7051,14 @@ async function compressVideo(meta, onProgress) {
 }
 
 // 업로드: 경로는 랜덤 UUID라 내용이 안 바뀜 → 브라우저 캐시 1년(재방문 시 전송량 0)
+// 저장소: Cloudflare R2 (워커 /upload/ 가 권한 확인 후 저장). 데모는 흉내 저장소
 async function uploadBlob(path, blob) {
-  const { error } = await sb.storage.from('photos').upload(path, blob, { contentType: blob.type.split(';')[0], cacheControl: '31536000' });
-  if (error) throw error;
+  if (DEMO) { const { error } = await sb.storage.from('photos').upload(path, blob, { contentType: blob.type.split(';')[0], cacheControl: '31536000' }); if (error) throw error; return; }
+  const tok = (await sb.auth.getSession()).data.session?.access_token;
+  const r = await fetch(`${MEDIA_BASE}/upload/${path}`, { method: 'PUT', headers: { 'Content-Type': blob.type.split(';')[0], ...(tok ? { Authorization: `Bearer ${tok}` } : {}) }, body: blob });
+  if (r.ok) return;
+  const code = (await r.json().catch(() => ({}))).error || '';
+  throw new Error(r.status === 429 ? 'too_many' : r.status === 413 ? 'too large' : r.status === 403 ? 'permission' : `upload ${r.status} ${code}`);
 }
 const thumbUrl = p => photoUrl(p.thumb_path || p.image_path);
 const isVideo = p => p.media_type === 'video';

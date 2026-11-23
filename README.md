@@ -48,7 +48,12 @@ python3 -m http.server 3000   # → http://localhost:3000
 ## 4. 무료 배포 — Cloudflare
 현재 배포: **https://candid-feed.com** (예전 주소 https://candid.candidcrew.workers.dev 도 계속 동작)
 
-- `wrangler.jsonc` + `worker/index.js`: 정적 파일은 그대로 내보내고, `/p/<경로>` 는 Supabase 사진 저장소를 중계하며 Cloudflare 캐시에 30일 보관(Supabase 전송량 절약). 캐시는 직접 연결한 도메인에서만 동작
+- `wrangler.jsonc` + `worker/index.js`: 정적 파일은 그대로 내보내고, 사진·영상은 **Cloudflare R2(버킷 `candid-media`)** 에 저장
+  - `/p/<경로>`: Cloudflare 캐시(30일) → R2 → 없으면 예전 Supabase `photos` 저장소에서 가져와 R2 로 복사. 캐시는 직접 연결한 도메인에서만 동작
+  - `PUT /upload/<경로>`: 올리기. 권한은 Supabase 저장소 규칙과 같게(개인 폴더는 누구나, 그룹 폴더는 멤버·방장) Supabase 에 물어봄. 1분 60개 제한
+  - `POST /media/delete`(내 폴더만) · `/media/trash`(알림 함수가 storage_trash 정리) · `/media/migrate`(예전 파일 일괄 복사, `node tools/migrate-r2.mjs`)
+  - 고치면 `node tests/worker-r2.test.mjs`
+  - 프로필 사진(`avatars`)은 아직 Supabase
 - `.assetsignore`: 정적 파일로 올리지 않을 파일(Worker 코드·도구 등)
 
 - **Workers**: Workers & Pages → Create → Workers → Git 연결(Workers Builds) 또는 Wrangler 로 배포. 빌드 없이 저장소 루트를 정적 자산으로 올립니다.

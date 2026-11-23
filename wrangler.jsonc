@@ -5,5 +5,9 @@
   "compatibility_date": "2025-01-01",
   // 저장소 루트를 정적 파일로(예전과 같음). 올리지 않을 파일은 .assetsignore
   "assets": { "directory": ".", "binding": "ASSETS", "run_worker_first": true }, // 첫 화면(/)도 워커를 거쳐야 링크 종류별 카톡 미리보기를 바꿀 수 있음
-  "workers_dev": true
+  "workers_dev": true,
+  // 사진·영상 저장소(R2 버킷 candid-media). 공개 주소 없이 워커(/p/)로만 보여 줌
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "candid-media" }],
+  // 올리기 속도 제한: 1분에 60개(사진 10장 + 썸네일 10장 = 20개 → 1분에 게시물 3개)
+  "ratelimits": [{ "name": "UPLOAD_LIMIT", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } }]
 }
