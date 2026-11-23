@@ -925,20 +925,10 @@
   @media (prefers-reduced-motion: reduce) { .orbitv.warping .ogal, .orbitv.warping .ostars, .orbitv.warpin .ogal, .orbitv.warpin .ostars { transition:none; animation:none; } }
   /* 궤도에서 연 Candids 보기 */
   .oreel { position:fixed; inset:0; z-index:30; background:#000; animation:fade .2s; }
-  /* 궤도 → 보기: 별로 빨려 들어가기 */
-  .odive { position:fixed; inset:0; z-index:29; pointer-events:none; overflow:hidden; }
-  .odive-face { position:absolute; transform:translate(-50%, -50%); overflow:hidden; will-change:transform; transition:transform .29s cubic-bezier(.7,0,.84,0); box-shadow:0 0 30px 8px rgba(120,150,255,.55); }
-  .odive-face > * { width:100% !important; height:100% !important; }
-  .odive.go .odive-face { transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(var(--k)); }
-  .odive-rays { position:absolute; width:0; height:0; }
-  .odive-rays i { position:absolute; left:-1px; bottom:0; width:2px; height:var(--h); border-radius:2px; background:linear-gradient(to top, rgba(170,190,255,0), rgba(255,255,255,.95)); transform-origin:50% 100%; transform:rotate(var(--a)) translateY(-6vmax) scaleY(0); opacity:0; }
-  .odive.go .odive-rays i { animation:oray .29s cubic-bezier(.5,0,.9,.35) calc(var(--d) * .7) forwards; }
-  @keyframes oray { 30% { opacity:1; } 100% { transform:rotate(var(--a)) translateY(-95vmax) scaleY(1); opacity:0; } }
-  .odive-flash { position:absolute; inset:0; opacity:0; background:radial-gradient(circle at var(--cx) var(--cy), rgba(255,255,255,.85), rgba(160,180,255,.25) 45%, rgba(0,0,0,0) 75%); }
-  .odive.go .odive-flash { animation:oflash .22s .17s ease-out forwards; }
-  @keyframes oflash { 40% { opacity:1; } 100% { opacity:0; } }
-  .orbitv.diving .ogal { transition:transform .29s cubic-bezier(.55,0,.85,.35), opacity .2s .06s; transform:scale(2.6); opacity:0; }
-  .orbitv.diving .ostars { transition:transform .3s cubic-bezier(.55,0,.85,.35), opacity .28s; transform:scale(3.2); opacity:0; filter:blur(.6px); }
+  .orbitv.diving .ogal { transition:transform .42s cubic-bezier(.45,0,.25,1), opacity .3s .1s; transform:scale(2.6); opacity:0; } /* 카메라가 그 별로 다가감 */
+  .orbitv.diving .ostars { transition:transform .45s cubic-bezier(.45,0,.25,1), opacity .35s .08s; transform:scale(3.2); opacity:0; }
+  .oreel.warpin { transform-origin:var(--wx) var(--wy); animation:win .42s cubic-bezier(.45,0,.25,1) both; overflow:hidden; } /* 보기가 그 별에서 펼쳐짐 */
+  @keyframes win { from { transform:scale(var(--ws)); opacity:0; border-radius:50%; } 35% { opacity:1; } to { transform:none; border-radius:0; } }
   .oreel.warpout { transform-origin:var(--wx) var(--wy); animation:wout .28s cubic-bezier(.6,0,.9,.4) forwards; overflow:hidden; }
   @keyframes wout { to { transform:scale(var(--ws)); opacity:0; border-radius:50%; } }
   .orbitv.warpback .ogal { animation:wback .3s cubic-bezier(.2,.75,.3,1) both; }
@@ -2192,20 +2182,20 @@ function placeNavPill(nav) {
   if (!on) { pill.style.opacity = '0'; return; }
   const x = on.offsetLeft, w = on.offsetWidth, i = [...nav.querySelectorAll('button')].indexOf(on);
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (NAV.x != null && NAV.x !== x && !reduce) { // 지난 위치에서 시작해 새 위치로
-    pill.style.transition = 'none'; pill.style.width = NAV.w + 'px'; pill.style.transform = `translateX(${NAV.x}px)`; void pill.offsetWidth;
-    pill.style.transition = '';
-  }
-  pill.style.width = w + 'px'; pill.style.transform = `translateX(${x}px)`; pill.style.opacity = '1';
+  pill.style.transition = 'none'; pill.style.opacity = '1';
+  if (NAV.x != null && NAV.x !== x && !reduce) { // 지난 위치에 먼저 놓고, 다음 그림에서 새 위치로 미끄러짐
+    pill.style.width = NAV.w + 'px'; pill.style.transform = `translateX(${NAV.x}px)`;
+    requestAnimationFrame(() => requestAnimationFrame(() => { pill.style.transition = ''; pill.style.width = w + 'px'; pill.style.transform = `translateX(${x}px)`; }));
+  } else { pill.style.width = w + 'px'; pill.style.transform = `translateX(${x}px)`; requestAnimationFrame(() => { pill.style.transition = ''; }); }
   if (NAV.dir && !reduce) { const app = nav.parentElement; app.classList.remove('navin-l', 'navin-r'); void app.offsetWidth; app.classList.add(NAV.dir > 0 ? 'navin-r' : 'navin-l'); setTimeout(() => app.classList.remove('navin-l', 'navin-r'), 260); }
   NAV.x = x; NAV.w = w; NAV.i = i; NAV.dir = 0;
 }
 new MutationObserver(() => { const n = document.querySelector('.bnav:not([data-pp])'); if (n) { n.dataset.pp = '1'; placeNavPill(n); } }).observe(document.body, { childList: true, subtree: true });
-// 누르는 순간 바로 미끄러지기 시작(화면이 바뀌기 전에). 만들기(⊕)는 시트만 열리므로 제외
+// 누른 방향만 기억(화면이 곧 새로 그려지므로 옛 메뉴는 움직이지 않음). 만들기(⊕)는 시트만 열리므로 제외
 document.addEventListener('pointerdown', e => {
   const b = e.target.closest?.('.bnav button'); if (!b || b.classList.contains('on') || b.dataset.k === 'create') return;
   const nav = b.closest('.bnav'), pill = nav.querySelector('.bpill'), btns = [...nav.querySelectorAll('button')];
-  b._navPend = () => { NAV.dir = Math.sign(btns.indexOf(b) - (NAV.i ?? btns.indexOf(b))); if (pill) { pill.style.width = b.offsetWidth + 'px'; pill.style.transform = `translateX(${b.offsetLeft}px)`; pill.style.opacity = '1'; } NAV.x = b.offsetLeft; NAV.w = b.offsetWidth; };
+  b._navPend = () => { NAV.dir = Math.sign(btns.indexOf(b) - (NAV.i ?? btns.indexOf(b))); }; // 위치는 그대로(새 화면의 메뉴가 여기서부터 미끄러짐)
 }, true);
 document.addEventListener('pointerup', e => { const b = e.target.closest?.('.bnav button'); if (b?._navPend) { b._navPend(); b._navPend = null; } }, true);
 // 하단 메뉴: iPhone 이 탭을 click 으로 넘겨주지 않는 경우(움직이는 화면 위에서 'hover' 로 오인)가 있어
@@ -3807,32 +3797,22 @@ function warpTo(ng, dir) {
   }, 300);
 }
 // 궤도에서 누르면: 그 친구·그룹 사진을 Candids 넘기기처럼(위아래로 다음 사진, 좌우로 여러 장). 안 본 것부터
-// 워프 인(warp-in): 궤도에서 친구·그룹을 누르면 그 별로 빛의 속도로 빨려 들어가듯(약 0.3초) → Candids 보기
-//  누른 별이 화면 가운데로 커지며 덮고, 둘레로 빛줄기가 뻗고, 나머지 은하는 그 별을 중심으로 확 커지며 사라짐
-//  위치·크기·투명도만 움직여서 가벼움. '동작 줄이기'면 효과 없이 바로
+// 워프 인(warp-in): 궤도에서 친구·그룹을 누르면 카메라가 그 별로 다가가고(은하가 그 별을 중심으로 커지며 흐려짐),
+//  보기가 그 별에서부터 펼쳐짐(약 0.42초, 천천히 시작해 천천히 멈춤). 워프 아웃의 정반대. '동작 줄이기'면 효과 없이 바로
 function orbDive(orb, open) {
   const v = document.getElementById('orbitv'), face = orb?.querySelector('.oface');
   if (!face || !v || matchMedia('(prefers-reduced-motion: reduce)').matches) return open();
   if (v.classList.contains('diving')) return;
-  const r = face.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, W = innerWidth, H = innerHeight;
-  const cover = 2.2 * Math.hypot(Math.max(cx, W - cx), Math.max(cy, H - cy)) / r.width; // 화면을 다 덮는 배율
-  let rays = '';
-  for (let i = 0; i < 40; i++) rays += `<i style="--a:${i * 9 + (i % 3) * 2}deg;--d:${((i * 7) % 5) * 0.018}s;--h:${18 + (i * 13) % 22}vmax"></i>`;
-  const fx = document.createElement('div'); fx.className = 'odive';
-  fx.innerHTML = `<div class="odive-rays" style="left:${cx}px;top:${cy}px">${rays}</div>
-    <div class="odive-face" style="left:${cx}px;top:${cy}px;width:${r.width}px;height:${r.height}px;border-radius:${getComputedStyle(face).borderRadius};--dx:${W / 2 - cx}px;--dy:${H / 2 - cy}px;--k:${cover}">${face.innerHTML}</div>
-    <div class="odive-flash" style="--cx:${W / 2}px;--cy:${H / 2}px"></div>`;
-  fx.querySelectorAll('.odive-face .on').forEach(e => e.remove()); // 숫자 배지는 빼고 얼굴만
-  document.body.appendChild(fx);
+  const r = face.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
   const og = v.querySelector('.ogal'), st = v.querySelector('.ostars');
   [og, st].forEach(e => { if (e) e.style.transformOrigin = `${cx}px ${cy}px`; });
-  orb.style.visibility = 'hidden';
-  requestAnimationFrame(() => requestAnimationFrame(() => { v.classList.add('diving'); fx.classList.add('go'); }));
+  WARP_FROM = { k: orb.dataset.k, cx, cy, w: r.width, enter: true };
+  v.classList.add('diving');
+  try { open(); } catch (e) { console.log('[candid] dive open fail', e?.message); }
   const t0 = Date.now();
-  setTimeout(() => { WARP_FROM = { k: orb.dataset.k, cx, cy, w: r.width }; try { open(); } catch (e) { console.log('[candid] dive open fail', e?.message); } }, 210); // 보기를 닫을 때 같은 별로 워프 아웃
-  const done = () => { WARP_FROM = null; fx.remove(); v.classList.remove('diving'); orb.style.visibility = ''; [og, st].forEach(e => { if (e) e.style.transformOrigin = ''; }); };
-  const wait = () => { if (document.querySelector('.oreel') || !v.isConnected || Date.now() - t0 > 4000) setTimeout(done, 220); else setTimeout(wait, 60); }; // 보기가 덮은 뒤 정리(트렌딩은 받아 오는 동안 기다림)
-  setTimeout(wait, 240);
+  const done = () => { WARP_FROM = null; v.classList.remove('diving'); [og, st].forEach(e => { if (e) e.style.transformOrigin = ''; }); };
+  const wait = () => { if (document.querySelector('.oreel') || !v.isConnected || Date.now() - t0 > 4000) setTimeout(done, 480); else setTimeout(wait, 60); }; // 보기가 다 펼쳐진 뒤 정리(트렌딩은 받아 오는 동안 기다림)
+  wait();
 }
 let WARP_FROM = null; // 워프 인으로 연 보기가 돌아갈 별
 // 워프 아웃(warp-out): 워프 인으로 연 보기를 닫으면, 보기가 그 별로 빨려 들어가며 작아지고 은하가 다시 펼쳐짐(약 0.3초). 그 밖에는 흐려지며 닫힘
@@ -3875,7 +3855,11 @@ function openReelViewer({ list, title, face, link, extraOwner, startId, restore,
   ov.innerHTML = `<header class="rtop oreel-h"><button class="icon-btn" data-x aria-label="${t('뒤로')}">${I.back}</button><div class="sp"></div>${withMenu ? `<button class="icon-btn" data-more aria-label="${t('더보기')}">${I.more}</button>` : ''}</header>
     <div class="reels" id="sreels">${FEED_ADS.weave(list, p => reelSection(p, owners, { face, link, title }))}</div>`;
   ov._desc = { list, title, face, link, extraOwner, startId, withMenu }; // 링크로 떠났다가 뒤로 오면 이걸로 다시 엶
-  if (WARP_FROM) { ov._warp = WARP_FROM; WARP_FROM = null; } // 워프 인으로 열었으면 닫을 때 워프 아웃
+  if (WARP_FROM) { // 워프 인으로 열었으면: 그 별에서 펼쳐지고, 닫을 때 그 별로 워프 아웃
+    const w = ov._warp = WARP_FROM; WARP_FROM = null;
+    ov.style.setProperty('--wx', w.cx + 'px'); ov.style.setProperty('--wy', w.cy + 'px'); ov.style.setProperty('--ws', (w.w / Math.max(innerWidth, innerHeight)).toFixed(3));
+    ov.classList.add('warpin'); setTimeout(() => ov.classList.remove('warpin'), 480);
+  }
   document.body.appendChild(ov);
   const $r = ov.querySelector('#sreels');
   $r.classList.toggle('hide-stk', HIDE_STK);
