@@ -929,7 +929,7 @@
   .orbitv.diving .ostars { transition:transform .48s cubic-bezier(.45,0,.25,1), opacity .37s .09s; transform:scale(3.2); opacity:0; }
   .oreel.warpin { transform-origin:var(--wx) var(--wy); animation:win .45s cubic-bezier(.45,0,.25,1) both; overflow:hidden; } /* 보기가 그 별에서 펼쳐짐 */
   @keyframes win { from { transform:scale(var(--ws)); opacity:0; border-radius:50%; } 35% { opacity:1; } to { transform:none; border-radius:0; } }
-  .oreel.warpout { transform-origin:var(--wx) var(--wy); animation:wout .28s cubic-bezier(.6,0,.9,.4) forwards; overflow:hidden; }
+  .oreel.warpout, .oreel.warpin.warpout { transform-origin:var(--wx) var(--wy); animation:wout .28s cubic-bezier(.6,0,.9,.4) forwards; overflow:hidden; }
   @keyframes wout { to { transform:scale(var(--ws)); opacity:0; border-radius:50%; } }
   .orbitv.warpback .ogal { animation:wback .3s cubic-bezier(.2,.75,.3,1) both; }
   .orbitv.warpback .ostars { animation:wbackS .32s cubic-bezier(.2,.75,.3,1) both; }
@@ -3858,7 +3858,7 @@ function openReelViewer({ list, title, face, link, extraOwner, startId, restore,
   if (WARP_FROM) { // 워프 인으로 열었으면: 그 별에서 펼쳐지고, 닫을 때 그 별로 워프 아웃
     const w = ov._warp = WARP_FROM; WARP_FROM = null;
     ov.style.setProperty('--wx', w.cx + 'px'); ov.style.setProperty('--wy', w.cy + 'px'); ov.style.setProperty('--ws', (w.w / Math.max(innerWidth, innerHeight)).toFixed(3));
-    ov.classList.add('warpin'); setTimeout(() => ov.classList.remove('warpin'), 500);
+    ov.classList.add('warpin'); // 끝나도 빼지 않음: 빼면 기본 나타나기(fade)가 처음부터 다시 돌아 뒤 화면이 한 번 비침
   }
   document.body.appendChild(ov);
   const $r = ov.querySelector('#sreels');
