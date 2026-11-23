@@ -3,7 +3,8 @@
 //  · /p/<경로> : 사진·영상 보기. Cloudflare 캐시 → R2(바인딩 MEDIA) → 없으면 예전 저장소(Supabase photos)에서 가져와 R2 로 복사
 //    (캐시는 직접 연결한 도메인 candid-feed.com 에서만 동작. *.workers.dev 에서는 캐시 없이 R2·예전 저장소만)
 //  · PUT /upload/<경로> : 사진·영상 올리기(R2). 권한은 Supabase 저장소 규칙과 같게 Supabase 에 물어봄
-//  · POST /media/delete : 내 폴더 파일 지우기(게시물 삭제 후) · /media/trash : 서버(알림 함수)가 버릴 파일 정리 · /media/migrate : 예전 파일 일괄 복사
+//  · /a/<내 id>/<파일>.jpg : 프로필 사진 보기(GET)·올리기(PUT, 본인만). R2 의 avatars/ 아래
+//  · POST /media/delete : 내 폴더 파일 지우기(게시물 삭제 후) · /media/delete-avatars : 계정 삭제 전 내 프로필 사진 전부 · /media/trash : 서버(알림 함수)가 버릴 파일 정리 · /media/migrate : 예전 파일 일괄 복사
 const DEFAULT_ORIGIN = 'https://erlrviaqnnlfeehizlxc.supabase.co/storage/v1/object/public/photos/';
 const SB = 'https://erlrviaqnnlfeehizlxc.supabase.co';
 const SB_KEY = 'sb_publishable_LfUJRHztENtaEmt7YV_bzQ_iboVhvn3'; // 공개 키(앱에도 들어 있음)
@@ -13,12 +14,16 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EDGE_TTL = 60 * 60 * 24 * 30;      // Cloudflare 에 30일 보관(지운 사진이 오래 남지 않게)
 const BROWSER_TTL = 60 * 60 * 24 * 365;  // 브라우저는 1년(파일 이름이 무작위라 내용이 안 바뀜)
 const PATH_OK = /^[0-9a-zA-Z_-]{1,64}\/[0-9a-zA-Z_-]{1,80}\.(webp|jpe?g|png|mp4|webm|mov)$/;
+// 프로필 사진: /a/<내 id>/<무작위>.jpg (R2 에는 avatars/ 아래에). 예전 것은 Supabase avatars 저장소
+const AV_ORIGIN = 'https://erlrviaqnnlfeehizlxc.supabase.co/storage/v1/object/public/avatars/';
+const AV_OK = /^[0-9a-f-]{36}\/[0-9a-zA-Z_-]{1,80}\.jpg$/;
+const AV_MAX = 1024 * 1024; // 1MB (03 SQL 과 같음)
 
 // iPhone 앱 링크(유니버설 링크): candid-feed.com 링크를 누르면 앱이 설치돼 있으면 앱으로 열림
 // 사진 중계(/p/), 이미지·번역 파일, 약관 페이지는 제외
 const AUTH_ORIGIN = 'https://erlrviaqnnlfeehizlxc.supabase.co'; // 로그인 넘김을 허용할 Supabase 주소(다른 곳으로는 안 넘김)
 const AASA = { applinks: { details: [{ appIDs: ['92KNXMVFG4.com.candidfeed.app'], components: [
-  { '/': '/p/*', exclude: true }, { '/': '/brand/*', exclude: true }, { '/': '/i18n/*', exclude: true },
+  { '/': '/p/*', exclude: true }, { '/': '/a/*', exclude: true }, { '/': '/upload/*', exclude: true }, { '/': '/media/*', exclude: true }, { '/': '/brand/*', exclude: true }, { '/': '/i18n/*', exclude: true },
   { '/': '/terms*', exclude: true }, { '/': '/privacy*', exclude: true }, { '/': '/support*', exclude: true }, { '/': '/legal.css', exclude: true }, { '/': '/auth/*', exclude: true }, { '/': '/' }, { '/': '/*' },
 ] }] } };
 
@@ -32,6 +37,7 @@ export default {
       return Response.redirect(u, 302);
     }
     if (url.pathname.startsWith('/p/')) return media(req, url, env, ctx);
+    if (url.pathname.startsWith('/a/')) return req.method === 'PUT' || req.method === 'OPTIONS' ? mediaApi(req, url, env).catch(() => json({ error: 'server' }, 500)) : media(req, url, env, ctx);
     if (url.pathname.startsWith('/upload/') || url.pathname.startsWith('/media/')) return mediaApi(req, url, env).catch(() => json({ error: 'server' }, 500));
     if (url.pathname === '/.well-known/apple-app-site-association' || url.pathname === '/apple-app-site-association') return Response.json(AASA, { headers: { 'Cache-Control': 'public, max-age=3600' } });
     const res = await env.ASSETS.fetch(req);
@@ -75,20 +81,21 @@ function ogFor(url) {
 
 async function media(req, url, env, ctx) {
   if (req.method !== 'GET' && req.method !== 'HEAD') return new Response('Method Not Allowed', { status: 405 });
-  const path = url.pathname.slice(3);
-  if (!PATH_OK.test(path)) return new Response('Not Found', { status: 404 });
+  const av = url.pathname.startsWith('/a/'), path = url.pathname.slice(3);
+  if (!(av ? AV_OK : PATH_OK).test(path)) return new Response('Not Found', { status: 404 });
   const range = req.headers.get('Range');
-  const ORIGIN = env.MEDIA_ORIGIN || DEFAULT_ORIGIN; // MEDIA_ORIGIN: 로컬 시험용
-  const pass = async () => { const o = await source(env, ctx, ORIGIN, path, range); return out(o, o.status); }; // 캐시 없이(workers.dev 또는 캐시 실패 시)
+  const ORIGIN = av ? AV_ORIGIN : env.MEDIA_ORIGIN || DEFAULT_ORIGIN; // MEDIA_ORIGIN: 로컬 시험용
+  const rkey = av ? `avatars/${path}` : path; // R2 안의 이름
+  const pass = async () => { const o = await source(env, ctx, ORIGIN, path, range, rkey); return out(o, o.status); }; // 캐시 없이(workers.dev 또는 캐시 실패 시)
   if (url.hostname.endsWith('.workers.dev')) return pass();
 
   const cache = caches.default;
-  const key = new Request(`${url.origin}/p/${path}`);
+  const key = new Request(`${url.origin}${url.pathname.slice(0, 3)}${path}`);
   const look = () => cache.match(range ? new Request(key.url, { headers: { Range: range } }) : key); // Range 면 Cloudflare 가 206 으로 잘라 줌
   let hit = await look();
   if (hit) return out(hit, hit.status, 'HIT');
 
-  const o = await source(env, ctx, ORIGIN, path, null);
+  const o = await source(env, ctx, ORIGIN, path, null, rkey);
   if (!o.ok) {
     const nf = o.status === 400 || o.status === 404;
     const r = new Response(nf ? 'Not Found' : 'Upstream Error', { status: nf ? 404 : o.status, headers: { 'Cache-Control': 'public, max-age=60', 'Access-Control-Allow-Origin': '*' } });
@@ -105,10 +112,10 @@ async function media(req, url, env, ctx) {
 }
 
 // 원본 읽기: R2 → 없으면 예전 저장소(Supabase)에서 가져와 R2 에 복사(이후로는 R2 에서)
-async function source(env, ctx, ORIGIN, path, range) {
+async function source(env, ctx, ORIGIN, path, range, rkey = path) {
   if (env.MEDIA) {
     let o;
-    try { o = await env.MEDIA.get(path, range ? { range: new Headers({ Range: range }) } : {}); }
+    try { o = await env.MEDIA.get(rkey, range ? { range: new Headers({ Range: range }) } : {}); }
     catch { return new Response('Range Not Satisfiable', { status: 416 }); }
     if (o) {
       const h = new Headers({ 'Content-Type': o.httpMetadata?.contentType || typeOf(path) || 'application/octet-stream', ETag: o.httpEtag, 'Last-Modified': o.uploaded.toUTCString(), 'Accept-Ranges': 'bytes' });
@@ -126,7 +133,7 @@ async function source(env, ctx, ORIGIN, path, range) {
   if (!o.ok || range || !env.MEDIA) return o;
   const buf = await o.arrayBuffer();
   const type = o.headers.get('Content-Type') || typeOf(path) || 'application/octet-stream';
-  ctx.waitUntil(env.MEDIA.put(path, buf, { httpMetadata: { contentType: type } }).catch(() => {}));
+  ctx.waitUntil(env.MEDIA.put(rkey, buf, { httpMetadata: { contentType: type } }).catch(() => {}));
   return new Response(buf, { status: 200, headers: { 'Content-Type': type, 'Content-Length': String(buf.byteLength) } });
 }
 
@@ -166,13 +173,36 @@ async function trashed(key, paths) {
   return r.ok ? (await r.json()).map(x => x.path).filter(p => paths.includes(p)) : null;
 }
 const pathsOf = async req => { const b = await req.json().catch(() => ({})); return (Array.isArray(b?.paths) ? b.paths : []).filter(p => typeof p === 'string' && PATH_OK.test(p)).slice(0, 200); };
-async function forget(url, paths) { // 이 지역 Cloudflare 캐시에서도 지움
-  await Promise.all(paths.map(p => caches.default.delete(new Request(`${url.origin}/p/${p}`)).catch(() => {})));
+async function forget(url, paths, pre = '/p/') { // 이 지역 Cloudflare 캐시에서도 지움
+  await Promise.all(paths.map(p => caches.default.delete(new Request(`${url.origin}${pre}${p}`)).catch(() => {})));
+}
+async function tooMany(req, env, tok) { // 1분에 너무 많이 올리면 잠깐 막음(로그인한 사람은 사용자별, 아니면 IP 별)
+  if (!env.UPLOAD_LIMIT) return false;
+  const { success } = await env.UPLOAD_LIMIT.limit({ key: tok && jwtSub(tok) ? `u:${jwtSub(tok)}` : `ip:${req.headers.get('CF-Connecting-IP') || ''}` });
+  return !success;
 }
 
 async function mediaApi(req, url, env) {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
   if (!env.MEDIA) return json({ error: 'not_ready' }, 503);
+  // 프로필 사진 올리기: 로그인한 본인 폴더만, jpg 1MB
+  if (url.pathname.startsWith('/a/')) {
+    if (req.method !== 'PUT') return json({ error: 'method' }, 405);
+    const path = url.pathname.slice(3), tok = bearer(req);
+    if (!AV_OK.test(path)) return json({ error: 'bad_path' }, 400);
+    if (+(req.headers.get('Content-Length') || 0) > AV_MAX) return json({ error: 'too_large' }, 413);
+    if (await tooMany(req, env, tok)) return json({ error: 'too_many' }, 429);
+    const uid = await userId(tok);
+    if (!uid) return json({ error: 'unauthorized' }, 401);
+    if (uid !== path.split('/')[0]) return json({ error: 'forbidden' }, 403);
+    if (await env.MEDIA.head(`avatars/${path}`) || (await fetch(AV_ORIGIN + path, { method: 'HEAD' })).ok) return json({ error: 'exists' }, 409);
+    const body = new Uint8Array(await req.arrayBuffer());
+    if (!body.length) return json({ error: 'empty' }, 400);
+    if (body.length > AV_MAX) return json({ error: 'too_large' }, 413);
+    if (!looksLike('image/jpeg', body)) return json({ error: 'bad_type' }, 415);
+    await env.MEDIA.put(`avatars/${path}`, body, { httpMetadata: { contentType: 'image/jpeg' } });
+    return json({ url: `${url.origin}/a/${path}` });
+  }
   // 올리기
   if (url.pathname.startsWith('/upload/')) {
     if (req.method !== 'PUT') return json({ error: 'method' }, 405);
@@ -181,10 +211,7 @@ async function mediaApi(req, url, env) {
     if (!UUID.test(dir)) return json({ error: 'forbidden' }, 403);
     if (+(req.headers.get('Content-Length') || 0) > MAX_BYTES) return json({ error: 'too_large' }, 413);
     const tok = bearer(req);
-    if (env.UPLOAD_LIMIT) { // 1분에 너무 많이 올리면 잠깐 막음(로그인한 사람은 토큰별, 아니면 IP 별)
-      const { success } = await env.UPLOAD_LIMIT.limit({ key: tok && jwtSub(tok) ? `u:${jwtSub(tok)}` : `ip:${req.headers.get('CF-Connecting-IP') || ''}` });
-      if (!success) return json({ error: 'too_many' }, 429);
-    }
+    if (await tooMany(req, env, tok)) return json({ error: 'too_many' }, 429);
     if (!(await canUpload(dir, tok))) return json({ error: 'forbidden' }, 403);
     // 같은 이름 덮어쓰기 금지(R2·예전 저장소 모두) — 남의 사진을 바꿔치기 못 하게
     if (await env.MEDIA.head(path)) return json({ error: 'exists' }, 409);
@@ -205,6 +232,14 @@ async function mediaApi(req, url, env) {
     if (paths.length) { await env.MEDIA.delete(paths); await forget(url, paths); }
     return json({ deleted: paths.length });
   }
+  // 계정 삭제 직전: 내 프로필 사진 전부 지우기
+  if (url.pathname === '/media/delete-avatars') {
+    const uid = await userId(bearer(req));
+    if (!uid) return json({ error: 'unauthorized' }, 401);
+    const keys = (await env.MEDIA.list({ prefix: `avatars/${uid}/` })).objects.map(o => o.key);
+    if (keys.length) { await env.MEDIA.delete(keys); await forget(url, keys.map(k => k.slice(8)), '/a/'); }
+    return json({ deleted: keys.length });
+  }
   // 서버(알림 함수): storage_trash 에 있는 파일 정리
   if (url.pathname === '/media/trash') {
     const key = req.headers.get('x-service-key') || '', paths = await pathsOf(req);
@@ -217,14 +252,16 @@ async function mediaApi(req, url, env) {
   }
   // 일괄 복사(한 번만): 예전 저장소 파일을 R2 로. 서버 키로만
   if (url.pathname === '/media/migrate') {
-    const key = req.headers.get('x-service-key') || '', paths = await pathsOf(req);
+    const key = req.headers.get('x-service-key') || '', b = await req.json().catch(() => ({})), av = b?.bucket === 'avatars';
+    const paths = (Array.isArray(b?.paths) ? b.paths : []).filter(p => typeof p === 'string' && (av ? AV_OK : PATH_OK).test(p)).slice(0, 200);
     if (!key || !(await trashed(key, ['_/_.jpg']))) return json({ error: 'unauthorized' }, 401);
     const res = { copied: 0, skipped: 0, missing: [] };
     for (const p of paths) {
-      if (await env.MEDIA.head(p)) { res.skipped++; continue; }
-      const o = await fetch(DEFAULT_ORIGIN + p);
+      const rk = av ? `avatars/${p}` : p;
+      if (await env.MEDIA.head(rk)) { res.skipped++; continue; }
+      const o = await fetch((av ? AV_ORIGIN : DEFAULT_ORIGIN) + p);
       if (!o.ok) { res.missing.push(p); continue; }
-      await env.MEDIA.put(p, await o.arrayBuffer(), { httpMetadata: { contentType: o.headers.get('Content-Type') || typeOf(p) || 'application/octet-stream' } });
+      await env.MEDIA.put(rk, await o.arrayBuffer(), { httpMetadata: { contentType: o.headers.get('Content-Type') || typeOf(p) || 'application/octet-stream' } });
       res.copied++;
     }
     return json(res);

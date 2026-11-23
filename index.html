@@ -1609,8 +1609,10 @@ function ago(iso) {
 }
 // 기본 프로필 아이콘 (테마 색을 따라감)
 const DEFAULT_AV = '<svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true"><rect width="100" height="100" fill="var(--soft)"/><circle cx="50" cy="40" r="17" fill="var(--sub)" opacity=".5"/><path d="M16 96c2-20 17-31 34-31s32 11 34 31" fill="var(--sub)" opacity=".5"/></svg>';
+// 프로필 사진 주소: 예전 Supabase 저장소 주소는 워커(/a/…, R2)로 바꿔서 보여 줌
+const avSrc = u => DEMO || !u ? u : String(u).replace(/^https:\/\/[a-z0-9]+\.supabase\.co\/storage\/v1\/object\/public\/avatars\//, `${MEDIA_BASE}/a/`);
 const avatar = (p, cls = '') => p?.avatar_url
-  ? `<img class="av ${cls}" src="${esc(p.avatar_url)}" alt="" referrerpolicy="no-referrer">`
+  ? `<img class="av ${cls}" src="${esc(avSrc(p.avatar_url))}" alt="" referrerpolicy="no-referrer">`
   : `<div class="av av-def ${cls}">${DEFAULT_AV}</div>`;
 const https = u => u ? String(u).replace(/^http:\/\//, 'https://') : u;
 
@@ -2270,7 +2272,7 @@ function renderSetup(first) {
   const currentUrl = () => choice === 'social' ? social : choice === 'custom' ? customUrl : null;
   const paint = () => {
     $('#preview').innerHTML = avatar({ avatar_url: currentUrl() });
-    $('#customThumb').innerHTML = customUrl ? `<img class="av" src="${esc(customUrl)}" alt="">` : `<span class="av">${I.camera}</span>`;
+    $('#customThumb').innerHTML = customUrl ? `<img class="av" src="${esc(avSrc(customUrl))}" alt="">` : `<span class="av">${I.camera}</span>`;
     $app.querySelectorAll('.avopt').forEach(o => o.classList.toggle('on', o.dataset.c === choice));
   };
   paint();
@@ -2291,9 +2293,16 @@ function renderSetup(first) {
       let url = currentUrl();
       if (choice === 'custom' && customBlob) {
         const path = `${me.id}/${crypto.randomUUID()}.jpg`;
-        const up = await sb.storage.from('avatars').upload(path, customBlob, { contentType: 'image/jpeg' });
-        if (up.error) throw up.error;
-        url = sb.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+        if (DEMO) {
+          const up = await sb.storage.from('avatars').upload(path, customBlob, { contentType: 'image/jpeg' });
+          if (up.error) throw up.error;
+          url = sb.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+        } else { // 저장소: Cloudflare R2 (워커 /a/ 가 본인 확인 후 저장)
+          const tok = (await sb.auth.getSession()).data.session?.access_token;
+          const r = await fetch(`${MEDIA_BASE}/a/${path}`, { method: 'PUT', headers: { 'Content-Type': 'image/jpeg', Authorization: `Bearer ${tok}` }, body: customBlob });
+          if (!r.ok) throw new Error(r.status === 429 ? 'too_many' : r.status === 413 ? 'too large' : r.status === 401 ? 'login_required' : r.status === 403 ? 'permission' : `upload ${r.status}`);
+          url = (await r.json()).url;
+        }
       }
       const patch = { name: $('#nm').value.trim() || myProf.name, bio: $('#bio').value.trim() || null, avatar_url: url, onboarded: true };
       if ($('#hd') && hdOk && $('#hd').value !== myProf.handle) patch.handle = $('#hd').value;
@@ -4089,7 +4098,7 @@ function fillTileFaces(root) {
   const els = [...(root || document).querySelectorAll('.gfrom[data-au]:not([data-done])')];
   [...new Set(els.map(e => e.dataset.au))].forEach(id => loadProfLite(id).then(pr => {
     if (!pr) return;
-    (root || document).querySelectorAll(`.gfrom[data-au="${id}"]`).forEach(e => { e.dataset.done = 1; e.innerHTML = pr.avatar_url ? `<img src="${esc(pr.avatar_url)}" alt="" referrerpolicy="no-referrer">` : DEFAULT_AV; }); // 사진이 없으면 기본 프로필
+    (root || document).querySelectorAll(`.gfrom[data-au="${id}"]`).forEach(e => { e.dataset.done = 1; e.innerHTML = pr.avatar_url ? `<img src="${esc(avSrc(pr.avatar_url))}" alt="" referrerpolicy="no-referrer">` : DEFAULT_AV; }); // 사진이 없으면 기본 프로필
   }));
 }
 const findAny = id => findPost(id) || HOME.posts.find(x => x.id === id) || VIEWER.find(x => x.id === id); // VIEWER: 열린 Candids 보기의 게시물
@@ -4506,9 +4515,11 @@ function openDeleteAccount() {
   inp.oninput = () => { b.disabled = inp.value.trim().toLowerCase() !== t('삭제').toLowerCase(); };
   b.onclick = async () => {
     b.disabled = true; b.textContent = t('삭제하는 중…');
-    try { // 프로필 사진 파일(본인 폴더)은 먼저 직접 지움
+    try { // 프로필 사진 파일(본인 폴더)은 먼저 직접 지움 — 예전 저장소(Supabase)와 R2 모두
       const { data: files } = await sb.storage.from('avatars').list(me.id);
       if (files?.length) await sb.storage.from('avatars').remove(files.map(f => `${me.id}/${f.name}`));
+      const tok = DEMO ? null : (await sb.auth.getSession()).data.session?.access_token;
+      if (tok) await fetch(`${MEDIA_BASE}/media/delete-avatars`, { method: 'POST', headers: { Authorization: `Bearer ${tok}` } });
     } catch {}
     const { error } = await sb.rpc('delete_my_account', { p_confirm: 'DELETE' });
     if (error) { b.disabled = false; b.textContent = t('계정 영구 삭제'); return toast(/delete_my_account|does not exist|42883|PGRST20/.test(error.message) ? t('계정 삭제 기능 준비 중이에요') : kerr(error)); }

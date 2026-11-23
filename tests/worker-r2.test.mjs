@@ -2,7 +2,8 @@
 // 실행: node tests/worker-r2.test.mjs   (worker/index.js 를 고쳤으면 꼭 돌릴 것)
 import { copyFileSync } from 'node:fs'; import { tmpdir } from 'node:os'; import { join } from 'node:path'; import { pathToFileURL } from 'node:url';
 const SRC = process.argv[2] || (() => { const p = join(tmpdir(), `candid-worker-${process.pid}.mjs`); copyFileSync(new URL('../worker/index.js', import.meta.url), p); return pathToFileURL(p).href; })();
-const SB = 'https://erlrviaqnnlfeehizlxc.supabase.co', ORIG = SB + '/storage/v1/object/public/photos/';
+const SB = 'https://erlrviaqnnlfeehizlxc.supabase.co', ORIG = SB + '/storage/v1/object/public/photos/', AVO = SB + '/storage/v1/object/public/avatars/';
+const avFiles = new Map();
 const ME = '11111111-1111-4111-8111-111111111111', OTHER = '22222222-2222-4222-8222-222222222222', GROUP = '33333333-3333-4333-8333-333333333333', NOBODY = '44444444-4444-4444-8444-444444444444';
 const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url');
 const TOK = `${b64({ alg: 'HS256' })}.${b64({ sub: ME })}.sig-valid`, BAD = `${b64({ alg: 'HS256' })}.${b64({ sub: ME })}.sig-forged`;
@@ -19,6 +20,7 @@ globalThis.fetch = async (u, init = {}) => {
     if (!f) return new Response('{"error":"not_found"}', { status: 400 });
     return new Response(init.method === 'HEAD' ? null : f, { status: 200, headers: { 'Content-Type': 'image/jpeg', 'Content-Length': String(f.length) } });
   }
+  if (u.startsWith(AVO)) { const f = avFiles.get(u.slice(AVO.length)); return f ? new Response(init.method === 'HEAD' ? null : f, { status: 200, headers: { 'Content-Type': 'image/jpeg' } }) : new Response('{}', { status: 400 }); }
   if (u.startsWith(SB + '/auth/v1/user')) { const v = valid(h); return v === ME ? Response.json({ id: ME }) : new Response('{}', { status: 401 }); }
   if (u.startsWith(SB + '/rest/v1/profiles')) { if (valid(h) === 'bad') return new Response('{}', { status: 401 }); const id = new URL(u).searchParams.get('id').slice(3); return Response.json(profiles.has(id) ? [{ id }] : []); }
   if (u.startsWith(SB + '/rest/v1/rpc/can_upload_group_folder')) { const v = valid(h); if (v === 'bad') return new Response('{}', { status: 401 }); const f = JSON.parse(init.body).f; return Response.json(!!v && (groupMembers[f] || []).includes(v)); }
@@ -35,6 +37,7 @@ const MEDIA = {
   async head(k) { return r2.has(k) ? { size: r2.get(k).b.length } : null; },
   async put(k, v, o) { r2.set(k, { b: Buffer.from(v instanceof ArrayBuffer ? new Uint8Array(v) : v), type: o?.httpMetadata?.contentType, up: new Date() }); },
   async delete(ks) { [].concat(ks).forEach(k => r2.delete(k)); },
+  async list({ prefix }) { return { objects: [...r2.keys()].filter(k => k.startsWith(prefix)).map(key => ({ key })) }; },
   async get(k, o = {}) {
     const x = r2.get(k); if (!x) return null;
     let body = x.b, range;
@@ -128,6 +131,37 @@ supaFiles.set(`${ME}/m1.jpg`, JPG); supaFiles.set(`${ME}/m2.jpg`, JPG); await ME
 r = await call('/media/migrate', { method: 'POST', body: JSON.stringify({ paths: [`${ME}/m1.jpg`] }) }); ok(r.status === 401 && !r2.has(`${ME}/m1.jpg`), '서버 키 없이 일괄 복사 거절');
 r = await call('/media/migrate', { method: 'POST', headers: { 'x-service-key': SERVICE }, body: JSON.stringify({ paths: [`${ME}/m1.jpg`, `${ME}/m2.jpg`, `${ME}/gone.jpg`] }) }); j = await r.json();
 ok(j.copied === 1 && j.skipped === 1 && j.missing.length === 1 && r2.get(`${ME}/m1.jpg`).b.equals(JPG) && r2.get(`${ME}/m2.jpg`).b.equals(WEBP), `일괄 복사: 새 것만 복사, 이미 있는 건 그대로 (${JSON.stringify(j)})`);
+
+// ---- 프로필 사진 ----
+const AVP = `${ME}/av1.jpg`, putAv = (path, body, tok, extra = {}) => call('/a/' + path, { method: 'PUT', body, headers: { 'Content-Type': 'image/jpeg', ...(tok ? { Authorization: 'Bearer ' + tok } : {}), ...extra } });
+r = await putAv(AVP, JPG); ok(r.status === 401 && !r2.has('avatars/' + AVP), '로그인 없이 프로필 사진 못 올림');
+r = await putAv(AVP, JPG, BAD); ok(r.status === 401, '가짜 토큰으로 프로필 사진 못 올림');
+r = await putAv(`${OTHER}/x.jpg`, JPG, TOK); ok(r.status === 403 && !r2.has(`avatars/${OTHER}/x.jpg`), '남의 프로필 사진 폴더에는 못 올림');
+r = await putAv(AVP, JPG, TOK); j = await r.json(); ok(r.status === 200 && r2.get('avatars/' + AVP)?.type === 'image/jpeg' && j.url === `https://candid-feed.com/a/${AVP}`, `내 프로필 사진 올리기 → R2 avatars/ 아래, 주소 돌려줌 (${j.url})`);
+ok(!r2.has(AVP), '프로필 사진은 게시물 사진과 섞이지 않음(avatars/ 아래)');
+r = await putAv(AVP, JPG, TOK); ok(r.status === 409, '같은 이름 덮어쓰기 거절');
+r = await putAv(`${ME}/av2.jpg`, WEBP, TOK); ok(r.status === 415, 'jpg 가 아니면 거절');
+r = await putAv(`${ME}/av3.jpg`, Buffer.concat([JPG, Buffer.alloc(1024 * 1024)]), TOK); ok(r.status === 413, '1MB 넘으면 거절');
+r = await putAv(`${ME}/av4.webp`, WEBP, TOK); ok(r.status === 400, '확장자가 jpg 가 아니면 거절');
+limited = true; r = await putAv(`${ME}/av5.jpg`, JPG, TOK); ok(r.status === 429, '프로필 사진도 속도 제한'); limited = false;
+r = await call(`/a/${AVP}`, { method: 'OPTIONS' }); ok(r.status === 204 && r.headers.get('Access-Control-Allow-Origin') === '*', '프로필 사진 올리기 사전 확인(OPTIONS)');
+r = await call(`/a/${AVP}`); b = Buffer.from(await r.arrayBuffer()); ok(r.status === 200 && b.equals(JPG) && r.headers.get('Content-Type') === 'image/jpeg', '프로필 사진 보기(R2)');
+r = await call(`/a/${AVP}`); ok(r.headers.get('X-Candid-Cache') === 'HIT', '프로필 사진도 캐시');
+avFiles.set(`${OTHER}/old.jpg`, JPG);
+r = await call(`/a/${OTHER}/old.jpg`); ok(r.status === 200 && r2.has(`avatars/${OTHER}/old.jpg`), '예전(Supabase) 프로필 사진도 보이고 R2 로 복사됨');
+r = await putAv(`${OTHER}/old.jpg`, JPG, TOK); ok(r.status === 403, '예전 프로필 사진 바꿔치기 못 함');
+r = await call(`/a/${ME}/nope.jpg`); ok(r.status === 404, '없는 프로필 사진 404');
+r = await call(`/a/${OTHER}/a1.jpg`); ok(r.status === 404, '/a/ 로 게시물 사진을 읽을 수 없음(저장소 구분)');
+r = await call(`/p/${ME}/av1.jpg`); ok(r.status === 404, '/p/ 로 프로필 사진을 읽을 수 없음(저장소 구분)');
+r = await call('/media/delete', { method: 'POST', headers: { Authorization: 'Bearer ' + TOK }, body: JSON.stringify({ paths: [`avatars/${OTHER}/old.jpg`] }) }); ok(r2.has(`avatars/${OTHER}/old.jpg`), '게시물 지우기 API 로 남의 프로필 사진을 못 지움');
+await MEDIA.put(`avatars/${ME}/av9.jpg`, JPG, {});
+r = await call('/media/delete-avatars', { method: 'POST' }); ok(r.status === 401 && r2.has('avatars/' + AVP), '로그인 없이 프로필 사진 전부 지우기 거절');
+r = await call('/media/delete-avatars', { method: 'POST', headers: { Authorization: 'Bearer ' + TOK } }); j = await r.json();
+ok(j.deleted === 2 && !r2.has('avatars/' + AVP) && !r2.has(`avatars/${ME}/av9.jpg`) && r2.has(`avatars/${OTHER}/old.jpg`), '계정 삭제 전: 내 프로필 사진만 전부 지움');
+avFiles.set(`${ME}/m.jpg`, JPG);
+r = await call('/media/migrate', { method: 'POST', headers: { 'x-service-key': SERVICE }, body: JSON.stringify({ bucket: 'avatars', paths: [`${ME}/m.jpg`] }) }); j = await r.json();
+ok(j.copied === 1 && r2.has(`avatars/${ME}/m.jpg`) && !r2.has(`${ME}/m.jpg`), '프로필 사진 일괄 복사는 avatars/ 아래로');
+r = await call('/apple-app-site-association'); const comps = JSON.stringify((await r.json()).applinks.details[0].components); ok(/"\/a\/\*","exclude":true/.test(comps), '프로필 사진 주소(/a/)는 앱으로 열리지 않음(유니버설 링크 제외)');
 
 // ---- 기존 기능 ----
 r = await call('/auth/go?u=' + encodeURIComponent(SB + '/auth/v1/authorize?provider=apple')); ok(r.status === 302, '로그인 넘김(/auth/go) 그대로');
