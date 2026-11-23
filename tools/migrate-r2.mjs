@@ -60,7 +60,7 @@ if (AV) {
     const g = await fetch(nu);
     if (!g.ok || !/image\/jpeg/.test(g.headers.get('Content-Type') || '')) { res.notServed++; continue; }
     const u = await fetch(`${SB}/rest/v1/profiles?id=eq.${id}&avatar_url=eq.${encodeURIComponent(avatar_url)}`, { method: 'PATCH', headers: { ...H, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ avatar_url: nu }) });
-    if (u.ok) res.changed++; else res.failed++;
+    if (u.ok) res.changed++; else { res.failed++; console.error(`  수정 실패 ${u.status}: ${(await u.text()).slice(0, 300)}`); }
   }
   console.log(`프로필 사진 주소 ${rows.length}개 중 바꿈 ${res.changed} · R2 에서 안 열려 그대로 ${res.notServed} · 실패 ${res.failed}`);
 }
