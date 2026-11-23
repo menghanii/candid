@@ -1110,7 +1110,7 @@
   /* 사진 정리(주인) */
   .ogrid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; touch-action:none; }
   /* 일관성: 그룹 사진도 사람처럼 파란 테두리(모양은 둥근 네모 유지) */
-  .ghead .avwrap { display:inline-block; padding:2px; border-radius:23.5px; border:1.5px solid var(--accent); } /* = 안쪽 사진 둥글기 20 + 틈 2 + 선 1.5 → 모서리 틈 없음 */
+  .ghead .avwrap { display:inline-block; padding:0; border-radius:21.5px; border:1.5px solid var(--accent); overflow:hidden; } /* 사진이 테두리까지 꽉: 둥글기 = 사진 20 + 선 1.5 */
   .ghead .avwrap .gav { border-radius:20px; }
   .ghead .avwrap .gav, .ghead .avwrap > button { display:block; }
   /* 일관성: 고정 표시도 여러 장·영상 표시처럼 흰 아이콘 + 그림자(배경 동그라미 없음) */
