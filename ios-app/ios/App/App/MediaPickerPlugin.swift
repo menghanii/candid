@@ -106,10 +106,10 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
         }
         let gen = AVAssetImageGenerator(asset: asset)
         gen.appliesPreferredTrackTransform = true
-        gen.maximumSize = CGSize(width: 720, height: 720)
+        gen.maximumSize = CGSize(width: 480, height: 480) // 영상 썸네일도 격자용 크기(480px)
         var thumbPath = ""
         if let cg = try? gen.copyCGImage(at: CMTime(seconds: min(0.15, dur / 2), preferredTimescale: 600), actualTime: nil),
-           let tp = saveJPEG(UIImage(cgImage: cg), 0.72) { thumbPath = tp }
+           let tp = saveJPEG(UIImage(cgImage: cg), 0.6) { thumbPath = tp }
         return ["kind": "video", "path": url.path, "thumbPath": thumbPath, "duration": dur, "width": w, "height": h]
     }
 
@@ -229,7 +229,7 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
             } else if let img = info[.originalImage] as? UIImage {
                 let main = Self.resize(img, maxSide: 1080), thumb = Self.resize(main, maxSide: 480)
                 let edit = Self.resize(img, maxSide: 3024)
-                guard let mp = self.saveJPEG(main, 0.82), let tp = self.saveJPEG(thumb, 0.7), let ep = self.saveJPEG(edit, 0.9) else { call.reject("image_failed"); return }
+                guard let mp = self.saveJPEG(main, 0.82), let tp = self.saveJPEG(thumb, 0.6), let ep = self.saveJPEG(edit, 0.9) else { call.reject("image_failed"); return }
                 call.resolve(["items": [["kind": "image", "path": mp, "thumbPath": tp, "editPath": ep, "width": Int(main.size.width), "height": Int(main.size.height)]], "skipped": 0])
             } else { call.reject("no_media") }
         }
@@ -389,7 +389,7 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
     private func imageItem(_ img: UIImage) -> [String: Any]? {
         let main = Self.resize(img, maxSide: 1080), thumb = Self.resize(main, maxSide: 480)
         let edit = Self.resize(img, maxSide: 3024)
-        guard let mp = saveJPEG(main, 0.82), let tp = saveJPEG(thumb, 0.7), let ep = saveJPEG(edit, 0.9) else { return nil }
+        guard let mp = saveJPEG(main, 0.82), let tp = saveJPEG(thumb, 0.6), let ep = saveJPEG(edit, 0.9) else { return nil }
         return ["kind": "image", "path": mp, "thumbPath": tp, "editPath": ep, "width": Int(main.size.width), "height": Int(main.size.height)]
     }
 

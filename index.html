@@ -1904,7 +1904,7 @@ async function renderFrame(src, ed) {
   const FW = 900, FH = 1200, f = frameMath(rc.width, rc.height, FW, FH, ed); // 사진 기본 비율 3:4
   const vx0 = Math.max(0, f.left), vy0 = Math.max(0, f.top), vx1 = Math.min(FW, f.left + f.w), vy1 = Math.min(FH, f.top + f.h);
   const sx = (vx0 - f.left) / f.k, sy = (vy0 - f.top) / f.k, sw = (vx1 - vx0) / f.k, sh = (vy1 - vy0) / f.k;
-  return { main: await jpegBlob(cropScale(rc, sx, sy, sw, sh, 1080), .85), thumb: await jpegBlob(cropScale(rc, sx, sy, sw, sh, 480), .72) };
+  return { main: await jpegBlob(cropScale(rc, sx, sy, sw, sh, 1080), .85), thumb: await jpegBlob(cropScale(rc, sx, sy, sw, sh, 480), .6) }; // 썸네일(격자): 화질은 조금 낮게 → 약 30~40KB
 }
 function mountFramer(host, src, edit0, onChange) {
   host.className = 'ccrop cfr';
@@ -6830,7 +6830,7 @@ async function prepareImage(file) {
   const big = drawScaled(img, img.width, img.height, 1080);
   img.close?.(); // 원본(1200만 화소) 메모리 바로 해제
   const main = await canvasBlob(big, 0.8);
-  const thumb = await canvasBlob(drawScaled(big, big.width, big.height, 480), 0.7); // 썸네일은 줄인 그림에서(원본보다 훨씬 빠름)
+  const thumb = await canvasBlob(drawScaled(big, big.width, big.height, 480), 0.6); // 썸네일은 줄인 그림에서(원본보다 훨씬 빠름)
   return { kind: 'image', main, thumb, previewUrl: URL.createObjectURL(main) };
 }
 // 사진 고르자마자: 원본으로 미리보기 + 뒤에서 줄이기(동시에 2장까지 — 메모리 부족으로 iPhone 이 멈추지 않게)
