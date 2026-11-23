@@ -5994,12 +5994,13 @@ const gInviteUrl = code => `${SITE}${location.pathname}?gi=${code}&v=${OGV}${ogT
 const GTHUMBS = new Map(); // group_id → 최근 사진 썸네일 경로들
 const gAv = (g, cls = '') => {
   if (g?.cover_path) return `<img class="gav ${cls}" src="${photoUrl(g.cover_path)}" alt="">`;
-  const th = GTHUMBS.get(g?.id) || [];
+  const th = (GTHUMBS.get(g?.id) || []).filter(Boolean); // 저장해 둔 예전 목록에 빈 값이 있어도 건너뜀
   if (th.length >= 4) return `<div class="gav gmos ${cls}" aria-hidden="true">${th.slice(0, 4).map(x => `<img src="${photoUrl(x)}" alt="" loading="lazy">`).join('')}</div>`;
   if (th.length) return `<img class="gav ${cls}" src="${photoUrl(th[0])}" alt="">`;
   return `<div class="gav gav-def ${cls}" aria-hidden="true">${esc([...(g?.name || '?').trim()][0] || '?')}</div>`;
 };
-const setThumbs = posts => { const m = new Map(); posts.forEach(p => { if (p.flagged || !p.group_id) return; const a = m.get(p.group_id) || []; if (a.length < 4) a.push(p.thumb_path || p.image_path); m.set(p.group_id, a); }); m.forEach((v, k) => GTHUMBS.set(k, v)); };
+// 그룹 표지용 최근 사진: 사진·영상 게시물만(투표·질문은 사진이 없어 빈 칸·깨진 그림이 되던 문제)
+const setThumbs = posts => { const m = new Map(); posts.forEach(p => { const u = p.thumb_path || p.image_path; if (p.flagged || !p.group_id || !u) return; const a = m.get(p.group_id) || []; if (a.length < 4) a.push(u); m.set(p.group_id, a); }); m.forEach((v, k) => GTHUMBS.set(k, v)); };
 const gBadge = g => `${g.visibility === 'private' ? `${II.lock} ${t('비공개')}` : `${II.globe} ${t('공개')}`}${g.closed ? ` · ${t('업로드 마감')}` : ''}`;
 const groupOf = id => (G.g?.id === id ? G.g : null) || MYG.groups.get(id) || HOME.groups?.get(id) || null;
 const gRole = id => { const m = MYG.mem.get(id); return m ? (m.status === 'active' ? m.role : 'pending') : null; };
