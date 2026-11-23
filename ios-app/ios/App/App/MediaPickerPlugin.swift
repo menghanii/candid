@@ -106,7 +106,7 @@ public class MediaPickerPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControl
         }
         let gen = AVAssetImageGenerator(asset: asset)
         gen.appliesPreferredTrackTransform = true
-        gen.maximumSize = CGSize(width: 480, height: 480) // 영상 썸네일도 격자용 크기(480px)
+        gen.maximumSize = CGSize(width: 720, height: 720) // 영상 대표 그림은 재생 전 전체 화면에도 쓰여 720px 유지(화질만 0.6)
         var thumbPath = ""
         if let cg = try? gen.copyCGImage(at: CMTime(seconds: min(0.15, dur / 2), preferredTimescale: 600), actualTime: nil),
            let tp = saveJPEG(UIImage(cgImage: cg), 0.6) { thumbPath = tp }
