@@ -10,6 +10,7 @@ const SB = 'https://erlrviaqnnlfeehizlxc.supabase.co';
 const SB_KEY = 'sb_publishable_LfUJRHztENtaEmt7YV_bzQ_iboVhvn3'; // 공개 키(앱에도 들어 있음)
 const MAX_BYTES = 10 * 1024 * 1024; // 파일당 10MB (05 SQL 과 같음)
 const TYPE = { jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', mp4: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime' };
+const CACHE_CC = 'public, max-age=31536000, s-maxage=2592000, immutable'; // 전용 주소(R2)로 보낼 때: 브라우저 1년, Cloudflare 30일
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EDGE_TTL = 60 * 60 * 24 * 30;      // Cloudflare 에 30일 보관(지운 사진이 오래 남지 않게)
 const BROWSER_TTL = 60 * 60 * 24 * 365;  // 브라우저는 1년(파일 이름이 무작위라 내용이 안 바뀜)
@@ -133,7 +134,7 @@ async function source(env, ctx, ORIGIN, path, range, rkey = path) {
   if (!o.ok || range || !env.MEDIA) return o;
   const buf = await o.arrayBuffer();
   const type = o.headers.get('Content-Type') || typeOf(path) || 'application/octet-stream';
-  ctx.waitUntil(env.MEDIA.put(rkey, buf, { httpMetadata: { contentType: type } }).catch(() => {}));
+  ctx.waitUntil(env.MEDIA.put(rkey, buf, { httpMetadata: { contentType: type, cacheControl: CACHE_CC } }).catch(() => {}));
   return new Response(buf, { status: 200, headers: { 'Content-Type': type, 'Content-Length': String(buf.byteLength) } });
 }
 
@@ -200,7 +201,7 @@ async function mediaApi(req, url, env) {
     if (!body.length) return json({ error: 'empty' }, 400);
     if (body.length > AV_MAX) return json({ error: 'too_large' }, 413);
     if (!looksLike('image/jpeg', body)) return json({ error: 'bad_type' }, 415);
-    await env.MEDIA.put(`avatars/${path}`, body, { httpMetadata: { contentType: 'image/jpeg' } });
+    await env.MEDIA.put(`avatars/${path}`, body, { httpMetadata: { contentType: 'image/jpeg', cacheControl: CACHE_CC } });
     return json({ url: `${url.origin}/a/${path}` });
   }
   // 올리기
@@ -220,7 +221,7 @@ async function mediaApi(req, url, env) {
     if (!body.length) return json({ error: 'empty' }, 400);
     if (body.length > MAX_BYTES) return json({ error: 'too_large' }, 413);
     if (!looksLike(type, body)) return json({ error: 'bad_type' }, 415);
-    await env.MEDIA.put(path, body, { httpMetadata: { contentType: type } });
+    await env.MEDIA.put(path, body, { httpMetadata: { contentType: type, cacheControl: CACHE_CC } });
     return json({ path });
   }
   if (req.method !== 'POST') return json({ error: 'method' }, 405);
@@ -261,7 +262,7 @@ async function mediaApi(req, url, env) {
       if (await env.MEDIA.head(rk)) { res.skipped++; continue; }
       const o = await fetch((av ? AV_ORIGIN : DEFAULT_ORIGIN) + p);
       if (!o.ok) { res.missing.push(p); continue; }
-      await env.MEDIA.put(rk, await o.arrayBuffer(), { httpMetadata: { contentType: o.headers.get('Content-Type') || typeOf(p) || 'application/octet-stream' } });
+      await env.MEDIA.put(rk, await o.arrayBuffer(), { httpMetadata: { contentType: o.headers.get('Content-Type') || typeOf(p) || 'application/octet-stream', cacheControl: CACHE_CC } });
       res.copied++;
     }
     return json(res);

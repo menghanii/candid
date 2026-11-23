@@ -1649,7 +1649,7 @@ function ago(iso) {
 // 기본 프로필 아이콘 (테마 색을 따라감)
 const DEFAULT_AV = '<svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true"><rect width="100" height="100" fill="var(--soft)"/><circle cx="50" cy="40" r="17" fill="var(--sub)" opacity=".5"/><path d="M16 96c2-20 17-31 34-31s32 11 34 31" fill="var(--sub)" opacity=".5"/></svg>';
 // 프로필 사진 주소: 예전 Supabase 저장소 주소는 워커(/a/…, R2)로 바꿔서 보여 줌
-const avSrc = u => DEMO || !u ? u : String(u).replace(/^https:\/\/[a-z0-9]+\.supabase\.co\/storage\/v1\/object\/public\/avatars\//, `${MEDIA_BASE}/a/`);
+const avSrc = u => DEMO || !u ? u : String(u).replace(/^https:\/\/[a-z0-9]+\.supabase\.co\/storage\/v1\/object\/public\/avatars\//, `${MEDIA_CDN}/avatars/`).replace(/^https:\/\/candid-feed\.com\/a\//, `${MEDIA_CDN}/avatars/`); // 예전 주소·워커 주소 → 전용 주소
 const avatar = (p, cls = '') => p?.avatar_url
   ? `<img class="av ${cls}" src="${esc(avSrc(p.avatar_url))}" alt="" referrerpolicy="no-referrer">`
   : `<div class="av av-def ${cls}">${DEFAULT_AV}</div>`;
@@ -1738,7 +1738,15 @@ const sb = DEMO ? demoClient() : (window.supabase ? supabase.createClient(cfg.SU
 // iOS 앱(Capacitor) 안에서는 주소가 capacitor://localhost → 사진·공유 링크는 항상 candid-feed.com 으로
 const IN_APP = location.protocol === 'capacitor:' || !!window.Capacitor?.isNativePlatform?.();
 const MEDIA_BASE = !IN_APP && (/(^|\.)candid-feed\.com$|\.workers\.dev$/.test(location.hostname) || location.port === '8788') ? location.origin : 'https://candid-feed.com';
-const photoUrl = path => /^(https?|data|blob):/.test(path) ? path : DEMO ? sb.storage.from('photos').getPublicUrl(path).data.publicUrl : `${MEDIA_BASE}/p/${path}`;
+// 사진·영상 보기: R2 전용 주소(media.candid-feed.com)에서 바로 — 워커를 거치지 않아 빠르고 워커 요청 한도와 무관
+//  전용 주소에 아직 없는 파일(옛 빌드가 예전 저장소에만 올린 것)은 아래 mediaFallback 으로 워커 주소에서 다시(워커가 R2 로 복사해 둠)
+const MEDIA_CDN = 'https://media.candid-feed.com';
+const photoUrl = path => /^(https?|data|blob):/.test(path) ? path : DEMO ? sb.storage.from('photos').getPublicUrl(path).data.publicUrl : `${MEDIA_CDN}/${path}`;
+const mediaFallback = u => { const s = String(u || ''); if (!s.startsWith(MEDIA_CDN + '/')) return null; const k = s.slice(MEDIA_CDN.length + 1); return k.startsWith('avatars/') ? `${MEDIA_BASE}/a/${k.slice(8)}` : `${MEDIA_BASE}/p/${k}`; };
+document.addEventListener('error', e => { // 그림·영상이 전용 주소에서 안 열리면 한 번만 워커 주소로
+  const el = e.target; if (!(el instanceof HTMLImageElement || el instanceof HTMLVideoElement)) return;
+  const f = !el.dataset.mfb && mediaFallback(el.currentSrc || el.getAttribute('src')); if (f) { el.dataset.mfb = '1'; el.src = f; }
+}, true);
 // 밖으로 보내는 링크(카톡 공유·초대)는 항상 새 주소로 — 예전 주소로 설치한 홈 화면 앱에서 공유해도 candid-feed.com 링크가 나감
 // 카톡은 같은 주소의 미리보기(이미지·제목)를 오래 저장해 둠 → 미리보기를 바꿀 때마다 이 숫자를 올려 공유 링크 주소를 바꿈(카톡이 새로 읽어 감)
 const OGV = '7';
@@ -5587,7 +5595,7 @@ function edgeColors(url) {
       const mid = avg(8, 16);
       res({ top: avg(0, 3), mid, bot: avg(N - 3, N) });
     } catch { res(null); } };
-    im.onerror = () => res(null); im.src = url;
+    im.onerror = () => { const f = !im.dataset.mfb && mediaFallback(url); if (f) { im.dataset.mfb = '1'; im.src = f; } else res(null); }; im.src = url;
   }));
   return FILLS.get(url);
 }
@@ -6691,7 +6699,8 @@ async function savePhoto(id) {
   const i = curMediaIdx(id), m = mediaOf(p)[i] || mediaOf(p)[0]; if (!m) return;
   const url = photoUrl(m.p);
   try {
-    const blob = await (await fetch(url)).blob();
+    let res = await fetch(url); if (!res.ok && mediaFallback(url)) res = await fetch(mediaFallback(url)); // 전용 주소에 없으면 워커 주소로
+    const blob = await res.blob();
     const ext = (blob.type.split('/')[1] || 'jpg').replace('quicktime', 'mov').replace('jpeg', 'jpg');
     const file = new File([blob], `candid-${String(id).slice(0, 8)}-${i + 1}.${ext}`, { type: blob.type });
     if (IN_APP) return await saveNative(blob, t('사진을 저장했어요'));
@@ -6839,7 +6848,7 @@ async function decodeFile(file) {
   if (window.createImageBitmap) { try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch {} }
   return loadImg(URL.createObjectURL(file));
 }
-function loadImg(src) { return new Promise((ok, no) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => ok(i); i.onerror = no; i.src = src; }); }
+function loadImg(src) { return new Promise((ok, no) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => ok(i); i.onerror = e => { const f = !i.dataset.mfb && mediaFallback(src); if (f) { i.dataset.mfb = '1'; i.src = f; } else no(e); }; i.src = src; }); }
 
 // ---------- 미디어 최적화 (업로드 전 휴대폰에서 압축) ----------
 const MAX_VIDEO_SEC = 10;
