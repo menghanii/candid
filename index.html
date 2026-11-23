@@ -925,9 +925,9 @@
   @media (prefers-reduced-motion: reduce) { .orbitv.warping .ogal, .orbitv.warping .ostars, .orbitv.warpin .ogal, .orbitv.warpin .ostars { transition:none; animation:none; } }
   /* 궤도에서 연 Candids 보기 */
   .oreel { position:fixed; inset:0; z-index:30; background:#000; animation:fade .2s; }
-  .orbitv.diving .ogal { transition:transform .42s cubic-bezier(.45,0,.25,1), opacity .3s .1s; transform:scale(2.6); opacity:0; } /* 카메라가 그 별로 다가감 */
-  .orbitv.diving .ostars { transition:transform .45s cubic-bezier(.45,0,.25,1), opacity .35s .08s; transform:scale(3.2); opacity:0; }
-  .oreel.warpin { transform-origin:var(--wx) var(--wy); animation:win .42s cubic-bezier(.45,0,.25,1) both; overflow:hidden; } /* 보기가 그 별에서 펼쳐짐 */
+  .orbitv.diving .ogal { transition:transform .45s cubic-bezier(.45,0,.25,1), opacity .32s .11s; transform:scale(2.6); opacity:0; } /* 카메라가 그 별로 다가감 */
+  .orbitv.diving .ostars { transition:transform .48s cubic-bezier(.45,0,.25,1), opacity .37s .09s; transform:scale(3.2); opacity:0; }
+  .oreel.warpin { transform-origin:var(--wx) var(--wy); animation:win .45s cubic-bezier(.45,0,.25,1) both; overflow:hidden; } /* 보기가 그 별에서 펼쳐짐 */
   @keyframes win { from { transform:scale(var(--ws)); opacity:0; border-radius:50%; } 35% { opacity:1; } to { transform:none; border-radius:0; } }
   .oreel.warpout { transform-origin:var(--wx) var(--wy); animation:wout .28s cubic-bezier(.6,0,.9,.4) forwards; overflow:hidden; }
   @keyframes wout { to { transform:scale(var(--ws)); opacity:0; border-radius:50%; } }
@@ -3798,7 +3798,7 @@ function warpTo(ng, dir) {
 }
 // 궤도에서 누르면: 그 친구·그룹 사진을 Candids 넘기기처럼(위아래로 다음 사진, 좌우로 여러 장). 안 본 것부터
 // 워프 인(warp-in): 궤도에서 친구·그룹을 누르면 카메라가 그 별로 다가가고(은하가 그 별을 중심으로 커지며 흐려짐),
-//  보기가 그 별에서부터 펼쳐짐(약 0.42초, 천천히 시작해 천천히 멈춤). 워프 아웃의 정반대. '동작 줄이기'면 효과 없이 바로
+//  보기가 그 별에서부터 펼쳐짐(약 0.45초, 천천히 시작해 천천히 멈춤). 워프 아웃의 정반대. '동작 줄이기'면 효과 없이 바로
 function orbDive(orb, open) {
   const v = document.getElementById('orbitv'), face = orb?.querySelector('.oface');
   if (!face || !v || matchMedia('(prefers-reduced-motion: reduce)').matches) return open();
@@ -3811,7 +3811,7 @@ function orbDive(orb, open) {
   try { open(); } catch (e) { console.log('[candid] dive open fail', e?.message); }
   const t0 = Date.now();
   const done = () => { WARP_FROM = null; v.classList.remove('diving'); [og, st].forEach(e => { if (e) e.style.transformOrigin = ''; }); };
-  const wait = () => { if (document.querySelector('.oreel') || !v.isConnected || Date.now() - t0 > 4000) setTimeout(done, 480); else setTimeout(wait, 60); }; // 보기가 다 펼쳐진 뒤 정리(트렌딩은 받아 오는 동안 기다림)
+  const wait = () => { if (document.querySelector('.oreel') || !v.isConnected || Date.now() - t0 > 4000) setTimeout(done, 510); else setTimeout(wait, 60); }; // 보기가 다 펼쳐진 뒤 정리(트렌딩은 받아 오는 동안 기다림)
   wait();
 }
 let WARP_FROM = null; // 워프 인으로 연 보기가 돌아갈 별
@@ -3858,7 +3858,7 @@ function openReelViewer({ list, title, face, link, extraOwner, startId, restore,
   if (WARP_FROM) { // 워프 인으로 열었으면: 그 별에서 펼쳐지고, 닫을 때 그 별로 워프 아웃
     const w = ov._warp = WARP_FROM; WARP_FROM = null;
     ov.style.setProperty('--wx', w.cx + 'px'); ov.style.setProperty('--wy', w.cy + 'px'); ov.style.setProperty('--ws', (w.w / Math.max(innerWidth, innerHeight)).toFixed(3));
-    ov.classList.add('warpin'); setTimeout(() => ov.classList.remove('warpin'), 480);
+    ov.classList.add('warpin'); setTimeout(() => ov.classList.remove('warpin'), 500);
   }
   document.body.appendChild(ov);
   const $r = ov.querySelector('#sreels');
