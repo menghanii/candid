@@ -4525,29 +4525,31 @@ var PBAN = { // var: 앱 시작 중 먼저 불려도(창 열기 등) 오류 없�
   get admob() { return ADS.providers.find(p => p.name === 'admob'); },
   available() { return ADS.on && !!me && IN_APP && !!ADS.cfg.admob?.iosBanner && !!this.admob?.inited && !!window.Capacitor?.isPluginAvailable?.('AdMob'); },
   key() { return 'candid_pban_' + new Date().toISOString().slice(0, 10); },
+  why(m) { if (this.cfg.debug) toast('배너: ' + m); }, // 확인용(config.js ADS.banner.debug)
   today() { try { return +localStorage.getItem(this.key()) || 0; } catch { return 0; } },
   hide() { this.seq++; this.want = false; if (!this.on) return; this.on = false; capPlugin('AdMob')?.removeBanner().catch(() => {}); },
   async consider(R) {
     const seq = ++this.seq, ov = R?.closest('.oreel');
-    if (!this.available() || !ov || !ov.isConnected || ov.classList.contains('warpout') || document.querySelector('.sheet-wrap, .overlay.page')) return this.hide();
+    if (!this.available()) { this.why('준비 안 됨(' + [!ADS.on && '광고 꺼짐', !me && '로그인 안 함', !ADS.cfg.admob?.iosBanner && '배너 ID 없음', !this.admob?.inited && 'AdMob 시작 전'].filter(Boolean).join(', ') + ')'); return this.hide(); }
+    if (!ov || !ov.isConnected || ov.classList.contains('warpout') || document.querySelector('.sheet-wrap, .overlay.page')) { this.why('화면 위에 창이 있음'); return this.hide(); }
     const reel = curReel(R), p = reel && findAny(reel.dataset.id);
-    if (!p || isText(p) || mediaOf(p)[0]?.k === 'video') return this.hide(); // 사진 게시물만
+    if (!p || isText(p) || mediaOf(p)[0]?.k === 'video') { this.why('사진 게시물 아님'); return this.hide(); } // 사진 게시물만
     if (!this.pick.has(p.id)) this.pick.set(p.id, Math.random() < this.cfg.chance);
-    if (!this.pick.get(p.id)) return this.hide();
+    if (!this.pick.get(p.id)) { this.why('확률 제외'); return this.hide(); }
     const top = ov.querySelector(':scope > .rtop')?.getBoundingClientRect().bottom || 0, wrap = reel.querySelector('.rcar .carwrap')?.getBoundingClientRect();
     if (this.h == null) this.h = await capPlugin('NativeAds')?.bannerHeight?.().then(r => +r.height || 0).catch(() => 0) || 0; // 배너 높이(기기 너비에 따라 50~90)
-    if (!this.h || seq !== this.seq) return;
-    const space = wrap ? wrap.top - top : 0; if (space < this.h + 6) return this.hide(); // 사진 위쪽 빈 곳이 배너보다 작으면 건너뜀
+    if (!this.h) { this.h = null; this.why('배너 높이를 못 받음'); return; } if (seq !== this.seq) return;
+    const space = wrap ? wrap.top - top : 0; if (space < this.h + 6) { this.why(`공간 부족(사진 위 ${Math.round(space)}px < 배너 ${this.h + 6}px)`); return this.hide(); } // 사진 위쪽 빈 곳이 배너보다 작으면 건너뜀
     if (this.on && this.onId === p.id) return; // 이미 이 사진에 떠 있음
-    if (Date.now() - this.lastAt < this.cfg.minGapSec * 1000 || this.today() >= this.cfg.dailyCap) return this.hide();
+    if (Date.now() - this.lastAt < this.cfg.minGapSec * 1000 || this.today() >= this.cfg.dailyCap) { this.why(this.today() >= this.cfg.dailyCap ? '오늘 한도 다 씀' : '간격 대기'); return this.hide(); }
     const y = Math.round(wrap.top - this.h - 2 - safeArea().top); // 배너 아래쪽이 사진 위쪽에서 2px 위(안전 영역 위쪽 기준)
     this.want = true;
     try { await capPlugin('AdMob').showBanner({ adId: ADS.cfg.admob.iosBanner, adSize: 'ADAPTIVE_BANNER', position: 'TOP_CENTER', margin: -y, isTesting: this.admob.testing(), npa: this.admob.npa }); }
-    catch (e) { this.want = false; console.log('[candid] banner ' + (e?.message || e)); return; }
+    catch (e) { this.want = false; console.log('[candid] banner ' + (e?.message || e)); this.why('요청 실패 ' + (e?.message || e)); return; }
     if (seq !== this.seq) return; // 그 사이 넘겼으면(hide 가 이미 정리)
     this.on = true; this.onId = p.id; this.lastAt = Date.now();
     try { localStorage.setItem(this.key(), this.today() + 1); } catch {}
-    ADS.log('admob', 'impression', 'candids-banner');
+    ADS.log('admob', 'impression', 'candids-banner'); this.why(`요청함(높이 ${this.h}, 위치 ${y})`);
   },
 };
 // 하우스 광고 목록(10분 보관) → 가중치로 하나
@@ -4571,7 +4573,8 @@ ADS.register({
     this.npa = st !== 'authorized';
     A.addListener('interstitialAdDismissed', () => { setTimeout(() => this.prepare(), 800); });
     A.addListener('interstitialAdFailedToShow', () => { this.ready = false; this.prepare(); });
-    A.addListener('bannerAdLoaded', () => { if (!PBAN.want) A.removeBanner().catch(() => {}); }); // 받는 사이에 넘겼으면 띄우지 않음
+    A.addListener('bannerAdLoaded', () => { if (!PBAN.want) A.removeBanner().catch(() => {}); else PBAN.why('광고 받음 → 표시'); }); // 받는 사이에 넘겼으면 띄우지 않음
+    A.addListener('bannerAdFailedToLoad', e => PBAN.why('광고 못 받음 ' + (e?.message || e?.code || JSON.stringify(e || {})).slice(0, 60)));
     this.inited = true;
     await this.prepare();
   },
