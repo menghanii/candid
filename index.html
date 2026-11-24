@@ -3877,7 +3877,7 @@ function openReelViewer({ list, title, face, link, extraOwner, startId, restore,
     const w = ov._warp = WARP_FROM; WARP_FROM = null;
     ov.style.setProperty('--wx', w.cx + 'px'); ov.style.setProperty('--wy', w.cy + 'px'); ov.style.setProperty('--ws', (w.w / Math.max(innerWidth, innerHeight)).toFixed(3));
     ov.classList.add('warpin'); // 끝나도 빼지 않음: 빼면 기본 나타나기(fade)가 처음부터 다시 돌아 뒤 화면이 한 번 비침
-    ov.addEventListener('animationend', e => { if (e.target === ov && e.animationName === 'win') ov.style.animation = 'none'; }); // 끝난 뒤 효과를 꺼 둠(밀어서 닫을 때 손가락을 따라 움직이게)
+    ov.addEventListener('animationend', e => { if (e.target === ov && e.animationName === 'win') { ov.style.animation = 'none'; ov.querySelectorAll('#sreels .reel').forEach(placeReelInfo); } }); // 끝난 뒤 효과를 꺼 두고(밀어서 닫을 때 손가락을 따라 움직이게), 펼쳐지는 동안 잘못 잰 글 자리를 다시 맞춤(사진 바로 아래)
   }
   document.body.appendChild(ov);
   const $r = ov.querySelector('#sreels');
