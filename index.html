@@ -1239,6 +1239,7 @@
   .reels.hide-stk .stk-layer { display:none; }
   .rcar { position:absolute; inset:0; display:flex; align-items:center; padding:0 !important; justify-content:center; }
   .reel .rstars { inset:0; z-index:0; opacity:.55; } /* 게시물 뒤 빈 곳: 궤도처럼 별이 은은하게 */
+  .reel.rph .rcar { transform:translateY(8px); } /* 사진 게시물은 사진 칸을 늘 8px 아래에: 위쪽 배너 자리가 대부분 기종에서 나오게(움직이지 않고 늘 이 자리) */
   .rcar .carwrap { width:var(--fw) !important; margin:0 auto; border-radius:8px; overflow:hidden; } /* 사진 모서리 살짝 둥글게 */
   .rcar .car-n { top:-34px; display:none; }
   .rtc .tstage { width:100%; }
@@ -4018,7 +4019,7 @@ function reelSection(p, owners, fb = {}) {
     const afc = p.author_id ? (au ? `<span class="gfrom" data-au="${p.author_id}" data-done="1">${au.avatar_url ? `<img src="${esc(avSrc(au.avatar_url))}" alt="" referrerpolicy="no-referrer">` : DEFAULT_AV}</span>` : `<span class="gfrom" data-au="${p.author_id}">${DEFAULT_AV}</span>`)
       : `<span class="gfrom${anon ? ' anon' : ''}">${anon ? ANON_AV : DEFAULT_AV}</span>`;
     const aface = p.author_id ? `<a class="rav" href="${feedUrl(p.author_id)}" aria-label="${t('{name} 피드로 가기', { name: esc(p.author_name) })}">${afc}</a>` : `<span class="rav">${afc}</span>`;
-    return `<section class="reel" data-id="${p.id}">
+    return `<section class="reel${!isText(p) && mediaOf(p)[0]?.k !== 'video' ? ' rph' : ''}" data-id="${p.id}">
       ${isText(p) ? `<div class="rbg" style="background:${textTheme(p).bg};filter:none"></div><div class="rmedia rtc">${textStage(p)}</div>` : ''}
       ${isText(p) ? '' : `<i class="ostars rstars" aria-hidden="true"></i><div class="rmedia rcar">${mediaCarousel(p, 'reel')}</div>
         ${mediaOf(p).some(m => m.k === 'video') ? `<button class="rmute" aria-label="${t('소리 켜기/끄기')}">${muted ? I.mute : I.sound}</button>` : ''}`}
