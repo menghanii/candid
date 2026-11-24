@@ -1239,7 +1239,6 @@
   .reels.hide-stk .stk-layer { display:none; }
   .rcar { position:absolute; inset:0; display:flex; align-items:center; padding:0 !important; justify-content:center; }
   .reel .rstars { inset:0; z-index:0; opacity:.55; } /* 게시물 뒤 빈 곳: 궤도처럼 별이 은은하게 */
-  .reel .rcar { transition:transform .2s ease; } .reel.pbshift .rcar { transform:translateY(var(--pbshift)); } /* 배너 자리가 조금 모자라면 사진을 살짝 내림 */
   .rcar .carwrap { width:var(--fw) !important; margin:0 auto; border-radius:8px; overflow:hidden; } /* 사진 모서리 살짝 둥글게 */
   .rcar .car-n { top:-34px; display:none; }
   .rtc .tstage { width:100%; }
@@ -4526,9 +4525,22 @@ var PBAN = { // var: 앱 시작 중 먼저 불려도(창 열기 등) 오류 없�
   get admob() { return ADS.providers.find(p => p.name === 'admob'); },
   available() { return ADS.on && !!me && IN_APP && !!ADS.cfg.admob?.iosBanner && !!this.admob?.inited && !!window.Capacitor?.isPluginAvailable?.('AdMob'); },
   key() { return 'candid_pban_' + new Date().toISOString().slice(0, 10); },
+  dy() { try { return +localStorage.getItem('candid_pban_dy') || 0; } catch { return 0; } }, // 이 기기에서 계산과 실제 배너 위치의 차이(한 번 재서 기억)
+  // 배너가 뜬 뒤: 실제 배너 위치(iPhone 이 알려 줌)를 재서, 사진 위 2px 에 안 맞으면 보정값을 기억하고 한 번만 그 자리로 다시 띄움(사진은 그대로)
+  async fit() {
+    if (!this.want || !this.reel?.isConnected) return;
+    const f = await capPlugin('NativeAds')?.bannerFrame?.().catch(() => null);
+    if (!f?.found || !this.want || !this.reel?.isConnected) return;
+    const off = f.bottom - (this.photoTop - 2); // + 면 사진을 가림, - 면 위로 떠 있음
+    if (Math.abs(off) < 1) return this.why(`맞음: 배너 ${Math.round(f.top)}~${Math.round(f.bottom)}px, 사진 ${Math.round(this.photoTop)}px`);
+    try { localStorage.setItem('candid_pban_dy', String(Math.round(this.dy() - off))); } catch {}
+    if (this.refit++ || f.top - off < this.btnBottom - 1) { this.why('맞출 자리가 없어 숨김'); return this.hide(); }
+    this.y = Math.round(this.y - off); this.why(`위치 보정 ${Math.round(-off)}px 후 다시 띄움`);
+    try { await capPlugin('AdMob').showBanner({ adId: ADS.cfg.admob.iosBanner, adSize: 'ADAPTIVE_BANNER', position: 'TOP_CENTER', margin: -this.y, isTesting: this.admob.testing(), npa: this.admob.npa }); } catch {}
+  },
   why(m) { if (this.cfg.debug && IN_APP) toast('배너: ' + m); }, // 확인용(config.js ADS.banner.debug). 앱에서만(웹에는 배너가 없음)
   today() { try { return +localStorage.getItem(this.key()) || 0; } catch { return 0; } },
-  hide() { this.seq++; this.want = false; document.querySelectorAll('.reel.pbshift').forEach(r => { r.classList.remove('pbshift'); setTimeout(() => placeReelInfo(r), 230); }); if (!this.on) return; this.on = false; capPlugin('AdMob')?.removeBanner().catch(() => {}); },
+  hide() { this.seq++; this.want = false; if (!this.on) return; this.on = false; capPlugin('AdMob')?.removeBanner().catch(() => {}); },
   async consider(R) {
     const seq = ++this.seq, ov = R?.closest('.oreel');
     if (!this.available()) { this.why('준비 안 됨(' + [!ADS.on && '광고 꺼짐', !me && '로그인 안 함', !ADS.cfg.admob?.iosBanner && '배너 ID 없음', !this.admob?.inited && 'AdMob 시작 전'].filter(Boolean).join(', ') + ')'); return this.hide(); }
@@ -4537,24 +4549,23 @@ var PBAN = { // var: 앱 시작 중 먼저 불려도(창 열기 등) 오류 없�
     if (!p || isText(p) || mediaOf(p)[0]?.k === 'video') { this.why('사진 게시물 아님'); return this.hide(); } // 사진 게시물만
     if (!this.pick.has(p.id)) this.pick.set(p.id, Math.random() < this.cfg.chance);
     if (!this.pick.get(p.id)) { this.why('확률 제외'); return this.hide(); }
-    const top = ov.querySelector(':scope > .rtop')?.getBoundingClientRect().bottom || 0, wrap = reel.querySelector('.rcar .carwrap')?.getBoundingClientRect();
+    const btns = [...ov.querySelectorAll(':scope > .rtop .icon-btn')].map(b => b.getBoundingClientRect().bottom); // 위쪽 줄은 버튼 아래 끝까지만(그 아래 빈 여백도 배너 자리로)
+    const top = btns.length ? Math.max(...btns) : (ov.querySelector(':scope > .rtop')?.getBoundingClientRect().bottom || 0), wrap = reel.querySelector('.rcar .carwrap')?.getBoundingClientRect();
     if (this.h == null) this.h = await capPlugin('NativeAds')?.bannerHeight?.().then(r => +r.height || 0).catch(() => 0) || 0; // 배너 높이(기기 너비에 따라 50~90)
     if (!this.h) { this.h = null; this.why('배너 높이를 못 받음'); return; } if (seq !== this.seq) return;
     const space = wrap ? wrap.top - top : 0;
-    // 사진 위가 조금 모자라면 사진을 그만큼만 아래로 내려 자리를 만듦(최대 48px, 사진 아래 글 자리가 남을 때만)
-    const shift = Math.max(0, Math.ceil(this.h + 6 - space));
-    if (shift > 48 || (shift && innerHeight - wrap.bottom < shift + 120)) { this.why(`공간 부족(사진 위 ${Math.round(space)}px < 배너 ${this.h + 6}px, 내릴 자리도 없음)`); return this.hide(); } // 사진 위쪽 빈 곳이 배너보다 작으면 건너뜀
+    if (space < this.h + 4) { this.why(`공간 부족(버튼 아래~사진 위 ${Math.round(space)}px < 배너 ${this.h + 4}px)`); return this.hide(); } // 사진은 움직이지 않음 // 사진 위쪽 빈 곳이 배너보다 작으면 건너뜀
     if (this.on && this.onId === p.id) return; // 이미 이 사진에 떠 있음
     if (Date.now() - this.lastAt < this.cfg.minGapSec * 1000 || this.today() >= this.cfg.dailyCap) { this.why(this.today() >= this.cfg.dailyCap ? '오늘 한도 다 씀' : '간격 대기'); return this.hide(); }
-    const y = Math.round(wrap.top + shift - this.h - 2 - safeArea().top); // 배너 아래쪽이 (내린) 사진 위쪽에서 2px 위(안전 영역 위쪽 기준)
+    const y = Math.round(wrap.top - this.h - 2 - safeArea().top + this.dy()); // 배너 아래쪽이 사진 위쪽에서 2px 위(안전 영역 기준 + 이 기기에서 잰 보정값)
     this.want = true;
-    if (shift) { reel.style.setProperty('--pbshift', shift + 'px'); reel.classList.add('pbshift'); setTimeout(() => placeReelInfo(reel), 230); }
+    this.reel = reel; this.photoTop = wrap.top; this.btnBottom = top; this.refit = 0; this.y = y;
     try { await capPlugin('AdMob').showBanner({ adId: ADS.cfg.admob.iosBanner, adSize: 'ADAPTIVE_BANNER', position: 'TOP_CENTER', margin: -y, isTesting: this.admob.testing(), npa: this.admob.npa }); }
     catch (e) { this.want = false; console.log('[candid] banner ' + (e?.message || e)); this.why('요청 실패 ' + (e?.message || e)); return; }
     if (seq !== this.seq) return; // 그 사이 넘겼으면(hide 가 이미 정리)
     this.on = true; this.onId = p.id; this.lastAt = Date.now();
     try { localStorage.setItem(this.key(), this.today() + 1); } catch {}
-    ADS.log('admob', 'impression', 'candids-banner'); this.why(`요청함(높이 ${this.h}, 위치 ${y}${shift ? `, 사진 ${shift}px 내림` : ''})`);
+    ADS.log('admob', 'impression', 'candids-banner'); this.why(`요청함(높이 ${this.h}, 위치 ${y})`);
   },
 };
 // 하우스 광고 목록(10분 보관) → 가중치로 하나
@@ -4578,7 +4589,7 @@ ADS.register({
     this.npa = st !== 'authorized';
     A.addListener('interstitialAdDismissed', () => { setTimeout(() => this.prepare(), 800); });
     A.addListener('interstitialAdFailedToShow', () => { this.ready = false; this.prepare(); });
-    A.addListener('bannerAdLoaded', () => { if (!PBAN.want) A.removeBanner().catch(() => {}); else PBAN.why('광고 받음 → 표시'); }); // 받는 사이에 넘겼으면 띄우지 않음
+    A.addListener('bannerAdLoaded', () => { if (!PBAN.want) A.removeBanner().catch(() => {}); else { PBAN.why('광고 받음 → 표시'); setTimeout(() => PBAN.fit(), 60); } }); // 받는 사이에 넘겼으면 띄우지 않음. 뜨면 실제 위치에 사진을 맞춤
     A.addListener('bannerAdFailedToLoad', e => PBAN.why('광고 못 받음 ' + (e?.message || e?.code || JSON.stringify(e || {})).slice(0, 60)));
     this.inited = true;
     await this.prepare();
