@@ -1238,6 +1238,7 @@
   .rtc .qa .q { font-size:26px; }
   .reels.hide-stk .stk-layer { display:none; }
   .rcar { position:absolute; inset:0; display:flex; align-items:center; padding:0 !important; justify-content:center; }
+  .reel .rstars { inset:0; z-index:0; opacity:.55; } /* 게시물 뒤 빈 곳: 궤도처럼 별이 은은하게 */
   .rcar .carwrap { width:var(--fw) !important; margin:0 auto; border-radius:8px; overflow:hidden; } /* 사진 모서리 살짝 둥글게 */
   .rcar .car-n { top:-34px; display:none; }
   .rtc .tstage { width:100%; }
@@ -1840,13 +1841,24 @@ function route() {
 }
 
 // 알림을 눌러 들어온 경우: 서비스 워커가 알려준 주소(그룹·대기 피드·사진)로 이동
-function openFromPush(url) {
+async function openFromPush(url) {
   let u; try { u = new URL(url, location.href); } catch { return; }
   LAST_TOUCH = Date.now(); // 돌아왔을 때의 자동 새로고침이 이동을 덮지 않게
   const target = location.pathname + u.search;
-  if (location.pathname + location.search === target) { const pid = u.searchParams.get('p'); if (pid && !document.querySelector('.overlay')) openDeepPost(pid); return; }
-  closeSheet(); document.querySelector('.overlay')?.remove();
+  if (!(await closeAllLayers())) return; // 작성 중이던 걸 지키겠다고 하면 이동하지 않음
+  if (location.pathname + location.search === target) { const pid = u.searchParams.get('p'); if (pid) openDeepPost(pid); return; }
   go(target);
+}
+// 다른 화면으로 바로 갈 때(알림 등): 위에 떠 있던 화면을 모두 닫음 — Candids 보기·작성·사진첩·사진 페이지·시트
+//  (예전에는 시트·사진 페이지만 닫아서, 보던 Candids 보기가 목표 화면을 덮고 있었음). 작성 중이면 먼저 물어봄
+async function closeAllLayers() {
+  if ([...document.querySelectorAll('.page-ov')].some(e => e._dirty?.()) && !(await ask(t('작성 중인 내용이 사라져요. 닫을까요?'), { ok: t('닫기'), danger: true }))) return false;
+  for (const l of [...LAYERS].reverse()) { try { l.close(true, true); } catch {} }
+  LAYERS.length = 0; closeSheet(); FEED_ADS.hide();
+  document.querySelectorAll('.oreel video').forEach(v => v.pause());
+  document.querySelectorAll('.oreel, .overlay, .page-ov, .libw, .ostack, .stk-tag').forEach(e => e.remove());
+  VIEWER = [];
+  return true;
 }
 function listenPushOpen() {
   if (!('serviceWorker' in navigator) || listenPushOpen.on) return; listenPushOpen.on = true;
@@ -2475,19 +2487,12 @@ if (IN_APP) {
   console.log('[candid] native plugins', ['AuthSession', 'MediaPicker', 'App', 'Browser'].map(n => n + ':' + !!window.Capacitor?.isPluginAvailable?.(n) + '/' + typeof capPlugin(n)?.addListener).join(' '));
   capPlugin('App')?.addListener('appUrlOpen', ({ url }) => { if (url?.startsWith(APP_CB)) finishNativeOAuth(url); else openAppLink(url); });
   capPlugin('App')?.getLaunchUrl?.().then(r => { if (r?.url && !r.url.startsWith(APP_CB)) openAppLink(r.url); }).catch(() => {}); // 링크를 눌러 앱이 새로 켜진 경우
-  capPlugin('PushNotifications')?.addListener('pushNotificationActionPerformed', a => { const u = a?.notification?.data?.url; if (u) openPushTarget(u); });
+  capPlugin('PushNotifications')?.addListener('pushNotificationActionPerformed', a => { const u = a?.notification?.data?.url; if (u) openAppLink(u); });
   capPlugin('PushNotifications')?.addListener('registration', t => nativePushToken(t.value));
   capPlugin('PushNotifications')?.addListener('registrationError', e => console.error('[candid] push reg', JSON.stringify(e)));
   capPlugin('Browser')?.addListener('browserFinished', () => setTimeout(() => { if (document.querySelector('.authwait') && !me) cancelAuthWait(); }, 600)); // 로그인 창을 그냥 닫음
 }
 // candid-feed.com 링크(유니버설 링크)·앱 푸시로 앱이 열렸을 때: 앱 안의 그 화면으로(앱 준비가 끝난 뒤)
-// 푸시 알림을 눌렀을 때: 우리 서버가 보낸 알림이라 도메인은 보지 않고 화면 주소(?…)만 씀. 앱이 막 켜지는 중이면 준비될 때까지 기다림
-function openPushTarget(url) {
-  let u; try { u = new URL(url, SITE); } catch { return; }
-  if (!u.search) return;
-  const target = location.pathname + u.search, t0 = Date.now();
-  const iv = setInterval(() => { if (!BOOTED && Date.now() - t0 < 10000) return; clearInterval(iv); openFromPush(target); }, 100);
-}
 function openAppLink(url) {
   let u; try { u = new URL(url, SITE); } catch { return; }
   if (!/candid-feed\.com$|candidcrew\.workers\.dev$/.test(u.hostname) && u.protocol !== 'capacitor:' && !(u.protocol === 'candid:' && u.hostname === 'open')) return;
@@ -4014,7 +4019,7 @@ function reelSection(p, owners, fb = {}) {
     const aface = p.author_id ? `<a class="rav" href="${feedUrl(p.author_id)}" aria-label="${t('{name} 피드로 가기', { name: esc(p.author_name) })}">${afc}</a>` : `<span class="rav">${afc}</span>`;
     return `<section class="reel" data-id="${p.id}">
       ${isText(p) ? `<div class="rbg" style="background:${textTheme(p).bg};filter:none"></div><div class="rmedia rtc">${textStage(p)}</div>` : ''}
-      ${isText(p) ? '' : `<div class="rmedia rcar">${mediaCarousel(p, 'reel')}</div>
+      ${isText(p) ? '' : `<i class="ostars rstars" aria-hidden="true"></i><div class="rmedia rcar">${mediaCarousel(p, 'reel')}</div>
         ${mediaOf(p).some(m => m.k === 'video') ? `<button class="rmute" aria-label="${t('소리 켜기/끄기')}">${muted ? I.mute : I.sound}</button>` : ''}`}
       <div class="rburst">${I.heartOn}</div>
       <div class="rinfo">
@@ -4818,6 +4823,7 @@ async function openCompose(mi = 0, asked = false, mode = 'media', pick = false) 
   const $ = s => el.querySelector(s);
   const $send = $('#send'), $file = $('#file');
   const dirty = () => media || [...el.querySelectorAll('#text, #pq, #qq, #opts input')].some(i => i.value.trim());
+  el._dirty = dirty; // 알림으로 다른 화면에 갈 때 작성 중인지 확인용
   // 닫기(✕ · 뒤로가기): 작성 중이면 확인
   const close = (fromPop, force) => {
     if (!document.body.contains(el)) return dropLayer('compose');
