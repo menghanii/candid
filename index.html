@@ -953,7 +953,7 @@
   .rown .gav.xs { border-radius:30%; }
   /* 메시지 위 댓글 말풍선(하나씩 올라옴) */
   .rcpeek { position:absolute; left:0; right:0; bottom:calc(100% + 8px); height:46px; } /* 글 위에 떠 있음: 댓글이 있든 없든 메시지·from 자리는 같음 */
-  .rcb { position:absolute; left:0; bottom:0; max-width:calc(100% - 56px); display:flex; align-items:center; gap:8px; padding:6px 12px 6px 6px; border:0; border-radius:18px; background:rgba(0,0,0,.45); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); color:#fff; font:500 13px/1.32 var(--sans); text-align:left; text-shadow:none; transition:transform .4s ease, opacity .4s ease; -webkit-tap-highlight-color:transparent; }
+  .rcb { position:absolute; left:0; bottom:0; max-width:calc(100% - 56px); display:flex; align-items:center; gap:8px; padding:6px 12px 6px 6px; border:0; border-radius:18px; background:rgba(72,72,82,.62); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); color:#fff; font:500 13px/1.32 var(--sans); text-align:left; text-shadow:none; transition:transform .4s ease, opacity .4s ease; -webkit-tap-highlight-color:transparent; }
   .rcb.enter { opacity:0; transform:translateY(14px); }
   .rcb.leave { opacity:0; transform:translateY(-14px); pointer-events:none; }
   .rcb-av { flex:none; width:26px; height:26px; border-radius:50%; overflow:hidden; background:#3a3a3e; }
@@ -1238,7 +1238,7 @@
   .rtc .qa .q { font-size:26px; }
   .reels.hide-stk .stk-layer { display:none; }
   .rcar { position:absolute; inset:0; display:flex; align-items:center; padding:0 !important; justify-content:center; }
-  .rcar .carwrap { width:var(--fw) !important; margin:0 auto; }
+  .rcar .carwrap { width:var(--fw) !important; margin:0 auto; border-radius:8px; overflow:hidden; } /* 사진 모서리 살짝 둥글게 */
   .rcar .car-n { top:-34px; display:none; }
   .rtc .tstage { width:100%; }
   .rcar .stage { margin:0 auto; width:100% !important; }
@@ -1261,7 +1261,7 @@
   .rcar .rmulti svg { width:11px; height:11px; }
   .rcar .rmulti b { font-weight:500; }
   /* ===== 사진 격자 (한 곳에 모음) ===== */
-  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; padding-top:2px; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; padding-top:1px; }
   .grid button { padding:0; border:0; aspect-ratio:3/4; background:var(--soft); overflow:hidden; position:relative; container-type:inline-size; }
   .grid img { width:100%; height:100%; object-fit:cover; display:block; transition:transform .3s, opacity .3s; }
   .grid button:hover img { transform:scale(1.03); opacity:.92; }
@@ -1584,7 +1584,7 @@ function kerr(e) {
   if (/does not exist|not find|42P01|42883|PGRST20[0-9]/i.test(m)) return t('이 기능은 준비 중이에요. 잠시 후 다시 시도해 주세요');
   if (/send_login_required/.test(m)) return t('이 친구는 로그인한 사람에게만 사진을 받아요');
   if (/send_friends_only/.test(m)) return t('이 친구는 친구로 추가한 사람에게만 사진을 받아요');
-  if (/send_no_anon/.test(m)) return t('이 친구는 익명으로 받지 않아요. 이름으로 보내 주세요');
+  if (/send_no_anon/.test(m)) return t(me ? '이 친구는 익명으로 받지 않아요. 이름으로 보내 주세요' : '이 친구는 익명으로 받지 않아요. 로그인하면 보낼 수 있어요');
   if (/send_blocked/.test(m)) return t('이 피드에는 보낼 수 없어요');
   if (/group_limit/.test(m)) return t('그룹은 1인당 {n}개까지 만들 수 있어요', { n: GROUP_OWN_MAX });
   if (/daily_limit/.test(m)) return t('오늘은 더 올릴 수 없어요 · 이 그룹은 하루 {n}개까지예요', { n: e?.hint || G.g?.daily_limit || 10 });
@@ -2010,6 +2010,7 @@ async function sendPost(row) {
 async function canSendTo(prof) {
   const pol = prof?.send_policy || 'anyone';
   if (pol === 'login' && !me) { loginSheet(t('{name}님은 로그인한 친구에게만 사진을 받아요', { name: esc(prof.name) })); return false; }
+  if (prof?.allow_anon === false && !me && prof.id !== me?.id) { loginSheet(t('{name}님은 익명으로 받지 않아요. 로그인하면 보낼 수 있어요', { name: esc(prof.name) })); return false; } // 로그인 없이 이름만 적어 보내는 것도 익명
   if (pol === 'friends' && prof.id !== me?.id) {
     if (!me) { loginSheet(t('{name}님은 친구에게만 사진을 받아요', { name: esc(prof.name) })); return false; }
     const { data } = await sb.from('follows').select('follower_id').eq('follower_id', prof.id).eq('followee_id', me.id).maybeSingle();
@@ -2474,12 +2475,19 @@ if (IN_APP) {
   console.log('[candid] native plugins', ['AuthSession', 'MediaPicker', 'App', 'Browser'].map(n => n + ':' + !!window.Capacitor?.isPluginAvailable?.(n) + '/' + typeof capPlugin(n)?.addListener).join(' '));
   capPlugin('App')?.addListener('appUrlOpen', ({ url }) => { if (url?.startsWith(APP_CB)) finishNativeOAuth(url); else openAppLink(url); });
   capPlugin('App')?.getLaunchUrl?.().then(r => { if (r?.url && !r.url.startsWith(APP_CB)) openAppLink(r.url); }).catch(() => {}); // 링크를 눌러 앱이 새로 켜진 경우
-  capPlugin('PushNotifications')?.addListener('pushNotificationActionPerformed', a => { const u = a?.notification?.data?.url; if (u) openAppLink(u); });
+  capPlugin('PushNotifications')?.addListener('pushNotificationActionPerformed', a => { const u = a?.notification?.data?.url; if (u) openPushTarget(u); });
   capPlugin('PushNotifications')?.addListener('registration', t => nativePushToken(t.value));
   capPlugin('PushNotifications')?.addListener('registrationError', e => console.error('[candid] push reg', JSON.stringify(e)));
   capPlugin('Browser')?.addListener('browserFinished', () => setTimeout(() => { if (document.querySelector('.authwait') && !me) cancelAuthWait(); }, 600)); // 로그인 창을 그냥 닫음
 }
 // candid-feed.com 링크(유니버설 링크)·앱 푸시로 앱이 열렸을 때: 앱 안의 그 화면으로(앱 준비가 끝난 뒤)
+// 푸시 알림을 눌렀을 때: 우리 서버가 보낸 알림이라 도메인은 보지 않고 화면 주소(?…)만 씀. 앱이 막 켜지는 중이면 준비될 때까지 기다림
+function openPushTarget(url) {
+  let u; try { u = new URL(url, SITE); } catch { return; }
+  if (!u.search) return;
+  const target = location.pathname + u.search, t0 = Date.now();
+  const iv = setInterval(() => { if (!BOOTED && Date.now() - t0 < 10000) return; clearInterval(iv); openFromPush(target); }, 100);
+}
 function openAppLink(url) {
   let u; try { u = new URL(url, SITE); } catch { return; }
   if (!/candid-feed\.com$|candidcrew\.workers\.dev$/.test(u.hostname) && u.protocol !== 'capacitor:' && !(u.protocol === 'candid:' && u.hostname === 'open')) return;
@@ -3826,7 +3834,7 @@ function warpOut(ov) {
   const f = v0.querySelector(`.orb[data-k="${CSS.escape(w.k)}"] .oface`)?.getBoundingClientRect();
   const cx = f ? f.left + f.width / 2 : w.cx, cy = f ? f.top + f.height / 2 : w.cy, size = f ? f.width : w.w;
   ov.style.setProperty('--wx', cx + 'px'); ov.style.setProperty('--wy', cy + 'px'); ov.style.setProperty('--ws', (size / Math.max(innerWidth, innerHeight)).toFixed(3));
-  ov.classList.add('warpout'); setTimeout(() => ov.remove(), 290);
+  ov.style.animation = ''; ov.classList.add('warpout'); setTimeout(() => ov.remove(), 290);
   requestAnimationFrame(() => { // 닫으면서 궤도를 다시 그렸을 수도 있어 새로 찾음
     const v = document.getElementById('orbitv'); if (!v) return;
     const og = v.querySelector('.ogal'), st = v.querySelector('.ostars');
@@ -3863,6 +3871,7 @@ function openReelViewer({ list, title, face, link, extraOwner, startId, restore,
     const w = ov._warp = WARP_FROM; WARP_FROM = null;
     ov.style.setProperty('--wx', w.cx + 'px'); ov.style.setProperty('--wy', w.cy + 'px'); ov.style.setProperty('--ws', (w.w / Math.max(innerWidth, innerHeight)).toFixed(3));
     ov.classList.add('warpin'); // 끝나도 빼지 않음: 빼면 기본 나타나기(fade)가 처음부터 다시 돌아 뒤 화면이 한 번 비침
+    ov.addEventListener('animationend', e => { if (e.target === ov && e.animationName === 'win') ov.style.animation = 'none'; }); // 끝난 뒤 효과를 꺼 둠(밀어서 닫을 때 손가락을 따라 움직이게)
   }
   document.body.appendChild(ov);
   const $r = ov.querySelector('#sreels');

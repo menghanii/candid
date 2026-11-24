@@ -959,6 +959,8 @@
  "길게 눌러 순서를 바꾸고, 빼거나 더할 수 있어요(최대 10장)": "Press and hold to reorder, remove or add photos (up to 10)",
  "{n}장 더": "{n} more",
  "다음 사진 보기": "Next photo",
+ "{name}님은 익명으로 받지 않아요. 로그인하면 보낼 수 있어요": "{name} doesn't accept anonymous photos. Sign in to send one.",
+ "이 친구는 익명으로 받지 않아요. 로그인하면 보낼 수 있어요": "This friend doesn't accept anonymous photos. Sign in to send one.",
  "사진만 고를 수 있어요": "You can only pick photos",
  "iCloud에서 받는 중 {p}%": "Downloading from iCloud {p}%",
 };
