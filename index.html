@@ -4525,7 +4525,7 @@ var PBAN = { // var: 앱 시작 중 먼저 불려도(창 열기 등) 오류 없�
   get admob() { return ADS.providers.find(p => p.name === 'admob'); },
   available() { return ADS.on && !!me && IN_APP && !!ADS.cfg.admob?.iosBanner && !!this.admob?.inited && !!window.Capacitor?.isPluginAvailable?.('AdMob'); },
   key() { return 'candid_pban_' + new Date().toISOString().slice(0, 10); },
-  why(m) { if (this.cfg.debug) toast('배너: ' + m); }, // 확인용(config.js ADS.banner.debug)
+  why(m) { if (this.cfg.debug && IN_APP) toast('배너: ' + m); }, // 확인용(config.js ADS.banner.debug). 앱에서만(웹에는 배너가 없음)
   today() { try { return +localStorage.getItem(this.key()) || 0; } catch { return 0; } },
   hide() { this.seq++; this.want = false; if (!this.on) return; this.on = false; capPlugin('AdMob')?.removeBanner().catch(() => {}); },
   async consider(R) {
