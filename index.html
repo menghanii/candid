@@ -1238,8 +1238,7 @@
   .rtc .qa .q { font-size:26px; }
   .reels.hide-stk .stk-layer { display:none; }
   .rcar { position:absolute; inset:0; display:flex; align-items:center; padding:0 !important; justify-content:center; }
-  .reel .rstars { inset:0; z-index:0; opacity:.55; }
-  .reel.pban .rcar .carwrap { border-top-left-radius:0; border-top-right-radius:0; } /* 위에 배너가 붙으면 그쪽 모서리는 각지게 */ /* 게시물 뒤 빈 곳: 궤도처럼 별이 은은하게 */
+  .reel .rstars { inset:0; z-index:0; opacity:.55; } /* 게시물 뒤 빈 곳: 궤도처럼 별이 은은하게 */
   .rcar .carwrap { width:var(--fw) !important; margin:0 auto; border-radius:8px; overflow:hidden; } /* 사진 모서리 살짝 둥글게 */
   .rcar .car-n { top:-34px; display:none; }
   .rtc .tstage { width:100%; }
@@ -4517,7 +4516,7 @@ const ADS = {
   },
   log(provider, kind, placement, adId = null) { if (PERF) console.log(`[candid] ad ${kind} ${provider} ${placement}`); sb.rpc('log_ad_event', { p_provider: provider, p_kind: kind, p_placement: placement, p_ad: adId }).then(() => {}, () => {}); },
 };
-// Candids 사진 위 배너(iOS 앱, AdMob 화면 너비 적응형 배너): 사진 위쪽에 딱 붙어 좌우 끝까지
+// Candids 사진 위 배너(iOS 앱, AdMob 화면 너비 적응형 배너): 사진 위쪽에서 2px 떨어져 좌우 끝까지
 //  사진 게시물에 멈추면 정해진 확률로만(같은 게시물은 한 번 정한 결과 그대로), 사진 위쪽 빈 곳이 배너보다 넉넉할 때만(사진을 가리지 않게 — AdMob 정책)
 //  넘기는 동안·창을 열 때·보기를 닫을 때는 숨김. 최소 간격·하루 최대는 config.js ADS.banner. 개발용 앱은 시험 광고
 var PBAN = { // var: 앱 시작 중 먼저 불려도(창 열기 등) 오류 없이 넘어가게
@@ -4527,7 +4526,7 @@ var PBAN = { // var: 앱 시작 중 먼저 불려도(창 열기 등) 오류 없�
   available() { return ADS.on && !!me && IN_APP && !!ADS.cfg.admob?.iosBanner && !!this.admob?.inited && !!window.Capacitor?.isPluginAvailable?.('AdMob'); },
   key() { return 'candid_pban_' + new Date().toISOString().slice(0, 10); },
   today() { try { return +localStorage.getItem(this.key()) || 0; } catch { return 0; } },
-  hide() { this.seq++; this.want = false; document.querySelectorAll('.reel.pban').forEach(r => r.classList.remove('pban')); if (!this.on) return; this.on = false; capPlugin('AdMob')?.removeBanner().catch(() => {}); },
+  hide() { this.seq++; this.want = false; if (!this.on) return; this.on = false; capPlugin('AdMob')?.removeBanner().catch(() => {}); },
   async consider(R) {
     const seq = ++this.seq, ov = R?.closest('.oreel');
     if (!this.available() || !ov || !ov.isConnected || ov.classList.contains('warpout') || document.querySelector('.sheet-wrap, .overlay.page')) return this.hide();
@@ -4538,15 +4537,15 @@ var PBAN = { // var: 앱 시작 중 먼저 불려도(창 열기 등) 오류 없�
     const top = ov.querySelector(':scope > .rtop')?.getBoundingClientRect().bottom || 0, wrap = reel.querySelector('.rcar .carwrap')?.getBoundingClientRect();
     if (this.h == null) this.h = await capPlugin('NativeAds')?.bannerHeight?.().then(r => +r.height || 0).catch(() => 0) || 0; // 배너 높이(기기 너비에 따라 50~90)
     if (!this.h || seq !== this.seq) return;
-    const space = wrap ? wrap.top - top : 0; if (space < this.h + 4) return this.hide(); // 사진 위쪽 빈 곳이 배너보다 작으면 건너뜀
+    const space = wrap ? wrap.top - top : 0; if (space < this.h + 6) return this.hide(); // 사진 위쪽 빈 곳이 배너보다 작으면 건너뜀
     if (this.on && this.onId === p.id) return; // 이미 이 사진에 떠 있음
     if (Date.now() - this.lastAt < this.cfg.minGapSec * 1000 || this.today() >= this.cfg.dailyCap) return this.hide();
-    const y = Math.round(wrap.top - this.h - safeArea().top); // 배너 아래쪽 = 사진 위쪽(안전 영역 위쪽 기준)
+    const y = Math.round(wrap.top - this.h - 2 - safeArea().top); // 배너 아래쪽이 사진 위쪽에서 2px 위(안전 영역 위쪽 기준)
     this.want = true;
     try { await capPlugin('AdMob').showBanner({ adId: ADS.cfg.admob.iosBanner, adSize: 'ADAPTIVE_BANNER', position: 'TOP_CENTER', margin: -y, isTesting: this.admob.testing(), npa: this.admob.npa }); }
     catch (e) { this.want = false; console.log('[candid] banner ' + (e?.message || e)); return; }
     if (seq !== this.seq) return; // 그 사이 넘겼으면(hide 가 이미 정리)
-    this.on = true; this.onId = p.id; this.lastAt = Date.now(); reel.classList.add('pban'); // 붙는 쪽 사진 모서리는 각지게
+    this.on = true; this.onId = p.id; this.lastAt = Date.now();
     try { localStorage.setItem(this.key(), this.today() + 1); } catch {}
     ADS.log('admob', 'impression', 'candids-banner');
   },
