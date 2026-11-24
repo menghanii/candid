@@ -4549,7 +4549,7 @@ var PBAN = { // var: 앱 시작 중 먼저 불려도(창 열기 등) 오류 없�
     if (!p || isText(p) || mediaOf(p)[0]?.k === 'video') { this.why('사진 게시물 아님'); return this.hide(); } // 사진 게시물만
     if (!this.pick.has(p.id)) this.pick.set(p.id, Math.random() < this.cfg.chance);
     if (!this.pick.get(p.id)) { this.why('확률 제외'); return this.hide(); }
-    const btns = [...ov.querySelectorAll(':scope > .rtop .icon-btn')].map(b => b.getBoundingClientRect().bottom); // 위쪽 줄은 버튼 아래 끝까지만(그 아래 빈 여백도 배너 자리로)
+    const btns = [...ov.querySelectorAll(':scope > .rtop .icon-btn')].map(b => (b.querySelector('svg') || b).getBoundingClientRect().bottom); // 위쪽 줄은 눈에 보이는 아이콘 아래 끝까지만(누르는 칸의 투명한 아래 여백도 배너 자리로)
     const top = btns.length ? Math.max(...btns) : (ov.querySelector(':scope > .rtop')?.getBoundingClientRect().bottom || 0), wrap = reel.querySelector('.rcar .carwrap')?.getBoundingClientRect();
     if (this.h == null) this.h = await capPlugin('NativeAds')?.bannerHeight?.().then(r => +r.height || 0).catch(() => 0) || 0; // 배너 높이(기기 너비에 따라 50~90)
     if (!this.h) { this.h = null; this.why('배너 높이를 못 받음'); return; } if (seq !== this.seq) return;
