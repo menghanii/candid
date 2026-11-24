@@ -1854,7 +1854,7 @@ async function openFromPush(url) {
 async function closeAllLayers() {
   if ([...document.querySelectorAll('.page-ov')].some(e => e._dirty?.()) && !(await ask(t('작성 중인 내용이 사라져요. 닫을까요?'), { ok: t('닫기'), danger: true }))) return false;
   for (const l of [...LAYERS].reverse()) { try { l.close(true, true); } catch {} }
-  LAYERS.length = 0; closeSheet(); FEED_ADS.hide();
+  LAYERS.length = 0; closeSheet(); FEED_ADS.hide(); PBAN?.hide();
   document.querySelectorAll('.oreel video').forEach(v => v.pause());
   document.querySelectorAll('.oreel, .overlay, .page-ov, .libw, .ostack, .stk-tag').forEach(e => e.remove());
   VIEWER = [];
@@ -2281,7 +2281,7 @@ document.addEventListener('click', e => {
   if (ore?._desc) { const R = ore.querySelector('#sreels'), V = R.getBoundingClientRect(); const cur = curReel(R); saveViewState({ viewer: { ...ore._desc, startId: cur?.dataset.id || ore._desc.startId } }); }
   else if (pg?.dataset.pid) saveViewState({ postId: pg.dataset.pid });
   if (a.closest('.overlay, .sheet-wrap')) { document.querySelector('.overlay')?.remove(); closeSheet(); } // 게시물·시트 안의 링크(작성자·댓글 단 사람 등): 닫고 이동
-  if (ore) { dropLayer('oreel'); FEED_ADS.hide(); document.querySelectorAll('.oreel').forEach(o => o.remove()); VIEWER = []; } // Candids 보기 안의 링크(from 이름 등): 보기를 닫고 이동(뒤로 오면 다시 열림)
+  if (ore) { dropLayer('oreel'); FEED_ADS.hide(); PBAN?.hide(); document.querySelectorAll('.oreel').forEach(o => o.remove()); VIEWER = []; } // Candids 보기 안의 링크(from 이름 등): 보기를 닫고 이동(뒤로 오면 다시 열림)
   go(u.href);
 });
 
@@ -3901,12 +3901,13 @@ function openReelViewer({ list, title, face, link, extraOwner, startId, restore,
     $r.querySelectorAll('.reel[data-id]').forEach(r => { const s = r.querySelector('.rcpeek'); if (s && CPEEK.get(r.dataset.id)?.length) s.hidden = false; });
     $r._cpId = undefined; startPeek($r);
   }).catch(() => {});
-  $r.addEventListener('scroll', () => { clearTimeout($r._cpS); $r._cpS = setTimeout(() => startPeek($r), 250); }, { passive: true });
+  $r.addEventListener('scroll', () => { PBAN?.hide(); clearTimeout($r._cpS); $r._cpS = setTimeout(() => { startPeek($r); PBAN.consider($r); }, 250); }, { passive: true });
+  setTimeout(() => PBAN.consider($r), 700); // 열린 뒤(워프 인이 끝난 뒤) 첫 사진
   ov.addEventListener('click', e => { const b = e.target.closest('.rcb'); if (b) b.closest('.reel')?.querySelector('[data-cmt]')?.click(); }); // 말풍선 누르면 댓글 창
   loadStickers(list.map(p => p.id)).then(() => list.forEach(p => refreshStickerLayers(p.id))).catch(() => {});
   // 뒤로가기(제스처·버튼)로 닫힘
   // 닫을 때 지나온 칸·지금 칸을 바로 '본 것'으로(닫은 뒤 몰래 기록되지는 않게)
-  const close = () => { dropLayer('oreel'); if (!ov.isConnected) return; clearInterval($r._cpT); clearTimeout($r._cpS); $r._io?.disconnect(); clearTimeout($r._seenT); try { $r._settle?.(); $r._flush?.(); } catch {} clearTimeout($r._seenT); $r.querySelectorAll('.reel').forEach(x => clearTimeout(x._seenT)); FEED_ADS.hide(); ov.querySelectorAll('video').forEach(v => v.pause()); warpOut(ov); VIEWER = [];
+  const close = () => { dropLayer('oreel'); if (!ov.isConnected) return; PBAN?.hide(); clearInterval($r._cpT); clearTimeout($r._cpS); $r._io?.disconnect(); clearTimeout($r._seenT); try { $r._settle?.(); $r._flush?.(); } catch {} clearTimeout($r._seenT); $r.querySelectorAll('.reel').forEach(x => clearTimeout(x._seenT)); FEED_ADS.hide(); ov.querySelectorAll('video').forEach(v => v.pause()); warpOut(ov); VIEWER = [];
     if (CACHE.home && document.getElementById('orbitv')) paintHome(CACHE.home);
     if (document.querySelector('.grid .gnew')) document.querySelectorAll('.grid button[data-pid]').forEach(b => { if (lsGet(SEEN_KEY)[b.dataset.pid]) b.querySelector('.gnew')?.remove(); }); };
   if (restore && history.state?.oreel) pushLayer('oreel', close, true); else { history.replaceState({ ...(history.state || {}), viewer: undefined }, ''); pushLayer('oreel', close); }
@@ -4349,6 +4350,7 @@ const findAny = id => findPost(id) || HOME.posts.find(x => x.id === id) || VIEWE
 const findPost = id => [...(G.g && !document.querySelector('#reels') ? G.posts : []), ...(S.approved || []), ...(S.pending || []), ...(S.hidden || [])].find(x => x.id === id);
 
 function openPost(id) {
+  PBAN?.hide(); // 위에 뜨는 화면을 배너가 가리지 않게
   const fromHome = !findPost(id);
   const p = findPost(id) || HOME.posts?.find(x => x.id === id); if (!p) return; // 궤도의 사진 더미에서 연 게시물
   markSeen(id); document.querySelectorAll(`[onclick="openPost('${id}')"] .gnew`).forEach(e => e.remove());
@@ -4409,6 +4411,7 @@ function openPost(id) {
 // guard: 배경을 눌러 닫기 전에 호출, false 를 돌려주면 닫지 않음
 // opts.top: 위에서 내려오는 패널(상단 메뉴에서 여는 친구 검색 등)
 function sheet(html, guard, opts = {}) {
+  PBAN?.hide(); // 창이 배너에 가리지 않게
   closeSheet();
   const w = document.createElement('div');
   w.className = 'sheet-wrap' + (opts.top ? ' from-top' : '');
@@ -4513,6 +4516,38 @@ const ADS = {
   },
   log(provider, kind, placement, adId = null) { if (PERF) console.log(`[candid] ad ${kind} ${provider} ${placement}`); sb.rpc('log_ad_event', { p_provider: provider, p_kind: kind, p_placement: placement, p_ad: adId }).then(() => {}, () => {}); },
 };
+// Candids 사진 위 얇은 배너(iOS 앱, AdMob 배너 320×50)
+//  사진 게시물에 멈추면 정해진 확률로만(같은 게시물은 한 번 정한 결과 그대로), 사진 위쪽 빈 곳이 배너보다 넉넉할 때만(사진을 가리지 않게 — AdMob 정책)
+//  넘기는 동안·창을 열 때·보기를 닫을 때는 숨김. 최소 간격·하루 최대는 config.js ADS.banner. 개발용 앱은 시험 광고
+var PBAN = { // var: 앱 시작 중 먼저 불려도(창 열기 등) 오류 없이 넘어가게
+  pick: new Map(), on: false, want: false, lastAt: 0, seq: 0,
+  get cfg() { return { chance: 0.2, minGapSec: 30, dailyCap: 30, ...(ADS.cfg.banner || {}) }; },
+  get admob() { return ADS.providers.find(p => p.name === 'admob'); },
+  available() { return ADS.on && !!me && IN_APP && !!ADS.cfg.admob?.iosBanner && !!this.admob?.inited && !!window.Capacitor?.isPluginAvailable?.('AdMob'); },
+  key() { return 'candid_pban_' + new Date().toISOString().slice(0, 10); },
+  today() { try { return +localStorage.getItem(this.key()) || 0; } catch { return 0; } },
+  hide() { this.seq++; this.want = false; if (!this.on) return; this.on = false; capPlugin('AdMob')?.removeBanner().catch(() => {}); },
+  async consider(R) {
+    const seq = ++this.seq, ov = R?.closest('.oreel');
+    if (!this.available() || !ov || !ov.isConnected || ov.classList.contains('warpout') || document.querySelector('.sheet-wrap, .overlay.page')) return this.hide();
+    const reel = curReel(R), p = reel && findAny(reel.dataset.id);
+    if (!p || isText(p) || mediaOf(p)[0]?.k === 'video') return this.hide(); // 사진 게시물만
+    if (!this.pick.has(p.id)) this.pick.set(p.id, Math.random() < this.cfg.chance);
+    if (!this.pick.get(p.id)) return this.hide();
+    const top = ov.querySelector(':scope > .rtop')?.getBoundingClientRect().bottom || 0, wrap = reel.querySelector('.rcar .carwrap')?.getBoundingClientRect();
+    const space = wrap ? wrap.top - top : 0; if (space < 62) return this.hide(); // 사진 위쪽 빈 곳이 배너(50)+여백보다 작으면 건너뜀
+    if (this.on && this.onId === p.id) return; // 이미 이 사진에 떠 있음
+    if (Date.now() - this.lastAt < this.cfg.minGapSec * 1000 || this.today() >= this.cfg.dailyCap) return this.hide();
+    const y = Math.round(top + (space - 50) / 2 - safeArea().top); // 빈 곳 가운데(안전 영역 위쪽 기준)
+    this.want = true;
+    try { await capPlugin('AdMob').showBanner({ adId: ADS.cfg.admob.iosBanner, adSize: 'BANNER', position: 'TOP_CENTER', margin: -y, isTesting: this.admob.testing(), npa: this.admob.npa }); }
+    catch (e) { this.want = false; console.log('[candid] banner ' + (e?.message || e)); return; }
+    if (seq !== this.seq) return; // 그 사이 넘겼으면(hide 가 이미 정리)
+    this.on = true; this.onId = p.id; this.lastAt = Date.now();
+    try { localStorage.setItem(this.key(), this.today() + 1); } catch {}
+    ADS.log('admob', 'impression', 'candids-banner');
+  },
+};
 // 하우스 광고 목록(10분 보관) → 가중치로 하나
 let HOUSE = { list: null, at: 0 };
 async function pickHouseAd() {
@@ -4534,6 +4569,8 @@ ADS.register({
     this.npa = st !== 'authorized';
     A.addListener('interstitialAdDismissed', () => { setTimeout(() => this.prepare(), 800); });
     A.addListener('interstitialAdFailedToShow', () => { this.ready = false; this.prepare(); });
+    A.addListener('bannerAdLoaded', () => { if (!PBAN.want) A.removeBanner().catch(() => {}); }); // 받는 사이에 넘겼으면 띄우지 않음
+    this.inited = true;
     await this.prepare();
   },
   async prepare() {
@@ -5823,6 +5860,7 @@ function initCarousels(root, autoplay) {
 
 // 스티커 꾸미기 편집기: 가챠로 뽑은 스티커만, 내 스티커만 옮기기·떼기(남의 스티커는 피드 주인도 못 건드림), 승인 없음
 async function openDecorate(postId, idx0) {
+  PBAN?.hide(); // 위에 뜨는 화면을 배너가 가리지 않게
   if (!me) return toast(t('로그인하면 스티커로 꾸밀 수 있어요'));
   const p = findAny(postId); if (!p) return;
   if (p.group_id && !canDecorateGroup(p.group_id)) return toast(t('그룹을 팔로우하거나 멤버가 되면 꾸밀 수 있어요'));

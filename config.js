@@ -11,5 +11,6 @@ window.FG_CONFIG = {
   //   admob.iosNative: 네이티브 광고 단위 ID(비어 있으면 출시용 앱은 하우스 광고만. 개발용 앱은 Google 시험 광고)
   ADS: { enabled: true, house: true, feed: { first: 3, every: 5 },
          interstitial: false, every: 8, minGapSec: 90, dailyCap: 12,
-         admob: { iosInterstitial: 'ca-app-pub-5294097797182712/1457522986', iosNative: 'ca-app-pub-5294097797182712/8539157847' } }, // testing 을 안 적으면: 개발용 앱은 시험 광고, 출시용(npm run release)은 실제 광고
+         banner: { chance: 0.2, minGapSec: 30, dailyCap: 30 }, // Candids 사진 위 얇은 배너: 사진에 멈출 때 확률·최소 간격(초)·하루 최대
+         admob: { iosInterstitial: 'ca-app-pub-5294097797182712/1457522986', iosNative: 'ca-app-pub-5294097797182712/8539157847', iosBanner: 'ca-app-pub-5294097797182712/6792522402' } }, // testing 을 안 적으면: 개발용 앱은 시험 광고, 출시용(npm run release)은 실제 광고
 };
