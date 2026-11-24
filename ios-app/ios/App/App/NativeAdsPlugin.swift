@@ -6,6 +6,7 @@ import GoogleMobileAds
 // 웹 화면에 '광고 자리'가 있고, 그 자리가 화면에 오면 여기서 Google 광고 보기(NativeAdView)를 정확히 그 위에 겹쳐 그림.
 //  · load: 광고를 몇 개 미리 받아 두고 id 목록을 돌려줌
 //  · show: 받아 둔 광고 하나를 웹이 알려준 위치(rect)에 그림 / hide: 치움 / discard: 다 쓴 광고 버림
+//  · bannerHeight: 화면 너비 배너의 높이(사진 위 배너 자리 계산용)
 //  · 광고 위에서 위아래로 밀면 'swipe' 이벤트(dir: 1 다음, -1 이전)를 웹에 보내 웹이 앞뒤 사진으로 넘김
 @objc(NativeAdsPlugin)
 public class NativeAdsPlugin: CAPPlugin, CAPBridgedPlugin, NativeAdLoaderDelegate, NativeAdDelegate {
@@ -16,6 +17,7 @@ public class NativeAdsPlugin: CAPPlugin, CAPBridgedPlugin, NativeAdLoaderDelegat
         CAPPluginMethod(name: "show", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "hide", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "discard", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "bannerHeight", returnType: CAPPluginReturnPromise),
     ]
     private var loader: AdLoader?
     private var loadCall: CAPPluginCall?
@@ -24,6 +26,17 @@ public class NativeAdsPlugin: CAPPlugin, CAPBridgedPlugin, NativeAdLoaderDelegat
     private var adView: NativeAdView?
     private var shownId: String?
     static let testUnit = "ca-app-pub-3940256099942544/3986624511" // Google 시험용 네이티브 광고
+
+    // ---------- 화면 너비 배너(적응형) 높이 ----------
+    // AdMob 배너(@capacitor-community/admob 의 ADAPTIVE_BANNER)와 같은 계산으로 높이를 미리 알려 줌
+    // → 웹이 배너 아래쪽을 사진 위에 딱 붙도록 자리를 계산할 수 있게
+    @objc func bannerHeight(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            guard let v = self.bridge?.viewController?.view else { call.resolve(["height": 0]); return }
+            let w = v.frame.inset(by: v.safeAreaInsets).size.width
+            call.resolve(["height": currentOrientationAnchoredAdaptiveBanner(width: w).size.height, "width": w])
+        }
+    }
 
     // ---------- 받기 ----------
     @objc func load(_ call: CAPPluginCall) {
