@@ -41,17 +41,24 @@ export default {
     if (url.pathname.startsWith('/a/')) return req.method === 'PUT' || req.method === 'OPTIONS' ? mediaApi(req, url, env).catch(() => json({ error: 'server' }, 500)) : media(req, url, env, ctx);
     if (url.pathname.startsWith('/upload/') || url.pathname.startsWith('/media/')) return mediaApi(req, url, env).catch(() => json({ error: 'server' }, 500));
     if (url.pathname === '/.well-known/apple-app-site-association' || url.pathname === '/apple-app-site-association') return Response.json(AASA, { headers: { 'Cache-Control': 'public, max-age=3600' } });
+    // 검색: /terms.html·/index.html 같은 주소는 깔끔한 주소로 영구 이동(301)
+    if (url.pathname.endsWith('.html')) return Response.redirect(`${url.origin}${url.pathname.replace(/(index)?\.html$/, '')}${url.search}`, 301);
     const res = await env.ASSETS.fetch(req);
-    const og = ogFor(url);
-    if (!og || !(res.headers.get('content-type') || '').includes('text/html')) return res;
+    if (!(res.headers.get('content-type') || '').includes('text/html') || res.status !== 200) return res;
+    const og = ogFor(url), rw = new HTMLRewriter();
+    // 검색: 친구 피드·초대 같은 링크(?u=… 등)는 검색에 안 나오게, 깔끔한 주소는 "진짜 주소"(canonical) 표시
+    if (url.search) rw.on('head', { element(e) { e.append('<meta name="robots" content="noindex">', { html: true }); } });
+    else rw.on('head', { element(e) { e.append(`<link rel="canonical" href="https://candid-feed.com${url.pathname}">`, { html: true }); } });
+    const out = res => { if (!url.search) return res; const r = new Response(res.body, res); r.headers.set('X-Robots-Tag', 'noindex'); return r; };
+    if (!og) return out(rw.transform(res));
     // 링크 종류에 맞는 미리보기(카톡·메시지에 뜨는 제목·설명·썸네일)
     const set = v => ({ element(e) { e.setAttribute('content', v); } });
-    return new HTMLRewriter()
+    return out(rw
       .on('meta[property="og:title"]', set(og.title)).on('meta[name="twitter:title"]', set(og.title))
       .on('meta[property="og:description"]', set(og.desc)).on('meta[name="twitter:description"]', set(og.desc))
       .on('meta[property="og:image"]', set(og.image)).on('meta[name="twitter:image"]', set(og.image))
       .on('meta[property="og:image:width"]', set(og.w)).on('meta[property="og:image:height"]', set(og.h))
-      .transform(res);
+      .transform(res));
   },
 };
 

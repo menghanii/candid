@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /p/
+Disallow: /a/
+Disallow: /upload/
+Disallow: /media/
+Disallow: /auth/
+
+Sitemap: https://candid-feed.com/sitemap.xml

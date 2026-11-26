@@ -2550,7 +2550,7 @@ function renderLanding(inviter) {
       ${loginButtonsHTML(p)}
       ${inKakao && all.includes('google') ? `<button class="fine linkish" onclick="openExternal()">${t('Google로 하려면 Safari·Chrome에서 열기')}</button>` : ''}
       ${appFirst ? '' : `<p class="fine">${t('친구는 로그인 없이 사진을 보낼 수 있어요.<br>내가 승인한 사진만 피드에 올라갑니다.')}</p>`}
-      <p class="fine legal-fine">${t('계속하면 {a}과 {b}에 동의하는 것으로 봐요', { a: `<a href="${SITE}/terms.html" target="_blank" rel="noopener">${t('이용약관')}</a>`, b: `<a href="${SITE}/privacy.html" target="_blank" rel="noopener">${t('개인정보처리방침')}</a>` })}</p>
+      <p class="fine legal-fine">${t('계속하면 {a}과 {b}에 동의하는 것으로 봐요', { a: `<a href="${SITE}/terms" target="_blank" rel="noopener">${t('이용약관')}</a>`, b: `<a href="${SITE}/privacy" target="_blank" rel="noopener">${t('개인정보처리방침')}</a>` })}</p>
 
     </div>`;
   startWander();
@@ -4486,7 +4486,7 @@ function openMenu() {
       ${IS_ADMIN ? row(I.users || I.user, t('관리자 · 전체 사용자'), 'closeSheet();setTimeout(openAdminUsers,250)') : ''}
     </div>
     <div class="clist2" style="margin-top:12px">${row(I.logout, t('로그아웃'), 'logout()', 'danger')}${DEMO ? '' : row(I.trash, t('계정 삭제'), 'closeSheet();setTimeout(openDeleteAccount,250)', 'danger')}</div>
-    <p class="legal-links"><a href="${SITE}/terms.html" target="_blank" rel="noopener">${t('이용약관')}</a> · <a href="${SITE}/privacy.html" target="_blank" rel="noopener">${t('개인정보처리방침')}</a></p></div>`);
+    <p class="legal-links"><a href="${SITE}/terms" target="_blank" rel="noopener">${t('이용약관')}</a> · <a href="${SITE}/privacy" target="_blank" rel="noopener">${t('개인정보처리방침')}</a></p></div>`);
 }
 // ---------- 광고 ----------
 // 공급자(광고 회사)를 우선순위대로 꽂아 쓰는 구조: 앞 공급자가 광고를 못 주면 다음 공급자로.
